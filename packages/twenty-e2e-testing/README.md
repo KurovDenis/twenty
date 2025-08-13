@@ -1,5 +1,12 @@
 # Twenty end-to-end (E2E) Testing
 
+## Environment Setup
+
+The E2E tests can be configured using environment variables. You can create a `.env` file in this directory with the following variables:
+
+- `FRONTEND_BASE_URL`: The base URL for the frontend application (defaults to `http://localhost:3001`)
+- `CI`: Set to `true` in CI environments (automatically detected)
+
 ## Prerequisite
 
 Installing the browsers:

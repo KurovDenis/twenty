@@ -2,12 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 import { config } from 'dotenv';
 import path from 'path';
 
+// Load .env file if it exists, otherwise continue without it
 const envResult = config({
   path: path.resolve(__dirname, '.env'),
 });
 
-if (envResult.error) {
-  throw new Error('Failed to load .env file');
+// Only throw error if .env file exists but failed to load
+if (envResult.error && envResult.error.code !== 'ENOENT') {
+  throw new Error(`Failed to load .env file: ${envResult.error.message}`);
 }
 
 /* === Run your local dev server before starting the tests === */
