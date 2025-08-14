@@ -1,4 +1,5 @@
 import { AuthModal } from '@/auth/components/AuthModal';
+import { FloatingAIChatButton } from '@/ai/components/FloatingAIChatButton';
 import { CommandMenuRouter } from '@/command-menu/components/CommandMenuRouter';
 import { AppErrorBoundary } from '@/error-handler/components/AppErrorBoundary';
 import { AppFullScreenErrorFallback } from '@/error-handler/components/AppFullScreenErrorFallback';
@@ -94,6 +95,7 @@ export const DefaultLayout = () => {
               <>
                 <CommandMenuRouter />
                 <KeyboardShortcutMenu />
+                <FloatingAIChatButton />
               </>
             )}
             {showAuthModal ? (
