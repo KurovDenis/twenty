@@ -7,6 +7,7 @@ export const StyledFloatingAIChatButtonContainer = styled.div`
   z-index: 1000;
   pointer-events: auto;
   animation: fadeInScale 0.3s ease-out;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 
   @keyframes fadeInScale {
     from {

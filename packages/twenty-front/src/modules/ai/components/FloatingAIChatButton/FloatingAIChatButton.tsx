@@ -1,6 +1,6 @@
 import { useTheme } from '@emotion/react';
-import { t } from '@lingui/core/macro';
 import { useState } from 'react';
+import { t } from '@lingui/core/macro';
 import { IconSparkles } from 'twenty-ui/display';
 import { FloatingIconButton } from 'twenty-ui/input';
 import { useIsMobile } from 'twenty-ui/utilities';
@@ -17,13 +17,14 @@ export const FloatingAIChatButton = () => {
   const { isVisible, handleClick } = useFloatingAIChatButton();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
 
-  if (!isVisible) {
-    return null;
-  }
-
   return (
     <StyledFloatingAIChatButtonContainer
       data-testid="floating-ai-chat-button"
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'scale(1)' : 'scale(0.8)',
+        pointerEvents: isVisible ? 'auto' : 'none',
+      }}
     >
       <StyledFloatingAIChatButton
         onMouseEnter={() => setIsTooltipVisible(true)}
