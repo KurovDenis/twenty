@@ -59,8 +59,6 @@ RUN npm install -g tsx
 
 RUN apk add --no-cache postgresql-client
 
-COPY ./packages/twenty-docker/twenty/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
 WORKDIR /app/packages/twenty-server
 
 ARG REACT_APP_SERVER_BASE_URL
@@ -80,6 +78,10 @@ LABEL org.opencontainers.image.description="This image provides a consistent and
 
 RUN mkdir -p /app/.local-storage /app/packages/twenty-server/.local-storage && \
     chown -R 1000:1000 /app
+
+# Copy entrypoint script
+COPY --chown=1000 ./packages/twenty-docker/twenty/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Use non root user with uid 1000
 USER 1000

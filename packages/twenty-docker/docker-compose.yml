@@ -2,7 +2,11 @@ name: twenty
 
 services:
   server:
-    image: twentycrm/twenty:${TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: packages/twenty-docker/twenty/Dockerfile
+      args:
+        REACT_APP_SERVER_BASE_URL: ${SERVER_URL:-http://localhost:3000}
     volumes:
       - server-local-data:/app/packages/twenty-server/.local-storage
     ports:
@@ -106,6 +110,8 @@ services:
 
   db:
     image: postgres:16
+    ports:
+      - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
@@ -120,6 +126,8 @@ services:
 
   redis:
     image: redis
+    ports:
+      - "6379:6379"
     restart: always
     command: ["--maxmemory-policy", "noeviction"]
 
