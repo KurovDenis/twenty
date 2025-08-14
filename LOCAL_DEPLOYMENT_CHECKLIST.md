@@ -36,6 +36,32 @@ npx nx database:migrate twenty-server
 
 ---
 
+## 🤖 AI ФУНКЦИОНАЛ (Новое!)
+
+### AI включен по умолчанию для всех workspace
+
+**Что было добавлено:**
+- ✅ AI Feature Flag (`IS_AI_ENABLED`) включен по умолчанию
+- ✅ AI Agent создается автоматически для каждого workspace
+- ✅ AI чат доступен в командном меню (Ctrl+K → "Ask AI")
+
+### Проверка AI функционала:
+1. Создайте новый workspace
+2. Нажмите `Ctrl+K` для открытия командного меню
+3. Найдите "Ask AI" в списке команд
+4. AI чат должен быть доступен автоматически
+
+### Если AI не работает:
+```bash
+# Проверить feature flag в базе данных
+docker exec twenty-db-1 psql -U postgres -d default -c "SELECT * FROM core.\"featureFlag\" WHERE \"key\" = 'IS_AI_ENABLED';"
+
+# Проверить AI агента
+docker exec twenty-db-1 psql -U postgres -d default -c "SELECT * FROM core.\"agent\" WHERE \"name\" = 'ai-assistant';"
+```
+
+---
+
 ## 📋 ПОЛНЫЙ ЧЕК-ЛИСТ
 
 ## Предварительные требования
@@ -48,7 +74,7 @@ npx nx database:migrate twenty-server
 
 ## Шаг 1: Запуск базовых сервисов
 
-### 1.1 Запуск базы данных и Redis
+### 1.1 Запуск базы данных и Redis (Вариант 1: Docker Compose)
 ```bash
 # Перейти в корневую директорию проекта
 cd /path/to/twenty
@@ -57,13 +83,35 @@ cd /path/to/twenty
 docker-compose -f packages/twenty-docker/docker-compose.yml up -d db redis
 ```
 
-**Проверка:**
-- [ ] Контейнеры `twenty-db-1` и `twenty-redis-1` запущены
-- [ ] Нет ошибок в логах Docker
-
-### 1.2 Проверка статуса контейнеров
+### 1.2 Запуск базы данных и Redis (Вариант 2: Makefile - Рекомендуется)
 ```bash
+# Использовать Makefile для автоматической настройки
+make setup-twenty
+
+# Или по отдельности:
+make postgres-on-docker
+make redis-on-docker
+```
+
+**Преимущества Makefile:**
+- ✅ Автоматически создает базу данных "default"
+- ✅ Автоматически создает схему "core"
+- ✅ Очищает старые контейнеры
+- ✅ Работает на Windows и Linux
+
+**Проверка:**
+- [ ] Контейнеры `twenty_pg` и `twenty_redis` запущены
+- [ ] Нет ошибок в логах Docker
+- [ ] База данных "default" создана
+- [ ] Схема "core" создана
+
+### 1.3 Проверка статуса контейнеров
+```bash
+# Для Docker Compose
 docker-compose -f packages/twenty-docker/docker-compose.yml ps
+
+# Для Makefile
+docker ps | grep twenty
 ```
 
 ## Шаг 2: Установка зависимостей
@@ -126,6 +174,8 @@ npx nx database:migrate twenty-server
 - [ ] Миграции выполнены успешно
 - [ ] Нет ошибок в консоли
 - [ ] Сообщение "No migrations are pending" или успешное выполнение миграций
+- [ ] AI Feature Flag включен автоматически
+- [ ] AI Agent создан автоматически
 
 ### 3.5.2 Проверка инициализации базы данных
 ```bash
@@ -134,6 +184,10 @@ docker-compose -f packages/twenty-docker/docker-compose.yml logs db
 
 # Проверить подключение к базе данных
 docker exec -it twenty-db-1 psql -U postgres -d postgres -c "\dt"
+
+# Проверить AI функционал
+docker exec twenty-db-1 psql -U postgres -d default -c "SELECT * FROM core.\"featureFlag\" WHERE \"key\" = 'IS_AI_ENABLED';"
+docker exec twenty-db-1 psql -U postgres -d default -c "SELECT * FROM core.\"agent\" WHERE \"name\" = 'ai-assistant';"
 ```
 
 ## Шаг 4: Запуск бэкенда
@@ -177,7 +231,13 @@ npx nx start twenty-front
 - [ ] Фронтенд загружается без ошибок
 - [ ] Можно зарегистрироваться/войти в систему
 
-### 6.2 Проверка портов
+### 6.2 Проверка AI функционала
+- [ ] Создать новый workspace
+- [ ] Нажать `Ctrl+K` для открытия командного меню
+- [ ] Найти "Ask AI" в списке команд
+- [ ] AI чат должен открыться без ошибок
+
+### 6.3 Проверка портов
 ```bash
 # Проверить какие порты заняты
 netstat -an | findstr :3000
@@ -226,6 +286,12 @@ netstat -an | findstr :3001
 - [ ] Открыть браузер и перейти на http://localhost:3000
 - [ ] Сервер должен отвечать (может показать информацию о NestJS или GraphQL playground)
 
+### 8.4 Проверка AI функционала
+- [ ] Создать новый workspace
+- [ ] Нажать `Ctrl+K` для открытия командного меню
+- [ ] Найти и выбрать "Ask AI"
+- [ ] AI чат должен открыться и быть готовым к использованию
+
 ## Шаг 9: Первоначальная настройка (при первом запуске)
 
 ### 9.1 Создание рабочего пространства
@@ -233,6 +299,7 @@ netstat -an | findstr :3001
 - [ ] Зарегистрироваться или войти в систему
 - [ ] Создать рабочее пространство
 - [ ] Настроить базовые параметры
+- [ ] AI функционал будет доступен автоматически
 
 ### 9.2 Решение ошибки "User does not have access to this workspace"
 Эта ошибка появляется при первом запуске и решается:
@@ -302,6 +369,51 @@ npx nx start twenty-front
 - [ ] Сервер запускается без ошибок
 - [ ] Фронтенд загружается
 - [ ] Можно зарегистрироваться и создать workspace
+- [ ] AI функционал доступен
+
+## Шаг 11: Решение проблем с AI функционалом
+
+### 11.1 Проблема: AI чат не отображается
+Если AI чат не появляется в командном меню:
+
+```bash
+# 1. Проверить feature flag
+docker exec twenty-db-1 psql -U postgres -d default -c "SELECT * FROM core.\"featureFlag\" WHERE \"key\" = 'IS_AI_ENABLED';"
+
+# 2. Если feature flag отсутствует, создать его
+docker exec twenty-db-1 psql -U postgres -d default -c "INSERT INTO core.\"featureFlag\" (\"key\", \"workspaceId\", \"value\", \"createdAt\", \"updatedAt\") VALUES ('IS_AI_ENABLED', 'YOUR_WORKSPACE_ID', true, NOW(), NOW());"
+
+# 3. Проверить AI агента
+docker exec twenty-db-1 psql -U postgres -d default -c "SELECT * FROM core.\"agent\" WHERE \"name\" = 'ai-assistant';"
+```
+
+### 11.2 Проблема: AI агент не создается автоматически
+Если AI агент не создается при создании workspace:
+
+```bash
+# 1. Проверить миграции
+npx nx database:migrate twenty-server
+
+# 2. Проверить логи сервера на наличие ошибок
+# 3. Перезапустить сервер
+npx nx start twenty-server
+```
+
+### 11.3 Полная пересборка с AI функционалом
+```bash
+# 1. Остановить все сервисы
+docker-compose -f packages/twenty-docker/docker-compose.yml down -v
+
+# 2. Использовать Makefile для полной настройки
+make setup-twenty
+
+# 3. Выполнить миграции
+npx nx database:migrate twenty-server
+
+# 4. Запустить сервер и фронтенд
+npx nx start twenty-server
+npx nx start twenty-front
+```
 
 ## Устранение неполадок
 
@@ -408,6 +520,18 @@ rm -rf node_modules
 yarn install
 ```
 
+### Команды для работы с AI функционалом
+```bash
+# Проверить AI feature flag
+docker exec twenty-db-1 psql -U postgres -d default -c "SELECT * FROM core.\"featureFlag\" WHERE \"key\" = 'IS_AI_ENABLED';"
+
+# Проверить AI агентов
+docker exec twenty-db-1 psql -U postgres -d default -c "SELECT * FROM core.\"agent\";"
+
+# Включить AI для конкретного workspace
+docker exec twenty-db-1 psql -U postgres -d default -c "INSERT INTO core.\"featureFlag\" (\"key\", \"workspaceId\", \"value\", \"createdAt\", \"updatedAt\") VALUES ('IS_AI_ENABLED', 'WORKSPACE_ID', true, NOW(), NOW()) ON CONFLICT (\"key\", \"workspaceId\") DO UPDATE SET \"value\" = true;"
+```
+
 ## Контакты и поддержка
 
 - Документация: [docs.twenty.com](https://docs.twenty.com)
@@ -417,3 +541,5 @@ yarn install
 ---
 
 **Примечание:** Этот чек-лист предназначен для локальной разработки. Для продакшн развертывания используйте официальную документацию Twenty.
+
+**AI Функционал:** AI чат включен по умолчанию для всех новых workspace. Используйте `Ctrl+K` → "Ask AI" для доступа к AI ассистенту.

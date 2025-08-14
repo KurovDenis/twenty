@@ -1,9 +1,14 @@
 DOCKER_NETWORK=twenty_network
 
 ensure-docker-network:
-	docker network inspect $(DOCKER_NETWORK) >/dev/null 2>&1 || docker network create $(DOCKER_NETWORK)
+	docker network inspect $(DOCKER_NETWORK) 2>nul || docker network create $(DOCKER_NETWORK)
 
-postgres-on-docker:
+clean-containers:
+	@echo "Cleaning existing containers..."
+	docker stop twenty_pg twenty_redis 2>nul || echo "No containers to stop"
+	docker rm twenty_pg twenty_redis 2>nul || echo "No containers to remove"
+
+postgres-on-docker: clean-containers
 	make ensure-docker-network
 	docker run -d --network $(DOCKER_NETWORK) \
 	--name twenty_pg \
@@ -14,17 +19,22 @@ postgres-on-docker:
 	-p 5432:5432 \
 	postgres:16
 	@echo "Waiting for PostgreSQL to be ready..."
-	@until docker exec twenty_pg psql -U postgres -d postgres \
-		-c 'SELECT pg_is_in_recovery();' 2>/dev/null | grep -q 'f'; do \
-		sleep 1; \
-	done
-	docker exec twenty_pg psql -U postgres -d postgres \
-		-c "CREATE DATABASE \"default\" WITH OWNER postgres;" \
-		-c "CREATE DATABASE \"test\" WITH OWNER postgres;"
+	@timeout /t 15 /nobreak >nul
+	@echo "Creating databases if they don't exist..."
+	docker exec twenty_pg psql -U postgres -d postgres -c "CREATE DATABASE \"default\" WITH OWNER postgres;" 2>nul || echo "Database default already exists"
+	docker exec twenty_pg psql -U postgres -d postgres -c "CREATE DATABASE \"test\" WITH OWNER postgres;" 2>nul || echo "Database test already exists"
+	@echo "Creating core schema..."
+	docker exec twenty_pg psql -U postgres -d default -c "CREATE SCHEMA IF NOT EXISTS core;"
+	@echo "PostgreSQL setup complete!"
 
 redis-on-docker:
 	make ensure-docker-network
 	docker run -d --network $(DOCKER_NETWORK) --name twenty_redis -p 6379:6379 redis/redis-stack-server:latest
+
+# Полная настройка Twenty
+setup-twenty: postgres-on-docker redis-on-docker
+	@echo "🎉 Twenty setup complete!"
+	@echo "Now you can run: npx nx database:migrate twenty-server"
 
 clickhouse-on-docker:
 	make ensure-docker-network
