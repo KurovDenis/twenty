@@ -39,6 +39,8 @@ import { streamToBuffer } from 'src/utils/stream-to-buffer';
 
 import { AgentEntity } from './agent.entity';
 import { AgentException, AgentExceptionCode } from './agent.exception';
+import { LangGraphExecutionService } from './langgraph/services/langgraph-execution.service';
+import { AgentContext } from './langgraph/types/langgraph-agent.types';
 
 export interface AgentExecutionResult {
   result: object;
@@ -61,6 +63,7 @@ export class AgentExecutionService {
     private readonly twentyORMGlobalManager: TwentyORMGlobalManager,
     private readonly workspacePermissionsCacheService: WorkspacePermissionsCacheService,
     private readonly aiModelRegistryService: AiModelRegistryService,
+    private readonly langGraphExecutionService: LangGraphExecutionService, // Add LangGraph service
     @InjectRepository(AgentEntity, 'core')
     private readonly agentRepository: Repository<AgentEntity>,
     @InjectRepository(FileEntity, 'core')
@@ -344,54 +347,65 @@ export class AgentExecutionService {
     return streamText(aiRequestConfig);
   }
 
-  async executeAgent({
-    agent,
-    schema,
-    userPrompt,
-  }: {
-    agent: AgentEntity | null;
-    context: Record<string, unknown>;
-    schema: OutputSchema;
-    userPrompt: string;
-  }): Promise<AgentExecutionResult> {
+  async executeAgent(
+    agentId: string,
+    messages: CoreMessage[],
+    workspaceId: string,
+    userWorkspaceId: string,
+    threadId: string,
+  ): Promise<AgentExecutionResult> {
+    const agent = await this.agentRepository.findOne({
+      where: { id: agentId, workspaceId },
+    });
+
+    if (!agent) {
+      throw new AgentException(
+        'Agent not found',
+        AgentExceptionCode.AGENT_NOT_FOUND,
+      );
+    }
+
+    // Check if this is a LangGraph agent
+    if (agent.agentType === 'langgraph') {
+      const context: AgentContext = {
+        workspaceId,
+        userId: userWorkspaceId, // TODO: get userId from userWorkspaceId
+        threadId,
+        userWorkspaceId,
+      };
+
+      const result = await this.langGraphExecutionService.execute(
+        agentId,
+        messages as any, // Convert to AgentMessage format
+        context,
+      );
+
+      return {
+        result: { content: result.content },
+        usage: result.usage,
+      };
+    }
+
+    // Existing logic for standard agents
+    return this.executeStandardAgent(agent, messages, workspaceId);
+  }
+
+  private async executeStandardAgent(
+    agent: AgentEntity,
+    messages: CoreMessage[],
+    workspaceId: string,
+  ): Promise<AgentExecutionResult> {
     try {
       const aiRequestConfig = await this.prepareAIRequestConfig({
         system: `You are executing as part of a workflow automation. ${agent ? agent.prompt : ''}`,
         agent,
-        prompt: userPrompt,
+        prompt: messages.map((msg) => msg.content).join('\n'), // Use messages for prompt
       });
       const textResponse = await generateText(aiRequestConfig);
 
-      if (Object.keys(schema).length === 0) {
-        return {
-          result: { response: textResponse.text },
-          usage: textResponse.usage,
-        };
-      }
-      const output = await generateObject({
-        system: AGENT_SYSTEM_PROMPTS.OUTPUT_GENERATOR,
-        model: aiRequestConfig.model,
-        prompt: `Based on the following execution results, generate the structured output according to the schema:
-
-                 Execution Results: ${textResponse.text}
-
-                 Please generate the structured output based on the execution results and context above.`,
-        schema: convertOutputSchemaToZod(schema),
-      });
-
       return {
-        result: output.object,
-        usage: {
-          promptTokens:
-            (textResponse.usage?.promptTokens ?? 0) +
-            (output.usage?.promptTokens ?? 0),
-          completionTokens:
-            (textResponse.usage?.completionTokens ?? 0) +
-            (output.usage?.completionTokens ?? 0),
-          totalTokens:
-            (textResponse.usage?.totalTokens ?? 0) +
-            (output.usage?.totalTokens ?? 0),
-        },
+        result: { response: textResponse.text },
+        usage: textResponse.usage,
       };
     } catch (error) {
       if (error instanceof AgentException) {

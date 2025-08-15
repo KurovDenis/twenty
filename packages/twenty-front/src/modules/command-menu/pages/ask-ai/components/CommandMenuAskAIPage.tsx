@@ -1,5 +1,6 @@
 import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { AIChatTab } from '@/ai/components/AIChatTab';
+import { useSmartAgentSelection } from '@/ai/hooks/useSmartAgentSelection';
 import styled from '@emotion/styled';
 import { useRecoilValue } from 'recoil';
 
@@ -18,8 +19,8 @@ const StyledEmptyState = styled.div`
 `;
 
 export const CommandMenuAskAIPage = () => {
-  const currentWorkspace = useRecoilValue(currentWorkspaceState);
-  const agentId = currentWorkspace?.defaultAgent?.id;
+  const { getOptimalAgentId, isWelcomeAgent } = useSmartAgentSelection();
+  const agentId = getOptimalAgentId();
 
   if (!agentId) {
     return (
@@ -31,7 +32,10 @@ export const CommandMenuAskAIPage = () => {
 
   return (
     <StyledContainer>
-      <AIChatTab agentId={agentId} />
+      <AIChatTab 
+        agentId={agentId}
+        showWelcomeAgentUI={isWelcomeAgent}
+      />
     </StyledContainer>
   );
 };

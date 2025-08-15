@@ -56,6 +56,18 @@ export class AgentEntity {
   @Column({ default: false })
   isCustom: boolean;
 
+  // LangGraph support fields
+  @Column({ nullable: true, default: 'standard' })
+  agentType: 'standard' | 'langgraph';
+  
+  @Column({ nullable: true, type: 'jsonb' })
+  langgraphConfig: {
+    graphType: 'welcome' | 'sales' | 'support';
+    tools: string[];
+    stateSchema: object;
+    workflowDefinition: object;
+  };
+
   @ManyToOne(() => Workspace, (workspace) => workspace.agents, {
     onDelete: 'CASCADE',
   })

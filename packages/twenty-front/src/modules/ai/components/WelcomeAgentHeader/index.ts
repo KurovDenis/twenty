@@ -1,0 +1,1 @@
+export { WelcomeAgentHeader } from './WelcomeAgentHeader';

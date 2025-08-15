@@ -22,6 +22,8 @@ import { t } from '@lingui/core/macro';
 import { useState } from 'react';
 import { Button } from 'twenty-ui/input';
 import { useAgentChat } from '../hooks/useAgentChat';
+import { useShouldShowWelcomeAgent } from '../hooks/useShouldShowWelcomeAgent';
+import { WelcomeAgentHeader } from './WelcomeAgentHeader';
 
 const StyledContainer = styled.div<{ isDraggingFile: boolean }>`
   background: ${({ theme }) => theme.background.primary};
@@ -61,9 +63,11 @@ const StyledButtonsContainer = styled.div`
 export const AIChatTab = ({
   agentId,
   isWorkflowAgentNodeChat,
+  showWelcomeAgentUI = false,
 }: {
   agentId: string;
   isWorkflowAgentNodeChat?: boolean;
+  showWelcomeAgentUI?: boolean;
 }) => {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
 
@@ -83,6 +87,13 @@ export const AIChatTab = ({
 
   const { createAgentChatThread } = useCreateNewAIChatThread({ agentId });
   const { navigateCommandMenu } = useCommandMenu();
+  const { endWelcomeAgentSession } = useShouldShowWelcomeAgent();
+
+  const handleSkipWelcomeAgent = () => {
+    endWelcomeAgentSession();
+    // Перезагружаем страницу для переключения на обычный AI
+    window.location.reload();
+  };
 
   return (
     <StyledContainer
@@ -97,6 +108,9 @@ export const AIChatTab = ({
       )}
       {!isDraggingFile && (
         <>
+          {showWelcomeAgentUI && (
+            <WelcomeAgentHeader onSkip={handleSkipWelcomeAgent} />
+          )}
           {messages.length !== 0 && (
             <StyledScrollWrapper componentInstanceId={scrollWrapperId}>
               {messages.map((message) => (
@@ -115,7 +129,11 @@ export const AIChatTab = ({
             <AgentChatContextPreview agentId={agentId} />
             <TextArea
               textAreaId={`${agentId}-chat-input`}
-              placeholder={t`Enter a question...`}
+              placeholder={
+                showWelcomeAgentUI 
+                  ? t`Задайте вопрос о Twenty...` 
+                  : t`Enter a question...`
+              }
               value={input}
               onChange={handleInputChange}
             />

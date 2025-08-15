@@ -8,7 +8,17 @@
 
 ## Быстрый старт (5 шагов)
 
-### 1. Запуск базы данных
+### 1. Запуск базы данных (Вариант 1: Makefile - Рекомендуется)
+```bash
+# Windows PowerShell с Makefile
+& "C:\Program Files (x86)\GnuWin32\bin\make.exe" setup-twenty
+
+# Или по отдельности:
+& "C:\Program Files (x86)\GnuWin32\bin\make.exe" postgres-on-docker
+& "C:\Program Files (x86)\GnuWin32\bin\make.exe" redis-on-docker
+```
+
+### 1. Запуск базы данных (Вариант 2: Docker Compose)
 ```bash
 docker-compose -f packages/twenty-docker/docker-compose.yml up -d db redis
 ```
@@ -50,9 +60,9 @@ npx nx start twenty-front
 
 ### Проблема: "User does not have access to this workspace"
 ```bash
-# Полная очистка и перезапуск
-docker-compose -f packages/twenty-docker/docker-compose.yml down -v
-docker-compose -f packages/twenty-docker/docker-compose.yml up -d db redis
+# Полная очистка и перезапуск с Makefile
+& "C:\Program Files (x86)\GnuWin32\bin\make.exe" clean-containers
+& "C:\Program Files (x86)\GnuWin32\bin\make.exe" setup-twenty
 npx nx database:migrate twenty-server
 ```
 
@@ -68,10 +78,9 @@ docker-compose -f packages/twenty-docker/docker-compose.yml down
 
 ### Проблема: База данных не инициализируется
 ```bash
-# Очистить все данные и перезапустить
-docker-compose -f packages/twenty-docker/docker-compose.yml down -v
-docker system prune -f
-docker-compose -f packages/twenty-docker/docker-compose.yml up -d db redis
+# Очистить все данные и перезапустить с Makefile
+& "C:\Program Files (x86)\GnuWin32\bin\make.exe" clean-containers
+& "C:\Program Files (x86)\GnuWin32\bin\make.exe" setup-twenty
 # Подождать 30-60 секунд
 npx nx database:migrate twenty-server
 ```
@@ -82,6 +91,9 @@ npx nx database:migrate twenty-server
 # Остановить Docker контейнеры
 docker-compose -f packages/twenty-docker/docker-compose.yml down
 
+# Или через Makefile
+& "C:\Program Files (x86)\GnuWin32\bin\make.exe" clean-containers
+
 # Остановить процессы разработки (Ctrl+C в терминалах)
 ```
 
@@ -90,7 +102,21 @@ docker-compose -f packages/twenty-docker/docker-compose.yml down
 - При первом запуске может появиться ошибка "User does not have access to this workspace" - это нормально
 - Зарегистрируйтесь или войдите в систему для создания workspace
 - Все данные сохраняются в Docker volumes
-- Для полной очистки используйте `docker-compose down -v`
+- Для полной очистки используйте `docker-compose down -v` или `make clean-containers`
+
+## 🛠️ Установка Make для Windows
+
+Если у вас нет Make:
+```bash
+# Установить через winget
+winget install GnuWin32.Make
+
+# Или скачать с официального сайта
+# https://gnuwin32.sourceforge.net/packages/make.htm
+```
+
+После установки Make будет доступен по пути:
+`C:\Program Files (x86)\GnuWin32\bin\make.exe`
 
 ---
 

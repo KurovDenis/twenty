@@ -5,17 +5,27 @@ import { IconSparkles } from 'twenty-ui/display';
 import { FloatingIconButton } from 'twenty-ui/input';
 import { useIsMobile } from 'twenty-ui/utilities';
 import { useFloatingAIChatButton } from '../../hooks/useFloatingAIChatButton';
+import { useShouldShowWelcomeAgent } from '../../hooks/useShouldShowWelcomeAgent';
 import {
   StyledFloatingAIChatButton,
   StyledFloatingAIChatButtonContainer,
   StyledTooltip,
+  StyledWelcomeBadge,
 } from './FloatingAIChatButton.styles';
 
 export const FloatingAIChatButton = () => {
   const theme = useTheme();
   const isMobile = useIsMobile();
   const { isVisible, handleClick } = useFloatingAIChatButton();
+  const { shouldShowWelcomeAgent, startWelcomeAgentSession } = useShouldShowWelcomeAgent();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+
+  const handleButtonClick = () => {
+    if (shouldShowWelcomeAgent) {
+      startWelcomeAgentSession(); // Начинаем сессию Welcome Agent
+    }
+    handleClick();
+  };
 
   return (
     <StyledFloatingAIChatButtonContainer
@@ -36,15 +46,21 @@ export const FloatingAIChatButton = () => {
           position="standalone"
           applyShadow={true}
           applyBlur={true}
-          onClick={handleClick}
+          onClick={handleButtonClick}
         />
+        {shouldShowWelcomeAgent && (
+          <StyledWelcomeBadge>Новый!</StyledWelcomeBadge>
+        )}
         <StyledTooltip
           style={{
             opacity: isTooltipVisible ? 1 : 0,
             transform: isTooltipVisible ? 'translateY(0)' : 'translateY(4px)',
           }}
         >
-          {t`Ask AI (Press @)`}
+          {shouldShowWelcomeAgent 
+            ? t`Welcome Agent (Новый!)` 
+            : t`Ask AI (Press @)`
+          }
         </StyledTooltip>
       </StyledFloatingAIChatButton>
     </StyledFloatingAIChatButtonContainer>

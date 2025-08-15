@@ -69,3 +69,33 @@ export const StyledTooltip = styled.div`
   transition: opacity 0.2s ease;
   transform: translateY(4px);
 `;
+
+export const StyledWelcomeBadge = styled.div`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: ${({ theme }) => theme.color.blue};
+  color: ${({ theme }) => theme.font.color.inverted};
+  font-size: ${({ theme }) => theme.font.size.xs};
+  font-weight: 600;
+  padding: ${({ theme }) => theme.spacing(0.5, 1)};
+  border-radius: ${({ theme }) => theme.border.radius.sm};
+  white-space: nowrap;
+  animation: pulse 2s infinite;
+  z-index: 1;
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 ${({ theme }) => theme.color.blue}40;
+    }
+    70% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 6px ${({ theme }) => theme.color.blue}00;
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 ${({ theme }) => theme.color.blue}00;
+    }
+  }
+`;
