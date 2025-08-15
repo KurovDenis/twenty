@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { LangGraphStateCacheService } from './langgraph-state-cache.service';
-import { AgentState } from '@twenty/shared/langgraph/types';
+import { AgentState } from '@twenty/shared';
 
 @Injectable()
 export class LangGraphStateRecoveryService {

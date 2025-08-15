@@ -3,7 +3,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { Repository } from 'typeorm';
 import { LangGraphStateEntity } from '../entities/langgraph-state.entity';
-import { AgentState } from '@twenty/shared/langgraph/types';
+import { AgentState } from '@twenty/shared';
 
 @Injectable()
 export class LangGraphStateCacheService {

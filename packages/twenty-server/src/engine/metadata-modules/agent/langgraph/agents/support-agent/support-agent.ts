@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AgentContext, AgentExecutionResult, AgentState } from '@twenty/shared/langgraph/types';
+import { AgentContext, AgentExecutionResult, AgentState } from '@twenty/shared';
 
 @Injectable()
 export class SupportAgent {

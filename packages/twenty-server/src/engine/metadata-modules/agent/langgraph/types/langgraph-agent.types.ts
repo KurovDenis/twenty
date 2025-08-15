@@ -1,5 +1,5 @@
 import { DynamicTool } from '@langchain/core/tools';
-import { AgentExecutionResult, AgentState } from '@twenty/shared/langgraph/types';
+import { AgentExecutionResult, AgentState } from '@twenty/shared';
 
 export interface AgentContext {
   workspaceId: string;

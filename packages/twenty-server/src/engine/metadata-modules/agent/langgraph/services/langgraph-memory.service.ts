@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AgentMessage } from '@twenty/shared/langgraph/types';
+import { AgentMessage } from '@twenty/shared';
 import { AiService } from 'src/engine/core-modules/ai/services/ai.service';
 import { Repository } from 'typeorm';
 import { LangGraphStateEntity } from '../entities/langgraph-state.entity';

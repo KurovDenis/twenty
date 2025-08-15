@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LangGraphStateEntity } from '../entities/langgraph-state.entity';
-import { AgentState } from '@twenty/shared/langgraph/types';
+import { AgentState } from '@twenty/shared';
 import { LangGraphStateCacheService } from './langgraph-state-cache.service';
 import { LangGraphStateRecoveryService } from './langgraph-state-recovery.service';
 

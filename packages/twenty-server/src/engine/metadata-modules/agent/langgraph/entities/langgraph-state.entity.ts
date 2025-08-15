@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { AgentState } from '@twenty/shared/langgraph/types';
+import { AgentState } from '@twenty/shared';
 
 @Entity('langgraph_state')
 export class LangGraphStateEntity {

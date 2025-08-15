@@ -1,14 +1,7 @@
 import { useRecoilValue } from 'recoil';
-// import { useFindManyAgentsQuery } from '@/modules/ai/graphql/queries/findManyAgents';
+import { useFindManyAgentsQuery } from '@/modules/ai/graphql/queries/findManyAgents';
 import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { useShouldShowWelcomeAgent } from './useShouldShowWelcomeAgent';
-
-// Временная заглушка для useFindManyAgentsQuery
-const useFindManyAgentsQuery = () => ({
-  data: [],
-  loading: false,
-  error: null,
-});
 
 export const useSmartAgentSelection = () => {
   const currentWorkspace = useRecoilValue(currentWorkspaceState);
@@ -20,7 +13,7 @@ export const useSmartAgentSelection = () => {
   // Умный выбор оптимального агента
   const getOptimalAgentId = () => {
     // Если нужно показать Welcome Agent и он найден
-    if (shouldShowWelcomeAgent && welcomeAgent?.length) {
+    if (shouldShowWelcomeAgent && welcomeAgent && Array.isArray(welcomeAgent) && welcomeAgent.length > 0) {
       return welcomeAgent[0].id;
     }
     
@@ -29,7 +22,7 @@ export const useSmartAgentSelection = () => {
   };
   
   // Определяем, является ли текущий агент Welcome Agent
-  const isWelcomeAgent = shouldShowWelcomeAgent && welcomeAgent?.length;
+  const isWelcomeAgent: boolean = Boolean(shouldShowWelcomeAgent && welcomeAgent && Array.isArray(welcomeAgent) && welcomeAgent.length > 0);
   
   // Получаем текущий agentId
   const currentAgentId = getOptimalAgentId();
@@ -38,11 +31,11 @@ export const useSmartAgentSelection = () => {
     getOptimalAgentId,
     isWelcomeAgent,
     currentAgentId,
-    welcomeAgent: welcomeAgent?.[0],
+    welcomeAgent: welcomeAgent && Array.isArray(welcomeAgent) ? welcomeAgent[0] : undefined,
     defaultAgent: currentWorkspace?.defaultAgent,
     debug: {
       shouldShowWelcomeAgent,
-      welcomeAgentFound: !!welcomeAgent?.length,
+      welcomeAgentFound: !!(welcomeAgent && Array.isArray(welcomeAgent) && welcomeAgent.length > 0),
       defaultAgentId: currentWorkspace?.defaultAgent?.id,
     }
   };

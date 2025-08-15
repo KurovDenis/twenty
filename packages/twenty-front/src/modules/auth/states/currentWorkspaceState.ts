@@ -24,6 +24,7 @@ export type CurrentWorkspace = Pick<
   | 'workspaceUrls'
   | 'metadataVersion'
   | 'isTwoFactorAuthenticationEnforced'
+  | 'createdAt'
 > & {
   defaultRole?: Omit<Role, 'workspaceMembers'> | null;
   defaultAgent?: { id: string } | null;

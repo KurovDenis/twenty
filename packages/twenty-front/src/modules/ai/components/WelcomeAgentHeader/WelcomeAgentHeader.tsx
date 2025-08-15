@@ -54,10 +54,8 @@ export const WelcomeAgentHeader: React.FC<WelcomeAgentHeaderProps> = ({ onSkip }
         variant="secondary" 
         size="small" 
         onClick={onSkip}
-        title={t`Пропустить Welcome Agent`}
-      >
-        {t`Пропустить`}
-      </Button>
+        title={t`Пропустить`}
+      />
     </StyledWelcomeHeader>
   );
 };

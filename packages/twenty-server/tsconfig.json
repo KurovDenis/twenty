@@ -27,6 +27,7 @@
     "paths": {
       "src/*": ["./src/*"],
       "test/*": ["./test/*"],
+      "@twenty/shared": ["../twenty-shared/src"],
       "@twenty/shared/*": ["../twenty-shared/src/*"]
     }
   },

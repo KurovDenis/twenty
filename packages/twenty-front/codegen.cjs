@@ -6,6 +6,7 @@ module.exports = {
     '/graphql',
   documents: [
     './src/modules/activities/graphql/**/*.{ts,tsx}',
+    './src/modules/ai/graphql/**/*.{ts,tsx}',
     './src/modules/companies/graphql/**/*.{ts,tsx}',
     './src/modules/people/graphql/**/*.{ts,tsx}',
     './src/modules/opportunities/graphql/**/*.{ts,tsx}',

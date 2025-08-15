@@ -35,3 +35,26 @@ export interface SendWelcomeAgentMessageResponse {
     metadata?: Record<string, any>;
   };
 }
+
+// Temporary hook until codegen is run
+export const useSendWelcomeAgentMessageMutation = () => {
+  // This is a placeholder - will be replaced by generated code
+  return [
+    async (options: { variables: { input: SendWelcomeAgentMessageInput } }) => {
+      // Placeholder implementation
+      console.warn('useSendWelcomeAgentMessageMutation: This is a placeholder. Run codegen to generate the real hook.');
+      return {
+        data: {
+          sendWelcomeAgentMessage: {
+            id: 'placeholder-message-id',
+            threadId: options.variables.input.threadId,
+            role: 'assistant',
+            content: 'This is a placeholder response. The real AI agent will respond when the backend is properly connected.',
+            createdAt: new Date().toISOString(),
+            metadata: {},
+          }
+        }
+      };
+    }
+  ];
+};
