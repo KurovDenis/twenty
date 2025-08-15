@@ -110,7 +110,7 @@ export class LangGraphMetricsService {
   recordCacheHit(hit: boolean, threadId: string): void {
     // Update cache hit ratio (simplified implementation)
     // В production это должно быть более сложная логика с sliding window
-    this.cacheHitRatio.set(hit ? 1 : 0, {
+    this.cacheHitRatio.record(hit ? 1 : 0, {
       thread_id: threadId,
     });
   }

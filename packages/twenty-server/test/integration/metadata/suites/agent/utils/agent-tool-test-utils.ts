@@ -160,6 +160,13 @@ export const createAgentToolTestModule =
       workspaceId: testWorkspaceId,
       workspace: {} as any,
       roleId: testRoleId,
+      agentType: 'standard',
+      langgraphConfig: {
+        graphType: 'welcome',
+        tools: [],
+        stateSchema: {},
+        workflowDefinition: {},
+      },
       createdAt: new Date(),
       updatedAt: new Date(),
       chatThreads: [],

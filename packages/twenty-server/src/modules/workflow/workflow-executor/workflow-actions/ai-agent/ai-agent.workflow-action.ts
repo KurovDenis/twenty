@@ -74,12 +74,13 @@ export class AiAgentWorkflowAction implements WorkflowAction {
         );
       }
 
-      const { result, usage } = await this.agentExecutionService.executeAgent({
-        agent,
-        context,
-        schema: step.settings.outputSchema,
-        userPrompt: resolveInput(prompt, context) as string,
-      });
+      const { result, usage } = await this.agentExecutionService.executeAgent(
+        agent?.id ?? '',
+        [{ role: 'user', content: resolveInput(prompt, context) as string }],
+        workspaceId,
+        context.userWorkspaceId as string,
+        context.threadId as string ?? 'workflow-thread',
+      );
 
       await this.aiBillingService.calculateAndBillUsage(
         agent?.modelId ?? 'auto',

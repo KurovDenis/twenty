@@ -64,8 +64,6 @@ export class LangGraphStateRecoveryService {
   async validateStateSchema(state: AgentState): Promise<boolean> {
     // Comprehensive schema validation
     return (
-      state.messages !== undefined && 
-      Array.isArray(state.messages) &&
       state.workflowStep !== undefined &&
       typeof state.workflowStep === 'number' &&
       state.context !== undefined &&

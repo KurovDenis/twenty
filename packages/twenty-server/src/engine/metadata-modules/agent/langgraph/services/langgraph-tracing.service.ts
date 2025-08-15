@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { trace, type Span, type SpanAttributes } from '@opentelemetry/api';
+import { trace, type Span, type SpanAttributes, SpanStatusCode } from '@opentelemetry/api';
 
 export interface TracingContext {
   agentId: string;
@@ -30,11 +30,11 @@ export class LangGraphTracingService {
 
     try {
       const result = await fn();
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -60,11 +60,11 @@ export class LangGraphTracingService {
 
     try {
       const result = await fn();
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -90,11 +90,11 @@ export class LangGraphTracingService {
 
     try {
       const result = await fn();
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -118,11 +118,11 @@ export class LangGraphTracingService {
 
     try {
       const result = await fn();
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -159,7 +159,7 @@ export class LangGraphTracingService {
     error: Error,
     attributes?: SpanAttributes,
   ): void {
-    span.recordException(error, attributes);
+    span.recordException(error);
   }
 
   // Trace message processing
@@ -179,11 +179,11 @@ export class LangGraphTracingService {
 
     try {
       const result = await fn();
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -208,11 +208,11 @@ export class LangGraphTracingService {
 
     try {
       const result = await fn();
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -237,11 +237,11 @@ export class LangGraphTracingService {
 
     try {
       const result = await fn();
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -268,11 +268,11 @@ export class LangGraphTracingService {
 
     try {
       const result = await fn();
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -302,11 +302,11 @@ export class LangGraphTracingService {
       span.setAttributes({
         'rate_limit.allowed': allowed,
       });
-      span.setStatus({ code: trace.SpanStatusCode.OK });
+      span.setStatus({ code: SpanStatusCode.OK });
       return allowed;
     } catch (error) {
       span.setStatus({
-        code: trace.SpanStatusCode.ERROR,
+        code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : 'Unknown error',
       });
       span.recordException(error as Error);
@@ -325,7 +325,6 @@ export class LangGraphTracingService {
   injectTraceContext(headers: Record<string, string>): void {
     const currentSpan = this.getCurrentSpan();
     if (currentSpan) {
-      const context = trace.getActive();
       // В production здесь должна быть инъекция в headers
       // trace.inject(context, trace.TraceFormat.HTTP_HEADERS, headers);
     }

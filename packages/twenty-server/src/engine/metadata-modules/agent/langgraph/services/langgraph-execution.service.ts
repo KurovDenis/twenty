@@ -135,7 +135,7 @@ export class LangGraphExecutionService {
     }));
 
     // Execute agent with state
-    const result = await agent.execute(lcMessages, context, currentState);
+    const result = await agent.execute(lcMessages, context, currentState || undefined);
     
     // Save updated state
     await this.stateService.saveState(context.threadId, result.state);
