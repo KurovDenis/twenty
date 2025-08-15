@@ -1,0 +1,17 @@
+{
+  "name": "twenty-shared/langgraph",
+  "version": "0.0.0",
+  "main": "./dist/langgraph.cjs.js",
+  "module": "./dist/langgraph.esm.js",
+  "types": "./dist/langgraph.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/langgraph.esm.js",
+      "require": "./dist/langgraph.cjs.js",
+      "types": "./dist/langgraph.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ]
+}

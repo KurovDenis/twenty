@@ -16,6 +16,8 @@
         "{projectRoot}/dist",
         "{projectRoot}/constants/package.json",
         "{projectRoot}/constants/dist",
+        "{projectRoot}/langgraph/package.json",
+        "{projectRoot}/langgraph/dist",
         "{projectRoot}/testing/package.json",
         "{projectRoot}/testing/dist",
         "{projectRoot}/translations/package.json",

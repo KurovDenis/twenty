@@ -1,0 +1,4 @@
+{
+  "main": "dist/twenty-shared-langgraph.cjs.js",
+  "module": "dist/twenty-shared-langgraph.esm.js"
+}

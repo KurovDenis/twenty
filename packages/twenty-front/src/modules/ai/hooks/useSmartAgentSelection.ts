@@ -1,21 +1,21 @@
 import { useRecoilValue } from 'recoil';
-import { useFindManyAgentsQuery } from '@/modules/ai/graphql/queries/findManyAgents';
+// import { useFindManyAgentsQuery } from '@/modules/ai/graphql/queries/findManyAgents';
 import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { useShouldShowWelcomeAgent } from './useShouldShowWelcomeAgent';
+
+// Временная заглушка для useFindManyAgentsQuery
+const useFindManyAgentsQuery = () => ({
+  data: [],
+  loading: false,
+  error: null,
+});
 
 export const useSmartAgentSelection = () => {
   const currentWorkspace = useRecoilValue(currentWorkspaceState);
   const { shouldShowWelcomeAgent } = useShouldShowWelcomeAgent();
   
   // Находим Welcome Agent
-  const { data: welcomeAgent } = useFindManyAgentsQuery({
-    variables: { 
-      filter: { 
-        agentType: { eq: 'langgraph' },
-        name: { eq: 'Welcome Agent' }
-      } 
-    },
-  });
+  const { data: welcomeAgent } = useFindManyAgentsQuery();
   
   // Умный выбор оптимального агента
   const getOptimalAgentId = () => {
