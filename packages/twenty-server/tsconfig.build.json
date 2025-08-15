@@ -2,8 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "outDir": "./dist",
     "paths": {
-      "src/*": ["packages/twenty-server/src/*"]
+      "src/*": ["./src/*"],
+      "@twenty/shared": ["../twenty-shared/dist"],
+      "@twenty/shared/*": ["../twenty-shared/dist/*"]
     },
     "types": ["node"]
   },

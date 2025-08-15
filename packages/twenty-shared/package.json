@@ -2,9 +2,57 @@
   "name": "twenty-shared",
   "main": "dist/twenty-shared.cjs.js",
   "module": "dist/twenty-shared.esm.js",
+  "types": "dist/twenty-shared.cjs.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/twenty-shared.cjs.d.ts",
+      "import": "./dist/twenty-shared.esm.js",
+      "require": "./dist/twenty-shared.cjs.js"
+    },
+    "./constants": {
+      "types": "./dist/declarations/src/constants/index.d.ts",
+      "import": "./dist/constants.esm.js",
+      "require": "./dist/constants.cjs.js"
+    },
+    "./langgraph": {
+      "types": "./dist/declarations/src/langgraph/index.d.ts",
+      "import": "./dist/langgraph.esm.js",
+      "require": "./dist/langgraph.cjs.js"
+    },
+    "./testing": {
+      "types": "./dist/declarations/src/testing/index.d.ts",
+      "import": "./dist/testing.esm.js",
+      "require": "./dist/testing.cjs.js"
+    },
+    "./translations": {
+      "types": "./dist/declarations/src/translations/index.d.ts",
+      "import": "./dist/translations.esm.js",
+      "require": "./dist/translations.cjs.js"
+    },
+    "./types": {
+      "types": "./dist/declarations/src/types/index.d.ts",
+      "import": "./dist/types.esm.js",
+      "require": "./dist/types.cjs.js"
+    },
+    "./utils": {
+      "types": "./dist/declarations/src/utils/index.d.ts",
+      "import": "./dist/utils.esm.js",
+      "require": "./dist/utils.cjs.js"
+    },
+    "./workflow": {
+      "types": "./dist/declarations/src/workflow/index.d.ts",
+      "import": "./dist/workflow.esm.js",
+      "require": "./dist/workflow.cjs.js"
+    },
+    "./workspace": {
+      "types": "./dist/declarations/src/workspace/index.d.ts",
+      "import": "./dist/workspace.esm.js",
+      "require": "./dist/workspace.cjs.js"
+    }
+  },
   "license": "AGPL-3.0",
   "scripts": {
-    "build": "preconstruct build"
+    "build": "preconstruct build && node scripts/copy-package-json.js"
   },
   "engines": {
     "node": "^24.5.0",

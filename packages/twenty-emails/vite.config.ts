@@ -47,7 +47,20 @@ export default defineConfig({
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: [
+        'react', 
+        'react-dom', 
+        'react/jsx-runtime',
+        'twenty-shared',
+        'twenty-shared/translations',
+        'twenty-shared/utils',
+        'twenty-shared/constants',
+        'twenty-shared/types',
+        'twenty-shared/langgraph',
+        'twenty-shared/testing',
+        'twenty-shared/workflow',
+        'twenty-shared/workspace'
+      ],
     },
   },
 });
