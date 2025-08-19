@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { RecoilRoot } from 'recoil';
 import { FloatingAIChatButton } from '../FloatingAIChatButton';
 
@@ -29,7 +29,7 @@ describe('FloatingAIChatButton', () => {
     return render(
       <RecoilRoot>
         <FloatingAIChatButton />
-      </RecoilRoot>
+      </RecoilRoot>,
     );
   };
 
@@ -48,7 +48,7 @@ describe('FloatingAIChatButton', () => {
   it('should show tooltip on hover', () => {
     renderComponent();
     const button = screen.getByTestId('floating-ai-chat-button');
-    
+
     // Note: This test would need more setup for hover events
     // For now, we just check that the tooltip element exists
     expect(button).toBeInTheDocument();

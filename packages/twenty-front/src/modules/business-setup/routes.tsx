@@ -4,7 +4,10 @@ import { Route } from 'react-router-dom';
 
 export const BusinessSetupRoutes = () => (
   <>
-    <Route path={AppPath.BusinessSetupWelcome} element={<BusinessSetupWelcome />} />
+    <Route
+      path={AppPath.BusinessSetupWelcome}
+      element={<BusinessSetupWelcome />}
+    />
     {/* Другие маршруты будут добавлены позже */}
   </>
 );

@@ -15,7 +15,8 @@ export const BUSINESS_SETUP_STATUS = {
 } as const;
 
 // Business setup status type
-export type BusinessSetupStatus = typeof BUSINESS_SETUP_STATUS[keyof typeof BUSINESS_SETUP_STATUS];
+export type BusinessSetupStatus =
+  (typeof BUSINESS_SETUP_STATUS)[keyof typeof BUSINESS_SETUP_STATUS];
 
 export const useSetNextBusinessSetupStatus = () => {
   const setCurrentUser = useSetRecoilState(currentUserState);
@@ -24,15 +25,18 @@ export const useSetNextBusinessSetupStatus = () => {
   const setNextBusinessSetupStatus = useCallback(async () => {
     if (!currentUser) return;
 
-    const nextStatus = getNextBusinessSetupStatus(BUSINESS_SETUP_STATUS.WELCOME); // Временно используем WELCOME
+    const nextStatus = getNextBusinessSetupStatus(
+      BUSINESS_SETUP_STATUS.WELCOME,
+    ); // Временно используем WELCOME
 
-    if (nextStatus) {
+    if (nextStatus !== null) {
       try {
         // Временно просто обновляем локальное состояние
-        setCurrentUser((prev) => 
-          prev ? { ...prev, businessSetupStatus: nextStatus } : null
+        setCurrentUser((prev) =>
+          prev ? { ...prev, businessSetupStatus: nextStatus } : null,
         );
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Failed to set next business setup status:', error);
       }
     }
@@ -41,7 +45,9 @@ export const useSetNextBusinessSetupStatus = () => {
   return { setNextBusinessSetupStatus };
 };
 
-const getNextBusinessSetupStatus = (currentStatus: BusinessSetupStatus | null | undefined): BusinessSetupStatus | null => {
+const getNextBusinessSetupStatus = (
+  currentStatus: BusinessSetupStatus | null | undefined,
+): BusinessSetupStatus | null => {
   if (!currentStatus) return null;
 
   switch (currentStatus) {

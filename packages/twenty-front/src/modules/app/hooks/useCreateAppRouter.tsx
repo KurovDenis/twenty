@@ -9,9 +9,9 @@ import { BlankLayout } from '@/ui/layout/page/components/BlankLayout';
 import { DefaultLayout } from '@/ui/layout/page/components/DefaultLayout';
 
 import {
-    createBrowserRouter,
-    createRoutesFromElements,
-    Route,
+  createBrowserRouter,
+  createRoutesFromElements,
+  Route,
 } from 'react-router-dom';
 import { Authorize } from '~/pages/auth/Authorize';
 import { PasswordReset } from '~/pages/auth/PasswordReset';
@@ -61,10 +61,13 @@ export const useCreateAppRouter = (
             element={<BookCallDecision />}
           />
           <Route path={AppPath.BookCall} element={<BookCall />} />
-          
+
           {/* Business Setup Routes */}
-          <Route path={AppPath.BusinessSetupWelcome} element={<BusinessSetupWelcome />} />
-          
+          <Route
+            path={AppPath.BusinessSetupWelcome}
+            element={<BusinessSetupWelcome />}
+          />
+
           <Route path={indexAppPath.getIndexAppPath()} element={<></>} />
           <Route path={AppPath.RecordIndexPage} element={<RecordIndexPage />} />
           <Route path={AppPath.RecordShowPage} element={<RecordShowPage />} />

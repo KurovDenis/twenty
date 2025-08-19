@@ -1,7 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { RecoilRoot, useRecoilValue } from 'recoil';
 import { useBusinessSetupStatus } from '../useBusinessSetupStatus';
-import { currentUserState } from '@/auth/states/currentUserState';
 import { useIsLogged } from '@/auth/hooks/useIsLogged';
 
 // Mock hooks
@@ -12,7 +11,9 @@ jest.mock('recoil', () => ({
 }));
 
 const mockUseIsLogged = useIsLogged as jest.MockedFunction<typeof useIsLogged>;
-const mockUseRecoilValue = useRecoilValue as jest.MockedFunction<typeof useRecoilValue>;
+const mockUseRecoilValue = useRecoilValue as jest.MockedFunction<
+  typeof useRecoilValue
+>;
 
 describe('useBusinessSetupStatus', () => {
   beforeEach(() => {

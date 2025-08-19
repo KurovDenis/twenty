@@ -9,8 +9,14 @@ import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAI
 jest.mock('@/business-setup/hooks/useSetNextBusinessSetupStatus');
 jest.mock('@/command-menu/hooks/useOpenAskAIPageInCommandMenu');
 
-const mockUseSetNextBusinessSetupStatus = useSetNextBusinessSetupStatus as jest.MockedFunction<typeof useSetNextBusinessSetupStatus>;
-const mockUseOpenAskAIPageInCommandMenu = useOpenAskAIPageInCommandMenu as jest.MockedFunction<typeof useOpenAskAIPageInCommandMenu>;
+const mockUseSetNextBusinessSetupStatus =
+  useSetNextBusinessSetupStatus as jest.MockedFunction<
+    typeof useSetNextBusinessSetupStatus
+  >;
+const mockUseOpenAskAIPageInCommandMenu =
+  useOpenAskAIPageInCommandMenu as jest.MockedFunction<
+    typeof useOpenAskAIPageInCommandMenu
+  >;
 
 const mockNavigate = jest.fn();
 
@@ -25,7 +31,7 @@ const renderComponent = () => {
       <BrowserRouter>
         <BusinessSetupWelcome />
       </BrowserRouter>
-    </RecoilRoot>
+    </RecoilRoot>,
   );
 };
 
@@ -45,14 +51,20 @@ describe('BusinessSetupWelcome', () => {
 
   it('renders welcome message', () => {
     renderComponent();
-    
-    expect(screen.getByText('Welcome to Business Setup Wizard!')).toBeInTheDocument();
-    expect(screen.getByText(/Let's create your fully automated business system together/)).toBeInTheDocument();
+
+    expect(
+      screen.getByText('Welcome to Business Setup Wizard!'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Let's create your fully automated business system together/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('renders feature list', () => {
     renderComponent();
-    
+
     expect(screen.getByText(/🚀 Business Analysis/)).toBeInTheDocument();
     expect(screen.getByText(/🎯 Sales Funnel Design/)).toBeInTheDocument();
     expect(screen.getByText(/🤖 AI Agent Setup/)).toBeInTheDocument();
@@ -63,14 +75,18 @@ describe('BusinessSetupWelcome', () => {
 
   it('renders start with AI button', () => {
     renderComponent();
-    
-    expect(screen.getByRole('button', { name: /Start with AI Assistant/i })).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', { name: /Start with AI Assistant/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders skip welcome button', () => {
     renderComponent();
-    
-    expect(screen.getByRole('button', { name: /Skip Welcome/i })).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', { name: /Skip Welcome/i }),
+    ).toBeInTheDocument();
   });
 
   it('calls openAskAIPage when start with AI button is clicked', () => {
@@ -80,11 +96,15 @@ describe('BusinessSetupWelcome', () => {
     });
 
     renderComponent();
-    
-    const startButton = screen.getByRole('button', { name: /Start with AI Assistant/i });
+
+    const startButton = screen.getByRole('button', {
+      name: /Start with AI Assistant/i,
+    });
     fireEvent.click(startButton);
 
-    expect(mockOpenAskAIPage).toHaveBeenCalledWith("Let's set up your business automation!");
+    expect(mockOpenAskAIPage).toHaveBeenCalledWith(
+      "Let's set up your business automation!",
+    );
   });
 
   it('calls setNextBusinessSetupStatus and navigates when skip button is clicked', async () => {
@@ -94,7 +114,7 @@ describe('BusinessSetupWelcome', () => {
     });
 
     renderComponent();
-    
+
     const skipButton = screen.getByRole('button', { name: /Skip Welcome/i });
     fireEvent.click(skipButton);
 

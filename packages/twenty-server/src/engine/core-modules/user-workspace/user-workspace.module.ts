@@ -9,6 +9,7 @@ import { TokenModule } from 'src/engine/core-modules/auth/token/token.module';
 import { DomainManagerModule } from 'src/engine/core-modules/domain-manager/domain-manager.module';
 import { FileUploadModule } from 'src/engine/core-modules/file/file-upload/file-upload.module';
 import { FileModule } from 'src/engine/core-modules/file/file.module';
+import { TwentyConfigModule } from 'src/engine/core-modules/twenty-config/twenty-config.module';
 import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { UserWorkspaceService } from 'src/engine/core-modules/user-workspace/user-workspace.service';
 import { User } from 'src/engine/core-modules/user/user.entity';
@@ -40,6 +41,7 @@ import { WorkspaceDataSourceModule } from 'src/engine/workspace-datasource/works
         FileUploadModule,
         FileModule,
         TokenModule,
+        TwentyConfigModule,
       ],
       services: [UserWorkspaceService],
     }),

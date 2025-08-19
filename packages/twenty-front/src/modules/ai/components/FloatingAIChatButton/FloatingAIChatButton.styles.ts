@@ -7,7 +7,9 @@ export const StyledFloatingAIChatButtonContainer = styled.div`
   z-index: 1000;
   pointer-events: auto;
   animation: fadeInScale 0.3s ease-out;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 
   @keyframes fadeInScale {
     from {
@@ -33,7 +35,7 @@ export const StyledFloatingAIChatButtonContainer = styled.div`
 
 export const StyledFloatingAIChatButton = styled.div`
   position: relative;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -77,13 +79,14 @@ export const StyledBusinessSetupWelcomeMode = styled.div`
   }
 
   @keyframes businessSetupWelcomePulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
-      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+      box-shadow: 0 4px 12px ${({ theme }) => theme.color.green}30;
     }
     50% {
       transform: scale(1.05);
-      box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+      box-shadow: 0 6px 20px ${({ theme }) => theme.color.green}50;
     }
   }
 

@@ -5,21 +5,22 @@ import { CommandMenuPages } from '@/command-menu/types/CommandMenuPages';
 import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
 import { useRecoilValue } from 'recoil';
 import { FeatureFlagKey } from '~/generated/graphql';
-import { isFloatingAIChatButtonVisibleState } from '../states/isFloatingAIChatButtonVisibleState';
+
 import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';
 
 export const useFloatingAIChatButton = () => {
   const isAiEnabled = useIsFeatureEnabled(FeatureFlagKey.IS_AI_ENABLED);
-  const isVisible = useRecoilValue(isFloatingAIChatButtonVisibleState);
+
   const isCommandMenuOpened = useRecoilValue(isCommandMenuOpenedState);
   const commandMenuPage = useRecoilValue(commandMenuPageState);
   const businessSetupStatus = useBusinessSetupStatus();
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
 
   // Проверяем, открыт ли AI чат
-  const isAIChatOpen = isCommandMenuOpened && 
-    (commandMenuPage === CommandMenuPages.AskAI || 
-     commandMenuPage === CommandMenuPages.ViewPreviousAIChats);
+  const isAIChatOpen =
+    isCommandMenuOpened &&
+    (commandMenuPage === CommandMenuPages.AskAI ||
+      commandMenuPage === CommandMenuPages.ViewPreviousAIChats);
 
   const handleClick = () => {
     // Если мы в Business Setup режиме, открываем специальный чат

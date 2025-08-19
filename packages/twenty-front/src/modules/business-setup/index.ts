@@ -3,7 +3,11 @@ export { BusinessSetupWelcome } from '~/pages/business-setup/BusinessSetupWelcom
 
 // Hooks
 export { useBusinessSetupStatus } from './hooks/useBusinessSetupStatus';
-export { BUSINESS_SETUP_STATUS, useSetNextBusinessSetupStatus, type BusinessSetupStatus } from './hooks/useSetNextBusinessSetupStatus';
+export {
+  BUSINESS_SETUP_STATUS,
+  useSetNextBusinessSetupStatus,
+  type BusinessSetupStatus,
+} from './hooks/useSetNextBusinessSetupStatus';
 
 // GraphQL
 export * from './graphql/mutations';

@@ -45,10 +45,10 @@ const StyledFeaturesList = styled.div`
 `;
 
 const StyledFeatureItem = styled.div`
-  display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing(2)};
   color: ${({ theme }) => theme.font.color.secondary};
+  display: flex;
+  gap: ${({ theme }) => theme.spacing(2)};
 `;
 
 export const BusinessSetupWelcome = () => {
@@ -58,7 +58,9 @@ export const BusinessSetupWelcome = () => {
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
 
   const handleStartWithAI = () => {
-    openAskAIPage("I'm ready to help you set up your business automation! Let's get started.");
+    openAskAIPage(
+      "I'm ready to help you set up your business automation! Let's get started.",
+    );
   };
 
   const handleSkipWelcome = async () => {
@@ -77,51 +79,78 @@ export const BusinessSetupWelcome = () => {
         </Title>
         <SubTitle>
           <Trans>
-            Let's create your fully automated business system together. 
-            I'll help you analyze your business, design sales funnels, 
-            set up AI agents, and create automated workflows.
+            Let's create your fully automated business system together. I'll
+            help you analyze your business, design sales funnels, set up AI
+            agents, and create automated workflows.
           </Trans>
         </SubTitle>
-        
+
         <StyledFeaturesList>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>🚀 Business Analysis - Analyze your industry and processes</span>
+            <span>
+              <span role="img" aria-label="rocket">
+                🚀
+              </span>{' '}
+              Business Analysis - Analyze your industry and processes
+            </span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>🎯 Sales Funnel Design - Create perfect conversion funnels</span>
+            <span>
+              <span role="img" aria-label="target">
+                🎯
+              </span>{' '}
+              Sales Funnel Design - Create perfect conversion funnels
+            </span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>🤖 AI Agent Setup - Build specialized AI agents</span>
+            <span>
+              <span role="img" aria-label="robot">
+                🤖
+              </span>{' '}
+              AI Agent Setup - Build specialized AI agents
+            </span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>⚡ Workflow Automation - Design automated workflows</span>
+            <span>
+              <span role="img" aria-label="lightning">
+                ⚡
+              </span>{' '}
+              Workflow Automation - Design automated workflows
+            </span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>👥 Team Assignment - Set up roles and permissions</span>
+            <span>
+              <span role="img" aria-label="team">
+                👥
+              </span>{' '}
+              Team Assignment - Set up roles and permissions
+            </span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>🧪 Testing & Optimization - Ensure everything works perfectly</span>
+            <span>
+              <span role="img" aria-label="test tube">
+                🧪
+              </span>{' '}
+              Testing & Optimization - Ensure everything works perfectly
+            </span>
           </StyledFeatureItem>
         </StyledFeaturesList>
       </StyledTitleContainer>
-      
+
       <StyledButtonContainer>
-        <MainButton 
-          title={t`Start with AI Assistant`} 
+        <MainButton
+          title={t`Start with AI Assistant`}
           onClick={handleStartWithAI}
           Icon={IconSparkles}
           width={250}
         />
-        <LightButton 
-          title={t`Skip Welcome`} 
-          onClick={handleSkipWelcome}
-        />
+        <LightButton title={t`Skip Welcome`} onClick={handleSkipWelcome} />
       </StyledButtonContainer>
     </StyledModalContent>
   );

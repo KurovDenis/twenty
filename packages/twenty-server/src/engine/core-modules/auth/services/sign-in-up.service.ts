@@ -355,6 +355,32 @@ export class SignInUpService {
     return { canImpersonate: false, canAccessFullAdminPanel: false };
   }
 
+  private async checkUserWorkspaceLimit(userEmail: string) {
+    const maxWorkspacesPerUser = this.twentyConfigService.get('MAX_WORKSPACES_PER_USER');
+    
+    // Find user by email
+    const user = await this.userRepository.findOne({
+      where: { email: userEmail },
+      relations: ['userWorkspaces'],
+    });
+
+    if (user && user.userWorkspaces) {
+      const activeWorkspacesCount = user.userWorkspaces.filter(
+        (userWorkspace) => !userWorkspace.deletedAt
+      ).length;
+
+      if (activeWorkspacesCount >= maxWorkspacesPerUser) {
+        throw new AuthException(
+          `Maximum workspace limit reached. You can only create or join up to ${maxWorkspacesPerUser} workspaces.`,
+          AuthExceptionCode.SIGNUP_DISABLED,
+          {
+            userFriendlyMessage: `You have reached the maximum limit of ${maxWorkspacesPerUser} workspaces.`,
+          },
+        );
+      }
+    }
+  }
+
   async signUpOnNewWorkspace(
     userData: ExistingUserOrPartialUserWithPicture['userData'],
   ) {
@@ -372,6 +398,9 @@ export class SignInUpService {
         },
       );
     }
+
+    // Check workspace limit for user before creating new workspace
+    await this.checkUserWorkspaceLimit(email);
 
     const { canImpersonate, canAccessFullAdminPanel } =
       await this.setDefaultImpersonateAndAccessFullAdminPanel();

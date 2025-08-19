@@ -12,14 +12,15 @@ import { FileFolder } from 'src/engine/core-modules/file/interfaces/file-folder.
 import { type AppToken } from 'src/engine/core-modules/app-token/app-token.entity';
 import { ApprovedAccessDomainService } from 'src/engine/core-modules/approved-access-domain/services/approved-access-domain.service';
 import {
-  AuthException,
-  AuthExceptionCode,
+    AuthException,
+    AuthExceptionCode,
 } from 'src/engine/core-modules/auth/auth.exception';
 import { type AvailableWorkspace } from 'src/engine/core-modules/auth/dto/available-workspaces.output';
 import { LoginTokenService } from 'src/engine/core-modules/auth/token/services/login-token.service';
 import { DomainManagerService } from 'src/engine/core-modules/domain-manager/services/domain-manager.service';
 import { FileUploadService } from 'src/engine/core-modules/file/file-upload/services/file-upload.service';
 import { FileService } from 'src/engine/core-modules/file/services/file.service';
+import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
 import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { User } from 'src/engine/core-modules/user/user.entity';
 import { WorkspaceInvitationService } from 'src/engine/core-modules/workspace-invitation/services/workspace-invitation.service';
@@ -27,9 +28,9 @@ import { AuthProviderEnum } from 'src/engine/core-modules/workspace/types/worksp
 import { type Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 import { workspaceValidator } from 'src/engine/core-modules/workspace/workspace.validate';
 import {
-  PermissionsException,
-  PermissionsExceptionCode,
-  PermissionsExceptionMessage,
+    PermissionsException,
+    PermissionsExceptionCode,
+    PermissionsExceptionMessage,
 } from 'src/engine/metadata-modules/permissions/permissions.exception';
 import { UserRoleService } from 'src/engine/metadata-modules/user-role/user-role.service';
 import { TwentyORMGlobalManager } from 'src/engine/twenty-orm/twenty-orm-global.manager';
@@ -51,6 +52,7 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspace> {
     private readonly userRoleService: UserRoleService,
     private readonly fileUploadService: FileUploadService,
     private readonly fileService: FileService,
+    private readonly twentyConfigService: TwentyConfigService,
   ) {
     super(userWorkspaceRepository);
   }
@@ -66,6 +68,9 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspace> {
     isExistingUser: boolean;
     pictureUrl?: string;
   }): Promise<UserWorkspace> {
+    // Check workspace limit before creating user-workspace relationship
+    await this.checkUserWorkspaceLimit(userId);
+
     const defaultAvatarUrl = await this.computeDefaultAvatarUrl(
       userId,
       workspaceId,
@@ -80,6 +85,28 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspace> {
     });
 
     return this.userWorkspaceRepository.save(userWorkspace);
+  }
+
+  private async checkUserWorkspaceLimit(userId: string) {
+    const maxWorkspacesPerUser = this.twentyConfigService.get('MAX_WORKSPACES_PER_USER');
+    
+    // Count existing active user workspaces
+    const activeWorkspacesCount = await this.userWorkspaceRepository.count({
+      where: {
+        userId,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (activeWorkspacesCount >= maxWorkspacesPerUser) {
+      throw new AuthException(
+        `Maximum workspace limit reached. You can only join up to ${maxWorkspacesPerUser} workspaces.`,
+        AuthExceptionCode.SIGNUP_DISABLED,
+        {
+          userFriendlyMessage: `You have reached the maximum limit of ${maxWorkspacesPerUser} workspaces.`,
+        },
+      );
+    }
   }
 
   async createWorkspaceMember(workspaceId: string, user: User) {

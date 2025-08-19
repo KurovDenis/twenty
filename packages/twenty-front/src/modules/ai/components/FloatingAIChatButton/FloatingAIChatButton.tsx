@@ -1,18 +1,16 @@
-import { useTheme } from '@emotion/react';
-import { useState } from 'react';
 import { t } from '@lingui/core/macro';
+import { useState } from 'react';
 import { IconSparkles } from 'twenty-ui/display';
 import { FloatingIconButton } from 'twenty-ui/input';
 import { useIsMobile } from 'twenty-ui/utilities';
 import { useFloatingAIChatButton } from '../../hooks/useFloatingAIChatButton';
 import {
-  StyledFloatingAIChatButton,
-  StyledFloatingAIChatButtonContainer,
-  StyledTooltip,
+    StyledFloatingAIChatButton,
+    StyledFloatingAIChatButtonContainer,
+    StyledTooltip,
 } from './FloatingAIChatButton.styles';
 
 export const FloatingAIChatButton = () => {
-  const theme = useTheme();
   const isMobile = useIsMobile();
   const { isVisible, handleClick } = useFloatingAIChatButton();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);

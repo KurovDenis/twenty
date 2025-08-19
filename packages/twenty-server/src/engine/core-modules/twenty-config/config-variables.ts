@@ -1,20 +1,22 @@
 import { type LogLevel, Logger } from '@nestjs/common';
 
-import { plainToClass } from 'class-transformer';
+import { plainToClass, Transform } from 'class-transformer';
 import {
   IsDefined,
+  IsNumber,
   IsOptional,
   IsUrl,
+  Min,
   ValidateIf,
   type ValidationError,
   validateSync,
 } from 'class-validator';
 import { isDefined } from 'twenty-shared/utils';
-
+} from 'class-validator';
 import { AwsRegion } from 'src/engine/core-modules/twenty-config/interfaces/aws-region.interface';
 import { NodeEnvironment } from 'src/engine/core-modules/twenty-config/interfaces/node-environment.interface';
 import { SupportDriver } from 'src/engine/core-modules/twenty-config/interfaces/support.interface';
-
+import { AwsRegion } from 'src/engine/core-modules/twenty-config/interfaces/aws-region.interface';
 import { CaptchaDriverType } from 'src/engine/core-modules/captcha/interfaces';
 import { EmailDriver } from 'src/engine/core-modules/email/enums/email-driver.enum';
 import { ExceptionHandlerDriver } from 'src/engine/core-modules/exception-handler/interfaces';
@@ -35,6 +37,10 @@ import { IsTwentySemVer } from 'src/engine/core-modules/twenty-config/decorators
 import { ConfigVariableType } from 'src/engine/core-modules/twenty-config/enums/config-variable-type.enum';
 import { ConfigVariablesGroup } from 'src/engine/core-modules/twenty-config/enums/config-variables-group.enum';
 import {
+  ConfigVariableException,
+  ConfigVariableExceptionCode,
+} from 'src/engine/core-modules/twenty-config/twenty-config.exception';
+import { from } from 'rxjs';
   ConfigVariableException,
   ConfigVariableExceptionCode,
 } from 'src/engine/core-modules/twenty-config/twenty-config.exception';
@@ -1044,6 +1050,18 @@ export class ConfigVariables {
   })
   @IsOptional()
   IS_MULTIWORKSPACE_ENABLED = false;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.ServerConfig,
+    description: 'Maximum number of workspaces a user can create or join',
+    type: ConfigVariableType.NUMBER,
+    isEnvOnly: true,
+  })
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsNumber()
+  @Min(1)
+  MAX_WORKSPACES_PER_USER = 5;
 
   @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.Other,
