@@ -7,9 +7,11 @@ import { useRecoilValue } from 'recoil';
 import { FeatureFlagKey } from '~/generated/graphql';
 
 import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';
+import { isFloatingAIChatButtonVisibleState } from '../states/isFloatingAIChatButtonVisibleState';
 
 export const useFloatingAIChatButton = () => {
   const isAiEnabled = useIsFeatureEnabled(FeatureFlagKey.IS_AI_ENABLED);
+  const isVisible = useRecoilValue(isFloatingAIChatButtonVisibleState);
 
   const isCommandMenuOpened = useRecoilValue(isCommandMenuOpenedState);
   const commandMenuPage = useRecoilValue(commandMenuPageState);
