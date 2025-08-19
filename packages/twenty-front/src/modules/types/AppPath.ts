@@ -21,6 +21,16 @@ export enum AppPath {
   TasksPage = '/objects/tasks',
   OpportunitiesPage = '/objects/opportunities',
 
+  // Business Setup
+  BusinessSetupWelcome = '/business-setup/welcome',
+  BusinessAnalysis = '/business-setup/analysis',
+  SalesFunnelDesign = '/business-setup/funnel-design',
+  AgentSetup = '/business-setup/agent-setup',
+  WorkflowCreation = '/business-setup/workflow-creation',
+  TeamAssignment = '/business-setup/team-assignment',
+  TestingOptimization = '/business-setup/testing-optimization',
+  BusinessSetupCompleted = '/business-setup/completed',
+
   RecordIndexPage = '/objects/:objectNamePlural',
   RecordShowPage = '/object/:objectNameSingular/:objectRecordId',
 

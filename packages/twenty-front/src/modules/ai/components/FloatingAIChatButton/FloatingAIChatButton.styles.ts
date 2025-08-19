@@ -69,3 +69,26 @@ export const StyledTooltip = styled.div`
   transition: opacity 0.2s ease;
   transform: translateY(4px);
 `;
+
+// Business Setup анимация
+export const StyledBusinessSetupWelcomeMode = styled.div`
+  &.business-setup-welcome-mode {
+    animation: businessSetupWelcomePulse 2s ease-in-out infinite;
+  }
+
+  @keyframes businessSetupWelcomePulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+    }
+  }
+
+  .business-setup-welcome-pulse {
+    background-color: ${({ theme }) => theme.color.green} !important;
+    color: ${({ theme }) => theme.font.color.inverted} !important;
+  }
+`;

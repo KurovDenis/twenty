@@ -20,6 +20,7 @@ import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/
 import { AppToken } from 'src/engine/core-modules/app-token/app-token.entity';
 import { KeyValuePair } from 'src/engine/core-modules/key-value-pair/key-value-pair.entity';
 import { OnboardingStatus } from 'src/engine/core-modules/onboarding/enums/onboarding-status.enum';
+import { BusinessSetupStatus } from 'src/engine/core-modules/business-setup/enums/business-setup-status.enum';
 import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { WorkspaceMember } from 'src/engine/core-modules/user/dtos/workspace-member.dto';
 import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
@@ -27,6 +28,11 @@ import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 registerEnumType(OnboardingStatus, {
   name: 'OnboardingStatus',
   description: 'Onboarding status',
+});
+
+registerEnumType(BusinessSetupStatus, {
+  name: 'BusinessSetupStatus',
+  description: 'Business Setup status',
 });
 
 @Entity({ name: 'user', schema: 'core' })
@@ -117,6 +123,9 @@ export class User {
 
   @Field(() => OnboardingStatus, { nullable: true })
   onboardingStatus: OnboardingStatus;
+
+  @Field(() => BusinessSetupStatus, { nullable: true })
+  businessSetupStatus: BusinessSetupStatus;
 
   @Field(() => Workspace, { nullable: true })
   currentWorkspace?: Relation<Workspace>;

@@ -6,6 +6,25 @@
 - Docker & Docker Compose
 - Git
 
+## 🪟 Windows с GnuWin32 Make
+
+Если у вас установлен Make через GnuWin32 в `C:\Program Files (x86)\GnuWin32\bin`:
+
+### Добавление Make в PATH
+```bash
+# Добавить в системные переменные PATH
+C:\Program Files (x86)\GnuWin32\bin
+
+# Или использовать полный путь
+"C:\Program Files (x86)\GnuWin32\bin\make.exe" setup-twenty
+```
+
+### Альтернативный способ (без изменения PATH)
+```bash
+# Использовать полный путь к make.exe
+"C:\Program Files (x86)\GnuWin32\bin\make.exe" setup-twenty
+```
+
 ## Быстрый старт (5 шагов)
 
 ### 1. Запуск базы данных
@@ -37,6 +56,30 @@ npx nx start twenty-server
 ### 5. Запуск фронтенда (в новом терминале)
 ```bash
 npx nx start twenty-front
+```
+
+## 🚀 Быстрый старт через Makefile (Windows)
+
+### Вариант 1: Добавить в PATH
+```bash
+# Добавить C:\Program Files (x86)\GnuWin32\bin в системные переменные PATH
+# Затем использовать обычные команды
+make setup-twenty
+```
+
+### Вариант 2: Полный путь
+```bash
+# Использовать полный путь к make.exe
+"C:\Program Files (x86)\GnuWin32\bin\make.exe" setup-twenty
+```
+
+### Вариант 3: Создать alias в PowerShell
+```powershell
+# В профиле PowerShell добавить
+Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
+
+# Теперь можно использовать
+make setup-twenty
 ```
 
 ## ✅ Проверка запуска

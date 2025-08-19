@@ -1,11 +1,11 @@
 import { UseFilters, UseGuards } from '@nestjs/common';
 import {
-  Args,
-  Mutation,
-  Parent,
-  Query,
-  ResolveField,
-  Resolver,
+    Args,
+    Mutation,
+    Parent,
+    Query,
+    ResolveField,
+    Resolver,
 } from '@nestjs/graphql';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -21,16 +21,18 @@ import { FileFolder } from 'src/engine/core-modules/file/interfaces/file-folder.
 import { SupportDriver } from 'src/engine/core-modules/twenty-config/interfaces/support.interface';
 
 import {
-  AuthException,
-  AuthExceptionCode,
+    AuthException,
+    AuthExceptionCode,
 } from 'src/engine/core-modules/auth/auth.exception';
 import { AvailableWorkspaces } from 'src/engine/core-modules/auth/dto/available-workspaces.output';
+import { BusinessSetupService } from 'src/engine/core-modules/business-setup/business-setup.service';
+import { BusinessSetupStatus } from 'src/engine/core-modules/business-setup/enums/business-setup-status.enum';
 import { SignedFileDTO } from 'src/engine/core-modules/file/file-upload/dtos/signed-file.dto';
 import { FileUploadService } from 'src/engine/core-modules/file/file-upload/services/file-upload.service';
 import { OnboardingStatus } from 'src/engine/core-modules/onboarding/enums/onboarding-status.enum';
 import {
-  OnboardingService,
-  OnboardingStepKeys,
+    OnboardingService,
+    OnboardingStepKeys,
 } from 'src/engine/core-modules/onboarding/onboarding.service';
 import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
 import { buildTwoFactorAuthenticationMethodSummary } from 'src/engine/core-modules/two-factor-authentication/utils/two-factor-authentication-method.presenter';
@@ -40,8 +42,8 @@ import { DeletedWorkspaceMember } from 'src/engine/core-modules/user/dtos/delete
 import { WorkspaceMember } from 'src/engine/core-modules/user/dtos/workspace-member.dto';
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
 import {
-  type ToWorkspaceMemberDtoArgs,
-  WorkspaceMemberTranspiler,
+    type ToWorkspaceMemberDtoArgs,
+    WorkspaceMemberTranspiler,
 } from 'src/engine/core-modules/user/services/workspace-member-transpiler.service';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { User } from 'src/engine/core-modules/user/user.entity';
@@ -79,6 +81,7 @@ export class UserResolver {
     private readonly twentyConfigService: TwentyConfigService,
     private readonly fileUploadService: FileUploadService,
     private readonly onboardingService: OnboardingService,
+    private readonly businessSetupService: BusinessSetupService,
     private readonly userVarService: UserVarsService,
     @InjectRepository(UserWorkspace, 'core')
     private readonly userWorkspaceRepository: Repository<UserWorkspace>,
@@ -386,6 +389,17 @@ export class UserResolver {
     if (!workspace) return null;
 
     return this.onboardingService.getOnboardingStatus(user, workspace);
+  }
+
+  @ResolveField(() => BusinessSetupStatus, {
+    nullable: true,
+  })
+  async businessSetupStatus(
+    @Parent() user: User,
+    @AuthWorkspace({ allowUndefined: true }) workspace: Workspace | undefined,
+  ): Promise<BusinessSetupStatus | null> {
+    if (!workspace) return null;
+    return this.businessSetupService.getBusinessSetupStatus(user, workspace);
   }
 
   @ResolveField(() => Workspace, {

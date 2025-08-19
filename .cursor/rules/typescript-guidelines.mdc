@@ -1,7 +1,5 @@
 ---
-description: 
-globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ---
 description: TypeScript best practices and conventions for the Twenty codebase, including strict typing, naming conventions, and type safety guidelines.
