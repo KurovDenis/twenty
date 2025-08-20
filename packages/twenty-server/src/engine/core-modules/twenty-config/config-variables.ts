@@ -2,14 +2,14 @@ import { type LogLevel, Logger } from '@nestjs/common';
 
 import { Transform, plainToClass } from 'class-transformer';
 import {
-  IsDefined,
-  IsNumber,
-  IsOptional,
-  IsUrl,
-  Min,
-  ValidateIf,
-  type ValidationError,
-  validateSync,
+    IsDefined,
+    IsNumber,
+    IsOptional,
+    IsUrl,
+    Min,
+    ValidateIf,
+    type ValidationError,
+    validateSync,
 } from 'class-validator';
 import { CaptchaDriverType } from 'src/engine/core-modules/captcha/interfaces';
 import { EmailDriver } from 'src/engine/core-modules/email/enums/email-driver.enum';
@@ -34,8 +34,8 @@ import { AwsRegion } from 'src/engine/core-modules/twenty-config/interfaces/aws-
 import { NodeEnvironment } from 'src/engine/core-modules/twenty-config/interfaces/node-environment.interface';
 import { SupportDriver } from 'src/engine/core-modules/twenty-config/interfaces/support.interface';
 import {
-  ConfigVariableException,
-  ConfigVariableExceptionCode,
+    ConfigVariableException,
+    ConfigVariableExceptionCode,
 } from 'src/engine/core-modules/twenty-config/twenty-config.exception';
 import { isDefined } from 'twenty-shared/utils';
 
