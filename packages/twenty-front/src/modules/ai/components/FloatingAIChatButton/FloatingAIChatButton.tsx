@@ -14,12 +14,13 @@ import {
 export const FloatingAIChatButton = () => {
   const theme = useTheme();
   const isMobile = useIsMobile();
-  const { isVisible, handleClick, businessSetupStatus } = useFloatingAIChatButton();
+  const { isVisible, handleClick, businessSetupStatus } =
+    useFloatingAIChatButton();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
 
-  const isBusinessSetupWelcome = useMemo(() => 
-    businessSetupStatus === 'WELCOME', 
-    [businessSetupStatus]
+  const isBusinessSetupWelcome = useMemo(
+    () => businessSetupStatus === 'WELCOME',
+    [businessSetupStatus],
   );
 
   const handleMouseEnter = useCallback(() => {
@@ -51,7 +52,9 @@ export const FloatingAIChatButton = () => {
           applyShadow={true}
           applyBlur={true}
           onClick={handleClick}
-          className={isBusinessSetupWelcome ? 'business-setup-welcome-pulse' : ''}
+          className={
+            isBusinessSetupWelcome ? 'business-setup-welcome-pulse' : ''
+          }
         />
         <StyledTooltip
           style={{
@@ -59,10 +62,9 @@ export const FloatingAIChatButton = () => {
             transform: isTooltipVisible ? 'translateY(0)' : 'translateY(4px)',
           }}
         >
-          {isBusinessSetupWelcome 
-            ? t`Start Business Setup with AI` 
-            : t`Ask AI (Press @)`
-          }
+          {isBusinessSetupWelcome
+            ? t`Start Business Setup with AI`
+            : t`Ask AI (Press @)`}
         </StyledTooltip>
       </StyledFloatingAIChatButton>
     </StyledFloatingAIChatButtonContainer>

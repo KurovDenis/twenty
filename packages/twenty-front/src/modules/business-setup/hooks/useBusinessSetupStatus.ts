@@ -1,7 +1,7 @@
 import { useIsLogged } from '@/auth/hooks/useIsLogged';
 import {
-    BUSINESS_SETUP_STATUS,
-    type BusinessSetupStatus,
+  BUSINESS_SETUP_STATUS,
+  type BusinessSetupStatus,
 } from './useSetNextBusinessSetupStatus';
 
 export const useBusinessSetupStatus = ():
