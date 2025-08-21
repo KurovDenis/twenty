@@ -3,7 +3,13 @@ import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAI
 import { useRecoilComponentState } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentState';
 import { useCreateAgentChatThreadMutation } from '~/generated-metadata/graphql';
 
-export const useCreateNewAIChatThread = ({ agentId }: { agentId: string }) => {
+export const useCreateNewAIChatThread = ({
+  agentId,
+  onCompleted,
+}: {
+  agentId: string;
+  onCompleted?: (chatId: string) => void;
+}) => {
   const [, setCurrentThreadId] = useRecoilComponentState(
     currentAIChatThreadComponentState,
     agentId,
@@ -13,7 +19,14 @@ export const useCreateNewAIChatThread = ({ agentId }: { agentId: string }) => {
   const [createAgentChatThread] = useCreateAgentChatThreadMutation({
     variables: { input: { agentId } },
     onCompleted: (data) => {
-      setCurrentThreadId(data.createAgentChatThread.id);
+      const chatId = data.createAgentChatThread.id;
+      setCurrentThreadId(chatId);
+
+      // ✅ Вызываем кастомный callback если передан
+      if (onCompleted) {
+        onCompleted(chatId);
+      }
+
       openAskAIPage();
     },
   });

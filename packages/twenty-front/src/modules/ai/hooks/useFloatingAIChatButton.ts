@@ -1,8 +1,5 @@
-import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { useBusinessSetupAIChat } from '@/business-setup/hooks/useBusinessSetupAIChat';
 import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';
-
-import { useCreateNewAIChatThread } from '@/ai/hooks/useCreateNewAIChatThread';
 import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';
 import { commandMenuPageState } from '@/command-menu/states/commandMenuPageState';
 import { isCommandMenuOpenedState } from '@/command-menu/states/isCommandMenuOpenedState';
@@ -21,15 +18,8 @@ export const useFloatingAIChatButton = () => {
   const isCommandMenuOpened = useRecoilValue(isCommandMenuOpenedState);
   const commandMenuPage = useRecoilValue(commandMenuPageState);
   const businessSetupStatus = useBusinessSetupStatus();
-  const currentWorkspace = useRecoilValue(currentWorkspaceState);
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
   const { openBusinessSetupChat } = useBusinessSetupAIChat();
-
-  // ✅ Hook for creating new AI chat threads (tabs)
-  const agentId = currentWorkspace?.defaultAgent?.id;
-  const { createAgentChatThread } = useCreateNewAIChatThread({
-    agentId: agentId || '',
-  });
 
   // Check if AI chat is open
   const isAIChatOpen =
@@ -39,28 +29,23 @@ export const useFloatingAIChatButton = () => {
 
   const handleClick = useCallback(() => {
     try {
-      // ✅ Always create a new chat thread (tab) instead of restoring existing
-      if (agentId !== undefined && createAgentChatThread !== undefined) {
-        // Create new tab with AI agent
-        createAgentChatThread();
-      } else if (businessSetupStatus === 'WELCOME') {
-        // Fallback for Business Setup mode
+      // ✅ Floating Button открывает Command Menu с вкладками (БЕЗ создания нового чата)
+      if (businessSetupStatus === 'WELCOME') {
+        // Business Setup режим - открываем Business Setup чат
         openBusinessSetupChat();
       } else {
-        // Fallback for regular mode
+        // Обычный режим - открываем Command Menu с вкладками
         openAskAIPage();
       }
     } catch {
-      // Fallback - open regular AI chat
+      // Fallback - открываем обычный AI чат
       try {
         openAskAIPage();
       } catch {
-        // Silent fallback - already trying to open AI chat
+        // Silent fallback - уже пытаемся открыть AI чат
       }
     }
   }, [
-    agentId,
-    createAgentChatThread,
     businessSetupStatus,
     openBusinessSetupChat,
     openAskAIPage,

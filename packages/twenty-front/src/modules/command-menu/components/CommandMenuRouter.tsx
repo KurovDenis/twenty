@@ -1,6 +1,7 @@
 import { ActionMenuContextProvider } from '@/action-menu/contexts/ActionMenuContextProvider';
 import { CommandMenuContainer } from '@/command-menu/components/CommandMenuContainer';
 import { CommandMenuContextChipRecordSetterEffect } from '@/command-menu/components/CommandMenuContextChipRecordSetterEffect';
+import { CommandMenuTabs } from '@/command-menu/components/CommandMenuTabs';
 import { CommandMenuTopBar } from '@/command-menu/components/CommandMenuTopBar';
 import { COMMAND_MENU_PAGES_CONFIG } from '@/command-menu/constants/CommandMenuPagesConfig';
 import { commandMenuPageInfoState } from '@/command-menu/states/commandMenuPageInfoState';
@@ -47,6 +48,10 @@ export const CommandMenuRouter = () => {
         >
           <CommandMenuTopBar />
         </motion.div>
+
+        {/* AI Chat Tabs - показываем только для AI страниц */}
+        <CommandMenuTabs />
+
         <StyledCommandMenuContent>
           <ActionMenuContextProvider
             isInRightDrawer={true}
