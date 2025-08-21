@@ -53,6 +53,12 @@ export class AiModelRegistryService {
         openaiCompatibleModelNames,
       );
     }
+
+    const openrouterApiKey = this.twentyConfigService.get('OPENROUTER_API_KEY');
+
+    if (openrouterApiKey) {
+      this.registerOpenRouterModels();
+    }
   }
 
   private registerOpenAIModels(): void {
@@ -103,6 +109,31 @@ export class AiModelRegistryService {
         modelId,
         provider: ModelProvider.OPENAI_COMPATIBLE,
         model: provider(modelId),
+      });
+    });
+  }
+
+  private registerOpenRouterModels(): void {
+    const openrouterModels = AI_MODELS.filter(
+      (model) => model.provider === ModelProvider.OPENROUTER,
+    );
+
+    const apiKey = this.twentyConfigService.get('OPENROUTER_API_KEY');
+    const baseUrl = this.twentyConfigService.get('OPENROUTER_BASE_URL');
+
+    const openrouterProvider = createOpenAI({
+      baseURL: baseUrl,
+      apiKey: apiKey,
+    });
+
+    openrouterModels.forEach((modelConfig) => {
+      // Используем openRouterModelName для реального API вызова
+      const realModelName = modelConfig.openRouterModelName || modelConfig.modelId;
+      
+      this.modelRegistry.set(modelConfig.modelId, {
+        modelId: modelConfig.modelId,
+        provider: ModelProvider.OPENROUTER,
+        model: openrouterProvider(realModelName),
       });
     });
   }

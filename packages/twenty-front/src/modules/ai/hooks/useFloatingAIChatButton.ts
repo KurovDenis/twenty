@@ -12,7 +12,9 @@ import { isFloatingAIChatButtonVisibleState } from '../states/isFloatingAIChatBu
 
 export const useFloatingAIChatButton = () => {
   const isAiEnabled = useIsFeatureEnabled(FeatureFlagKey.IS_AI_ENABLED);
-  const isVisible = useRecoilValue(isFloatingAIChatButtonVisibleState);
+  const isFloatingAIChatButtonVisible = useRecoilValue(
+    isFloatingAIChatButtonVisibleState,
+  );
   const isCommandMenuOpened = useRecoilValue(isCommandMenuOpenedState);
   const commandMenuPage = useRecoilValue(commandMenuPageState);
   const businessSetupStatus = useBusinessSetupStatus();
@@ -20,11 +22,10 @@ export const useFloatingAIChatButton = () => {
   const { openBusinessSetupChat } = useBusinessSetupAIChat();
 
   // Check if AI chat is open
-  const isAIChatOpen = isCommandMenuOpened && 
-    (commandMenuPage === CommandMenuPages.AskAI || 
-     commandMenuPage === CommandMenuPages.ViewPreviousAIChats);
-
-
+  const isAIChatOpen =
+    isCommandMenuOpened &&
+    (commandMenuPage === CommandMenuPages.AskAI ||
+      commandMenuPage === CommandMenuPages.ViewPreviousAIChats);
 
   const handleClick = useCallback(() => {
     try {
@@ -46,7 +47,7 @@ export const useFloatingAIChatButton = () => {
   }, [businessSetupStatus, openBusinessSetupChat, openAskAIPage]);
 
   return {
-    isVisible: isVisible && isAiEnabled && !isAIChatOpen,
+    isVisible: isFloatingAIChatButtonVisible && isAiEnabled && !isAIChatOpen,
     handleClick,
     businessSetupStatus,
   };

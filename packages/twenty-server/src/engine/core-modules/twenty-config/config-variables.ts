@@ -1037,6 +1037,53 @@ export class ConfigVariables {
   OPENAI_COMPATIBLE_API_KEY: string;
 
   @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.LLM,
+    isSensitive: true,
+    description: 'API key for OpenRouter integration (Gemini 2.5 Flash)',
+    type: ConfigVariableType.STRING,
+    isEnvOnly: true,
+  })
+  @IsOptional()
+  OPENROUTER_API_KEY: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.LLM,
+    description: 'HTTP Referer header for OpenRouter API requests',
+    type: ConfigVariableType.STRING,
+    isEnvOnly: true,
+  })
+  @IsOptional()
+  OPENROUTER_HTTP_REFERER = 'https://twenty.com';
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.LLM,
+    description: 'X-Title header for OpenRouter API requests',
+    type: ConfigVariableType.STRING,
+    isEnvOnly: true,
+  })
+  @IsOptional()
+  OPENROUTER_X_TITLE = 'Twenty CRM';
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.LLM,
+    description: 'Default OpenRouter model for Business Setup (Gemini 2.5 Flash)',
+    type: ConfigVariableType.STRING,
+    isEnvOnly: true,
+  })
+  @IsOptional()
+  OPENROUTER_DEFAULT_MODEL = 'google/gemini-2.5-flash';
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.LLM,
+    description: 'Base URL for OpenRouter API',
+    type: ConfigVariableType.STRING,
+    isEnvOnly: true,
+  })
+  @IsOptional()
+  @IsUrl({ require_tld: false, require_protocol: true })
+  OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+  @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.ServerConfig,
     description: 'Enable or disable multi-workspace support',
     type: ConfigVariableType.BOOLEAN,
