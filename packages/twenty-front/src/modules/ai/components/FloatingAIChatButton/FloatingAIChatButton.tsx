@@ -1,4 +1,3 @@
-import { useTheme } from '@emotion/react';
 import { t } from '@lingui/core/macro';
 import { useCallback, useMemo, useState } from 'react';
 import { IconSparkles } from 'twenty-ui/display';
@@ -12,7 +11,6 @@ import {
 } from './FloatingAIChatButton.styles';
 
 export const FloatingAIChatButton = () => {
-  const theme = useTheme();
   const isMobile = useIsMobile();
   const { isVisible, handleClick, businessSetupStatus } =
     useFloatingAIChatButton();

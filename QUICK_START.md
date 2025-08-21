@@ -1,5 +1,14 @@
 # 🚀 Быстрый запуск Twenty
 
+## 🧹 Быстрая очистка (если что-то сломалось)
+```bash
+# Полная очистка за 3 команды:
+Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
+make clean-containers
+docker system prune -a -f && docker volume prune -f
+make setup-twenty
+```
+
 ## Минимальные требования
 - Node.js 24.5.0+
 - Yarn 4.0.2+
@@ -127,6 +136,68 @@ docker-compose -f packages/twenty-docker/docker-compose.yml down
 
 # Остановить процессы разработки (Ctrl+C в терминалах)
 ```
+
+## 🧹 Полная очистка Twenty CRM
+
+### Способ 1: Через Make (рекомендуется)
+
+```bash
+# 1. Создать alias для make (если не настроен)
+Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
+
+# 2. Очистить контейнеры
+make clean-containers
+
+# 3. Очистить Docker volumes и кэш
+docker volume prune -f
+docker system prune -a -f
+
+# 4. Перезапустить с чистого листа
+make setup-twenty
+```
+
+### Способ 2: Ручная очистка
+
+```bash
+# 1. Остановить и удалить контейнеры
+docker-compose -f packages/twenty-docker/docker-compose.yml down -v
+
+# 2. Очистить все Docker ресурсы
+docker system prune -a -f
+docker volume prune -f
+docker image prune -a -f
+
+# 3. Очистить кэш Nx и yarn
+npx nx reset
+yarn cache clean
+
+# 4. Перезапустить базу данных
+docker-compose -f packages/twenty-docker/docker-compose.yml up -d db redis
+
+# 5. Подождать 30-60 секунд и инициализировать БД
+npx nx database:migrate twenty-server
+```
+
+### Что происходит при очистке:
+- ✅ Все контейнеры останавливаются и удаляются
+- ✅ Все Docker volumes удаляются (данные БД теряются)
+- ✅ Все Docker образы удаляются
+- ✅ Кэш Nx и yarn очищается
+- ✅ База данных создается заново
+- ✅ Redis кэш очищается
+- ✅ Ошибка "User does not have access to this workspace" исчезает
+
+### ⚠️ ВАЖНЫЕ ПРЕДУПРЕЖДЕНИЯ:
+- **ВСЕ ДАННЫЕ БУДУТ ПОТЕРЯНЫ** - это полная очистка
+- Убедитесь что у вас есть резервные копии важных данных
+- При первом запуске потребуется заново создать workspace и пользователя
+- Очистка занимает 2-5 минут в зависимости от размера Docker кэша
+
+### 🚀 После очистки:
+1. Запустите сервер: `npx nx start twenty-server`
+2. В новом терминале запустите фронтенд: `npx nx start twenty-front`
+3. Создайте новый workspace при первом входе
+4. Наслаждайтесь чистым Twenty CRM!
 
 ## 📝 Примечания
 

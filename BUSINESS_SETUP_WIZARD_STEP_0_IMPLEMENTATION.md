@@ -446,7 +446,7 @@ openAskAIPage({
 **Решение:**
 ```typescript
 // ✅ ПРАВИЛЬНЫЙ API
-openAskAIPage("I'm ready to help you set up your business automation! Let's get started.");
+openAskAIPage("Настройка системы");
 ```
 
 ### ✅ Исправление 4: Дублирование типов
@@ -662,7 +662,7 @@ export const BusinessSetupWelcome = () => {
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
 
   const handleStartWithAI = () => {
-    openAskAIPage("I'm ready to help you set up your business automation! Let's get started.");
+    openAskAIPage("Настройка системы");
   };
 
   const handleSkipWelcome = async () => {
@@ -765,7 +765,7 @@ export const useFloatingAIChatButton = () => {
     // Если мы в Business Setup режиме, открываем специальный чат
     if (businessSetupStatus === BusinessSetupStatus.WELCOME) {
       openAskAIPage({
-        initialMessage: "I'm ready to help you set up your business automation! Let's get started.",
+        initialMessage: "Настройка системы",
         context: {
           businessSetupMode: true,
           step: 'WELCOME',
@@ -1683,7 +1683,7 @@ type BusinessSetupStatus = 'WELCOME' | 'BUSINESS_ANALYSIS' | 'SALES_FUNNEL_DESIG
 // ❌ БЫЛО - неправильный API вызов
 const handleStartWithAI = () => {
   openAskAIPage({
-    initialMessage: "I'm ready to help you set up your business automation! Let's get started.",
+    initialMessage: "Настройка системы",
     context: {
       businessSetupMode: true,
       step: 'WELCOME',
@@ -1694,7 +1694,7 @@ const handleStartWithAI = () => {
 
 // ✅ СТАЛО - правильный API вызов
 const handleStartWithAI = () => {
-  openAskAIPage("I'm ready to help you set up your business automation! Let's get started.");
+  openAskAIPage("Настройка системы");
 };
 ```
 

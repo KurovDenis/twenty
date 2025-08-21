@@ -457,7 +457,7 @@ export const useBusinessSetupAIChat = () => {
       
       // Открываем AI чат с OpenRouter интеграцией
       const initialMessage = await getOpenRouterResponse(
-        "I'm ready to help you set up your business automation! Let's get started.",
+        "Настройка системы",
         'WELCOME'
       );
       
@@ -465,7 +465,7 @@ export const useBusinessSetupAIChat = () => {
     } catch (error) {
       console.error('Failed to open Business Setup AI chat:', error);
       // Fallback - обычный AI чат
-      openAskAIPage("I'm ready to help you set up your business automation! Let's get started.");
+      openAskAIPage("Настройка системы");
     } finally {
       setIsProcessing(false);
     }

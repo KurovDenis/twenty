@@ -1,9 +1,9 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { useSetNextBusinessSetupStatus } from '@/business-setup/hooks/useSetNextBusinessSetupStatus';
+import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import { BusinessSetupWelcome } from '../BusinessSetupWelcome';
-import { useSetNextBusinessSetupStatus } from '@/business-setup/hooks/useSetNextBusinessSetupStatus';
-import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';
 
 // Mock hooks
 jest.mock('@/business-setup/hooks/useSetNextBusinessSetupStatus');
@@ -42,6 +42,8 @@ describe('BusinessSetupWelcome', () => {
     });
     mockUseOpenAskAIPageInCommandMenu.mockReturnValue({
       openAskAIPage: jest.fn(),
+      restoreChat: jest.fn(),
+      openNewChat: jest.fn(),
     });
   });
 
@@ -93,6 +95,8 @@ describe('BusinessSetupWelcome', () => {
     const mockOpenAskAIPage = jest.fn();
     mockUseOpenAskAIPageInCommandMenu.mockReturnValue({
       openAskAIPage: mockOpenAskAIPage,
+      restoreChat: jest.fn(),
+      openNewChat: jest.fn(),
     });
 
     renderComponent();

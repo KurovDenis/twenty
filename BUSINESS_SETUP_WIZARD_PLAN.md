@@ -169,7 +169,7 @@ export const useBusinessSetupWelcomeChat = () => {
 
   const startWelcomeChat = () => {
     openAskAIPage({
-      initialMessage: "I'm ready to help you set up your business automation! Let's get started.",
+              initialMessage: "Настройка системы",
       context: {
         businessSetupMode: true,
         step: 'WELCOME',
@@ -2550,7 +2550,7 @@ Ready to begin? Just click this button and I'll guide you through the analysis! 
   const openWelcomeChat = () => {
     // Открываем специальный чат для приветствия
     openAskAIPage({
-      initialMessage: `I'm ready to help you set up your business automation! Let's get started.`,
+              initialMessage: `Настройка системы`,
       context: {
         businessSetupMode: true,
         step: BusinessSetupStatus.WELCOME,
@@ -4305,7 +4305,7 @@ export const useBusinessSetupChat = () => {
   }, [setNextBusinessSetupStatus, navigate]);
 
   const startWelcomeChat = useCallback(() => {
-    const welcomeMessage = `I'm ready to help you set up your business automation! Let's get started.`;
+    const welcomeMessage = `Настройка системы`;
     sendMessage(welcomeMessage);
   }, [sendMessage]);
 

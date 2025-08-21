@@ -58,17 +58,10 @@ export const BusinessSetupWelcome = () => {
   const { openBusinessSetupChat } = useBusinessSetupAIChat();
 
   const handleStartWithAI = () => {
-    console.log('🎯 [Welcome] Starting Business Setup with AI...');
-    console.log(
-      '🔍 [Welcome] openBusinessSetupChat function type:',
-      typeof openBusinessSetupChat,
-    );
-
     try {
       openBusinessSetupChat();
-      console.log('✅ [Welcome] AI chat function called successfully');
-    } catch (error) {
-      console.error('❌ [Welcome] Error starting AI chat:', error);
+    } catch {
+      // Silent error handling - function will handle fallback
     }
   };
 
