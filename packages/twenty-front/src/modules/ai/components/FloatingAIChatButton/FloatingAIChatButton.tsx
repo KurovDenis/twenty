@@ -1,23 +1,39 @@
+import { useTheme } from '@emotion/react';
 import { t } from '@lingui/core/macro';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { IconSparkles } from 'twenty-ui/display';
 import { FloatingIconButton } from 'twenty-ui/input';
 import { useIsMobile } from 'twenty-ui/utilities';
 import { useFloatingAIChatButton } from '../../hooks/useFloatingAIChatButton';
 import {
-    StyledFloatingAIChatButton,
-    StyledFloatingAIChatButtonContainer,
-    StyledTooltip,
+  StyledFloatingAIChatButton,
+  StyledFloatingAIChatButtonContainer,
+  StyledTooltip,
 } from './FloatingAIChatButton.styles';
 
 export const FloatingAIChatButton = () => {
+  const theme = useTheme();
   const isMobile = useIsMobile();
-  const { isVisible, handleClick } = useFloatingAIChatButton();
+  const { isVisible, handleClick, businessSetupStatus } = useFloatingAIChatButton();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+
+  const isBusinessSetupWelcome = useMemo(() => 
+    businessSetupStatus === 'WELCOME', 
+    [businessSetupStatus]
+  );
+
+  const handleMouseEnter = useCallback(() => {
+    setIsTooltipVisible(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsTooltipVisible(false);
+  }, []);
 
   return (
     <StyledFloatingAIChatButtonContainer
       data-testid="floating-ai-chat-button"
+      className={isBusinessSetupWelcome ? 'business-setup-welcome-mode' : ''}
       style={{
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'scale(1)' : 'scale(0.8)',
@@ -25,8 +41,8 @@ export const FloatingAIChatButton = () => {
       }}
     >
       <StyledFloatingAIChatButton
-        onMouseEnter={() => setIsTooltipVisible(true)}
-        onMouseLeave={() => setIsTooltipVisible(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <FloatingIconButton
           Icon={IconSparkles}
@@ -35,6 +51,7 @@ export const FloatingAIChatButton = () => {
           applyShadow={true}
           applyBlur={true}
           onClick={handleClick}
+          className={isBusinessSetupWelcome ? 'business-setup-welcome-pulse' : ''}
         />
         <StyledTooltip
           style={{
@@ -42,7 +59,10 @@ export const FloatingAIChatButton = () => {
             transform: isTooltipVisible ? 'translateY(0)' : 'translateY(4px)',
           }}
         >
-          {t`Ask AI (Press @)`}
+          {isBusinessSetupWelcome 
+            ? t`Start Business Setup with AI` 
+            : t`Ask AI (Press @)`
+          }
         </StyledTooltip>
       </StyledFloatingAIChatButton>
     </StyledFloatingAIChatButtonContainer>

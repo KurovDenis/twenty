@@ -1,7 +1,7 @@
 import { SubTitle } from '@/auth/components/SubTitle';
 import { Title } from '@/auth/components/Title';
+import { useBusinessSetupAIChat } from '@/business-setup/hooks/useBusinessSetupAIChat';
 import { useSetNextBusinessSetupStatus } from '@/business-setup/hooks/useSetNextBusinessSetupStatus';
-import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';
 import { AppPath } from '@/types/AppPath';
 import { Modal } from '@/ui/layout/modal/components/Modal';
 import styled from '@emotion/styled';
@@ -55,12 +55,18 @@ export const BusinessSetupWelcome = () => {
   const { t } = useLingui();
   const navigate = useNavigate();
   const { setNextBusinessSetupStatus } = useSetNextBusinessSetupStatus();
-  const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
+  const { openBusinessSetupChat } = useBusinessSetupAIChat();
 
   const handleStartWithAI = () => {
-    openAskAIPage(
-      "I'm ready to help you set up your business automation! Let's get started.",
-    );
+    console.log('🎯 [Welcome] Starting Business Setup with AI...');
+    console.log('🔍 [Welcome] openBusinessSetupChat function type:', typeof openBusinessSetupChat);
+    
+    try {
+      openBusinessSetupChat();
+      console.log('✅ [Welcome] AI chat function called successfully');
+    } catch (error) {
+      console.error('❌ [Welcome] Error starting AI chat:', error);
+    }
   };
 
   const handleSkipWelcome = async () => {
@@ -79,78 +85,51 @@ export const BusinessSetupWelcome = () => {
         </Title>
         <SubTitle>
           <Trans>
-            Let's create your fully automated business system together. I'll
-            help you analyze your business, design sales funnels, set up AI
-            agents, and create automated workflows.
+            Let's create your fully automated business system together. 
+            I'll help you analyze your business, design sales funnels, 
+            set up AI agents, and create automated workflows.
           </Trans>
         </SubTitle>
-
+        
         <StyledFeaturesList>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>
-              <span role="img" aria-label="rocket">
-                🚀
-              </span>{' '}
-              Business Analysis - Analyze your industry and processes
-            </span>
+            <span><span role="img" aria-label="rocket">🚀</span> Business Analysis - Analyze your industry and processes</span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>
-              <span role="img" aria-label="target">
-                🎯
-              </span>{' '}
-              Sales Funnel Design - Create perfect conversion funnels
-            </span>
+            <span><span role="img" aria-label="target">🎯</span> Sales Funnel Design - Create perfect conversion funnels</span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>
-              <span role="img" aria-label="robot">
-                🤖
-              </span>{' '}
-              AI Agent Setup - Build specialized AI agents
-            </span>
+            <span><span role="img" aria-label="robot">🤖</span> AI Agent Setup - Build specialized AI agents</span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>
-              <span role="img" aria-label="lightning">
-                ⚡
-              </span>{' '}
-              Workflow Automation - Design automated workflows
-            </span>
+            <span><span role="img" aria-label="lightning">⚡</span> Workflow Automation - Design automated workflows</span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>
-              <span role="img" aria-label="team">
-                👥
-              </span>{' '}
-              Team Assignment - Set up roles and permissions
-            </span>
+            <span><span role="img" aria-label="team">👥</span> Team Assignment - Set up roles and permissions</span>
           </StyledFeatureItem>
           <StyledFeatureItem>
             <IconSparkles size={16} />
-            <span>
-              <span role="img" aria-label="test tube">
-                🧪
-              </span>{' '}
-              Testing & Optimization - Ensure everything works perfectly
-            </span>
+            <span><span role="img" aria-label="test tube">🧪</span> Testing & Optimization - Ensure everything works perfectly</span>
           </StyledFeatureItem>
         </StyledFeaturesList>
       </StyledTitleContainer>
-
+      
       <StyledButtonContainer>
-        <MainButton
-          title={t`Start with AI Assistant`}
+        <MainButton 
+          title={t`Start with AI Assistant`} 
           onClick={handleStartWithAI}
           Icon={IconSparkles}
           width={250}
         />
-        <LightButton title={t`Skip Welcome`} onClick={handleSkipWelcome} />
+        <LightButton 
+          title={t`Skip Welcome`} 
+          onClick={handleSkipWelcome}
+        />
       </StyledButtonContainer>
     </StyledModalContent>
   );
