@@ -45,11 +45,7 @@ export const useFloatingAIChatButton = () => {
         // Silent fallback - уже пытаемся открыть AI чат
       }
     }
-  }, [
-    businessSetupStatus,
-    openBusinessSetupChat,
-    openAskAIPage,
-  ]);
+  }, [businessSetupStatus, openBusinessSetupChat, openAskAIPage]);
 
   return {
     isVisible: isFloatingAIChatButtonVisible && isAiEnabled && !isAIChatOpen,

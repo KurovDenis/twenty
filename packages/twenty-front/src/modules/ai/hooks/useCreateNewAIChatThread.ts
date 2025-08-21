@@ -1,35 +1,49 @@
-import { currentAIChatThreadComponentState } from '@/ai/states/currentAIChatThreadComponentState';
 import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';
-import { useRecoilComponentState } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentState';
+import { useCallback } from 'react';
 import { useCreateAgentChatThreadMutation } from '~/generated-metadata/graphql';
 
 export const useCreateNewAIChatThread = ({
   agentId,
   onCompleted,
+  onError,
 }: {
   agentId: string;
-  onCompleted?: (chatId: string) => void;
+  onCompleted?: (chatId: string, graphqlThreadId: string) => void;
+  onError?: (error: Error) => void;
 }) => {
-  const [, setCurrentThreadId] = useRecoilComponentState(
-    currentAIChatThreadComponentState,
-    agentId,
-  );
-
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
+  
   const [createAgentChatThread] = useCreateAgentChatThreadMutation({
     variables: { input: { agentId } },
     onCompleted: (data) => {
-      const chatId = data.createAgentChatThread.id;
-      setCurrentThreadId(chatId);
+      const graphqlThreadId = data.createAgentChatThread.id;
+      console.log('✅ Создан OpenRouter поток:', graphqlThreadId);
 
-      // ✅ Вызываем кастомный callback если передан
-      if (onCompleted) {
-        onCompleted(chatId);
+      // ✅ Вызываем кастомный callback с обоими ID
+      if (onCompleted !== undefined) {
+        // ✅ chatId будет передан из локального чата
+        onCompleted('', graphqlThreadId);
       }
 
+      // ✅ Открываем AI страницу
       openAskAIPage();
+    },
+    onError: (error) => {
+      console.error('❌ Ошибка создания OpenRouter потока:', error);
+      onError?.(error);
     },
   });
 
-  return { createAgentChatThread };
+  // ✅ Возвращаем функцию для создания потока
+  const createThread = useCallback(async () => {
+    try {
+      const result = await createAgentChatThread();
+      return result;
+    } catch (error) {
+      console.error('❌ Ошибка при создании потока:', error);
+      throw error;
+    }
+  }, [createAgentChatThread]);
+
+  return { createAgentChatThread: createThread };
 };

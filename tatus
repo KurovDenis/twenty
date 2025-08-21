@@ -1,64 +1,260 @@
-* [32mfeature/langchain-hybrid-integration[m
-  feature/open-source-ai-agent[m
-  main[m
-  [31mremotes/origin/HEAD[m -> origin/main
-  [31mremotes/origin/feature/langchain-hybrid-integration[m
-  [31mremotes/origin/main[m
-  [31mremotes/upstream/+refs/pull/12398/head[m
-  [31mremotes/upstream/0.35.8[m
-  [31mremotes/upstream/0.40.3[m
-  [31mremotes/upstream/1093-search-bar-triggered-by-click-or-has-unexpected-results[m
-  [31mremotes/upstream/10954-introduce-the-updated-by-field[m
-  [31mremotes/upstream/1101-workflow-prevent-creating-step-when-step-is-currently-creating[m
-  [31mremotes/upstream/1118-workflow-focus-on-first-field-when-form-step-is-running[m
-  [31mremotes/upstream/1127-workflow-there-is-no-empty-value-for-formselectfieldinput[m
-  [31mremotes/upstream/11550-views---name-column-values-ellipsis-should-extend-when-column-extends[m
-  [31mremotes/upstream/11803-tables---duplicate-domains-are-created-for-slightly-distinct-domain-formats[m
-  [31mremotes/upstream/1249-create-parallel-code-path-in-the-frontend-when-is_core_view_enabled-feature-flag-is-enabled[m
-  [31mremotes/upstream/12562-menu-is-broken-on-notes[m
-  [31mremotes/upstream/12690-error-unknown-error-importing-calendar-events-reafcto-required[m
-  [31mremotes/upstream/13058-workflow-with-code-fail-to-run[m
-  [31mremotes/upstream/1313-seed-core-views-at-workspace-creation[m
-  [31mremotes/upstream/509-missing-fields-on-crud-relation-field[m
-  [31mremotes/upstream/709-workflow-functional-improvements[m
-  [31mremotes/upstream/789-add-relations-field-type-variables-support-in-workflows-with-clean-records[m
-  [31mremotes/upstream/863-update-billing-settings-page-ctas[m
-  [31mremotes/upstream/9580-delete-optimistic-cache-update[m
-  [31mremotes/upstream/9580-optimistic-cache-issue-object-data-model-relation-editor[m
-  [31mremotes/upstream/974-rest-api-batch-create-sentry-issue[m
-  [31mremotes/upstream/add-command-to-update-workflow-version-steps-positions[m
-  [31mremotes/upstream/add-more-translations[m
-  [31mremotes/upstream/add-new-workflow-executor[m
-  [31mremotes/upstream/add-translations-on-views[m
-  [31mremotes/upstream/add-transpilers-tests[m
-  [31mremotes/upstream/backfill-workspace-version-column[m
-  [31mremotes/upstream/bd-json-fields[m
-  [31mremotes/upstream/begin-ai-in-blocknote[m
-  [31mremotes/upstream/block-note-integration-tests[m
-  [31mremotes/upstream/block-update-delete-raw-queries-without-where-clause[m
-  [31mremotes/upstream/breaking-change-test[m
-  [31mremotes/upstream/breaking-change-test-2[m
-  [31mremotes/upstream/bump-0.35.4[m
-  [31mremotes/upstream/bump-0.35.4-version[m
-  [31mremotes/upstream/bump-to-0.44-canary[m
-  [31mremotes/upstream/c--add-delete-role-button[m
-  [31mremotes/upstream/c--add-workspace-query-builder[m
-  [31mremotes/upstream/c--fix-block-editor-changed-content[m
-  [31mremotes/upstream/c--fix-clicking_several_time_on_the_same_record_stacks_same_item_to_the_side_panel_navigation_history[m
-  [31mremotes/upstream/c--fix-default-value-select-option-deletion[m
-  [31mremotes/upstream/c--fix-event-emitter-without-changes[m
-  [31mremotes/upstream/c--fix-rest-api-metadata-cache[m
-  [31mremotes/upstream/c--fix-server-ci-integration[m
-  [31mremotes/upstream/c--implement-workspace-schema-migration-runner-1[m
-  [31mremotes/upstream/c--permissions-update-role-settings[m
-  [31mremotes/upstream/c--refactor-workspace-schema-migration-runner-to-raw[m
-  [31mremotes/upstream/c--removing-favorite-folder-entity-gate[m
-  [31mremotes/upstream/c--skip-health-check-during-sync-metadata-when-force-enabled[m
-  [31mremotes/upstream/c--use-jest-silent-reporter-for-integration-tests[m
-  [31mremotes/upstream/c--workspace-schema-migration-runner-v2-implem-1[m
-  [31mremotes/upstream/cache-client-config[m
-  [31mremotes/upstream/cache-refactor-transpilation-to-flat[m
-  [31mremotes/upstream/charles-repro-twenty-ui-as-package[m
-  [31mremotes/upstream/checking-something-out[m
-  [31mremotes/upstream/chore/capture-exceptions-for-invalid-captcha[m
-  
+[1mdiff --git a/packages/twenty-front/src/modules/command-menu/components/CommandMenuTabs.tsx b/packages/twenty-front/src/modules/command-menu/components/CommandMenuTabs.tsx[m
+[1mindex ee1033dfed..36d816d220 100644[m
+[1m--- a/packages/twenty-front/src/modules/command-menu/components/CommandMenuTabs.tsx[m
+[1m+++ b/packages/twenty-front/src/modules/command-menu/components/CommandMenuTabs.tsx[m
+[36m@@ -1,15 +1,16 @@[m
+[32m+[m[32mimport { useAIChats } from '@/ai/hooks/useAIChats';[m
+ import { useCreateNewAIChatThread } from '@/ai/hooks/useCreateNewAIChatThread';[m
+ import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';[m
+ import { useBusinessSetupAIChat } from '@/business-setup/hooks/useBusinessSetupAIChat';[m
+[31m-import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';[m
+ import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';[m
+ import { commandMenuPageState } from '@/command-menu/states/commandMenuPageState';[m
+ import { CommandMenuPages } from '@/command-menu/types/CommandMenuPages';[m
+ import styled from '@emotion/styled';[m
+[31m-import { useCallback, useState } from 'react';[m
+[31m-import { useRecoilValue } from 'recoil';[m
+[32m+[m[32mimport { useCallback, useEffect, useState } from 'react';[m
+[32m+[m[32mimport { useRecoilValue, useSetRecoilState } from 'recoil';[m
+ import { IconHistory, IconSparkles } from 'twenty-ui/display';[m
+ import { TabButton } from 'twenty-ui/input';[m
+[32m+[m[32mimport { useGetAgentChatThreadsQuery } from '~/generated-metadata/graphql';[m
+ [m
+ const StyledTabsContainer = styled.div`[m
+   display: flex;[m
+[36m@@ -26,95 +27,153 @@[m [mconst StyledTabsContainer = styled.div`[m
+ export const CommandMenuTabs = () => {[m
+   const currentWorkspace = useRecoilValue(currentWorkspaceState);[m
+   const commandMenuPage = useRecoilValue(commandMenuPageState);[m
+[31m-  const businessSetupStatus = useBusinessSetupStatus();[m
+[31m-[m
+[31m-  // ✅ Состояние для управления чатами[m
+[31m-  const [chats, setChats] = useState<[m
+[31m-    Array<{[m
+[31m-      id: string;[m
+[31m-      title: string;[m
+[31m-      isActive: boolean;[m
+[31m-      isBusinessSetup: boolean;[m
+[31m-    }>[m
+[31m-  >([[m
+[31m-    {[m
+[31m-      id: 'business-setup',[m
+[31m-      title: 'Настройка системы',[m
+[31m-      isActive: true,[m
+[31m-      isBusinessSetup: true,[m
+[31m-    },[m
+[31m-  ]);[m
+[32m+[m[32m  const setCommandMenuPage = useSetRecoilState(commandMenuPageState);[m
+ [m
+[32m+[m[32m  // ✅ Используем существующую систему OpenRouter[m
+   const agentId = currentWorkspace?.defaultAgent?.id;[m
+[32m+[m[41m  [m
+[32m+[m[32m  // ✅ Используем useAIChats для переключения потоков[m
+[32m+[m[32m  const { switchToExistingThread } = useAIChats();[m
+[32m+[m[41m  [m
+[32m+[m[32m  // ✅ Загружаем существующие потоки[m
+[32m+[m[32m  const { data: { agentChatThreads = [] } = {}, loading: threadsLoading } =[m[41m [m
+[32m+[m[32m    useGetAgentChatThreadsQuery({[m
+[32m+[m[32m      variables: { agentId: agentId || '' },[m
+[32m+[m[32m      skip: !agentId,[m
+[32m+[m[32m    });[m
+[32m+[m
+   const { createAgentChatThread } = useCreateNewAIChatThread({[m
+     agentId: agentId || '',[m
+     onCompleted: (chatId: string) => {[m
+[31m-      // ✅ Сохраняем ID нового чата в Business Setup состоянии[m
+[31m-      // Это позволит восстановить чат при возврате на "Настройка системы"[m
+[32m+[m[32m      console.log('✅ Создан новый OpenRouter поток:', chatId);[m
+[32m+[m[32m      // ✅ После создания нового потока, вкладки автоматически обновятся[m
+     },[m
+   });[m
+[32m+[m
+[32m+[m[32m  const { openBusinessSetupChat } = useBusinessSetupAIChat();[m
+   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();[m
+[31m-  const { openBusinessSetupChat, createBusinessSetupAgentChatThread } =[m
+[31m-    useBusinessSetupAIChat();[m
+ [m
+[31m-  // Проверяем, активен ли Business Setup (не в WELCOME состоянии)[m
+[31m-  const isBusinessSetupActive = businessSetupStatus !== 'WELCOME';[m
+[32m+[m[32m  // ✅ Состояние для вкладок с ID потоков[m
+[32m+[m[32m  const [tabs, setTabs] = useState<Array<{[m
+[32m+[m[32m    id: string;[m
+[32m+[m[32m    title: string;[m
+[32m+[m[32m    isActive: boolean;[m
+[32m+[m[32m    isBusinessSetup: boolean;[m
+[32m+[m[32m    threadId: string | null;[m
+[32m+[m[32m  }>>([[m
+[32m+[m[32m    {[m
+[32m+[m[32m      id: 'business-setup',[m
+[32m+[m[32m      title: 'Настройка системы',[m
+[32m+[m[32m      isActive: true,[m
+[32m+[m[32m      isBusinessSetup: true,[m
+[32m+[m[32m      threadId: null, // Business Setup не имеет threadId[m
+[32m+[m[32m    },[m
+[32m+[m[32m  ]);[m
+ [m
+[31m-  // ✅ Показываем табы только для AI чатов[m
+[31m-  if ([m
+[31m-    commandMenuPage !== CommandMenuPages.AskAI &&[m
+[31m-    commandMenuPage !== CommandMenuPages.ViewPreviousAIChats[m
+[31m-  ) {[m
+[31m-    return null;[m
+[31m-  }[m
+[32m+[m[32m  // ✅ Обновляем вкладки когда загружаются потоки[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    if (agentChatThreads.length > 0) {[m
+[32m+[m[32m      // ✅ Создаем вкладки для существующих потоков[m
+[32m+[m[32m      const threadTabs = agentChatThreads.slice(0, 3).map((thread: any, index: number) => ({[m
+[32m+[m[32m        id: `thread-${thread.id}`,[m
+[32m+[m[32m        title: thread.title || `Чат ${index + 1}`,[m
+[32m+[m[32m        isActive: false,[m
+[32m+[m[32m        isBusinessSetup: false,[m
+[32m+[m[32m        threadId: thread.id, // ✅ Сохраняем ID потока[m
+[32m+[m[32m      }));[m
+[32m+[m
+[32m+[m[32m      // ✅ Обновляем вкладки: Business Setup + существующие потоки[m
+[32m+[m[32m      setTabs([[m
+[32m+[m[32m        {[m
+[32m+[m[32m          id: 'business-setup',[m
+[32m+[m[32m          title: 'Настройка системы',[m
+[32m+[m[32m          isActive: true,[m
+[32m+[m[32m          isBusinessSetup: true,[m
+[32m+[m[32m          threadId: null,[m
+[32m+[m[32m        },[m
+[32m+[m[32m        ...threadTabs,[m
+[32m+[m[32m      ]);[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }, [agentChatThreads]);[m
+ [m
+[31m-    // ✅ Добавляем новый чат[m
+[32m+[m[32m  // ✅ Создание нового чата[m
+   const handleAddNewChat = useCallback(() => {[m
+[31m-    const newChatId = `chat-${Date.now()}`;[m
+[31m-    const newChat = {[m
+[31m-      id: newChatId,[m
+[31m-      title: `Новый чат ${chats.length}`,[m
+[31m-      isActive: false,[m
+[31m-      isBusinessSetup: false,[m
+[31m-    };[m
+[32m+[m[32m    console.log('🔧 Создаем новый чат через OpenRouter');[m
+     [m
+[31m-    setChats((prev) => [...prev, newChat]);[m
+[31m-    [m
+[31m-    // ✅ Создаем новый чат через API[m
+[31m-    if (agentId !== undefined && createAgentChatThread !== undefined) {[m
+[32m+[m[32m    if (agentId && createAgentChatThread) {[m
+       createAgentChatThread();[m
+[32m+[m[32m      // ✅ Вкладки автоматически обновятся через useEffect[m
+     } else {[m
+       openAskAIPage();[m
+     }[m
+[31m-  }, [agentId, createAgentChatThread, openAskAIPage, chats.length]);[m
+[32m+[m[32m  }, [agentId, createAgentChatThread, openAskAIPage]);[m
+[32m+[m
+[32m+[m[32m  // ✅ Переключение на вкладку[m
+[32m+[m[32m  const handleTabClick = useCallback((tab: {[m
+[32m+[m[32m    id: string;[m
+[32m+[m[32m    title: string;[m
+[32m+[m[32m    isActive: boolean;[m
+[32m+[m[32m    isBusinessSetup: boolean;[m
+[32m+[m[32m    threadId: string | null;[m
+[32m+[m[32m  }) => {[m
+[32m+[m[32m    console.log('🔧 Переключаемся на вкладку:', tab.id);[m
+[32m+[m[41m    [m
+[32m+[m[32m    if (tab.isBusinessSetup) {[m
+[32m+[m[32m      // ✅ Для Business Setup - используем специальную функцию[m
+[32m+[m[32m      openBusinessSetupChat();[m
+[32m+[m[32m    } else if (tab.threadId) {[m
+[32m+[m[32m      // ✅ Для обычных чатов - переключаемся на существующий поток[m
+[32m+[m[32m      console.log('🔧 Переключаемся на поток:', tab.threadId);[m
+[32m+[m[32m      switchToExistingThread(tab.threadId); // ✅ Переключаем OpenRouter поток[m
+[32m+[m[32m      openAskAIPage(); // Открываем AI страницу[m
+[32m+[m[32m    } else {[m
+[32m+[m[32m      // ✅ Fallback[m
+[32m+[m[32m      openAskAIPage();[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    // ✅ Обновляем активную вкладку[m
+[32m+[m[32m    setTabs(prev => prev.map(t => ({[m
+[32m+[m[32m      ...t,[m
+[32m+[m[32m      isActive: t.id === tab.id[m
+[32m+[m[32m    })));[m
+[32m+[m[32m  }, [openBusinessSetupChat, openAskAIPage, switchToExistingThread]);[m
+[32m+[m
+[32m+[m[32m  // ✅ Переключение на страницу истории чатов[m
+[32m+[m[32m  const handleHistoryClick = useCallback(() => {[m
+[32m+[m[32m    setCommandMenuPage(CommandMenuPages.ViewPreviousAIChats);[m
+[32m+[m[32m  }, [setCommandMenuPage]);[m
+[32m+[m
+[32m+[m[32m  // ✅ Показываем табы только для AI чатов[m
+[32m+[m[32m  if ([m
+[32m+[m[32m    commandMenuPage !== CommandMenuPages.AskAI &&[m
+[32m+[m[32m    commandMenuPage !== CommandMenuPages.ViewPreviousAIChats[m
+[32m+[m[32m  ) {[m
+[32m+[m[32m    return null;[m
+[32m+[m[32m  }[m
+ [m
+   // ✅ Показываем максимум 4 вкладки + кнопка истории[m
+[31m-  const visibleChats = chats.slice(0, 4);[m
+[31m-  const hasMoreChats = chats.length > 4;[m
+[32m+[m[32m  const visibleTabs = tabs.slice(0, 4);[m
+[32m+[m[32m  const hasMoreTabs = tabs.length > 4;[m
+[32m+[m
+[32m+[m[32m  if (threadsLoading) {[m
+[32m+[m[32m    return ([m
+[32m+[m[32m      <StyledTabsContainer>[m
+[32m+[m[32m        <div>Загрузка чатов...</div>[m
+[32m+[m[32m      </StyledTabsContainer>[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+ [m
+   return ([m
+     <StyledTabsContainer>[m
+       {/* Показываем максимум 4 вкладки */}[m
+[31m-      {visibleChats.map((chat) => ([m
+[32m+[m[32m      {visibleTabs.map((tab) => ([m
+         <TabButton[m
+[31m-          key={chat.id}[m
+[31m-          id={chat.id}[m
+[31m-          title={chat.title}[m
+[31m-          active={chat.isActive}[m
+[31m-          LeftIcon={chat.isBusinessSetup ? IconSparkles : undefined}[m
+[31m-          onClick={() => {[m
+[31m-            if (chat.isBusinessSetup) {[m
+[31m-              openBusinessSetupChat();[m
+[31m-            } else {[m
+[31m-              // ✅ Переключаемся на чат[m
+[31m-              setChats((prev) =>[m
+[31m-                prev.map((c) => ({[m
+[31m-                  ...c,[m
+[31m-                  isActive: c.id === chat.id,[m
+[31m-                })),[m
+[31m-              );[m
+[31m-            }[m
+[31m-          }}[m
+[32m+[m[32m          key={tab.id}[m
+[32m+[m[32m          id={tab.id}[m
+[32m+[m[32m          title={tab.title}[m
+[32m+[m[32m          active={tab.isActive}[m
+[32m+[m[32m          LeftIcon={tab.isBusinessSetup ? IconSparkles : undefined}[m
+[32m+[m[32m          onClick={() => handleTabClick(tab)}[m
+           contentSize="sm"[m
+         />[m
+       ))}[m
+[36m@@ -128,14 +187,12 @@[m [mexport const CommandMenuTabs = () => {[m
+       />[m
+ [m
+       {/* Кнопка "История чатов" если есть больше 4 чатов */}[m
+[31m-      {hasMoreChats && ([m
+[32m+[m[32m      {hasMoreTabs && ([m
+         <TabButton[m
+           id="history"[m
+           title="История чатов"[m
+           LeftIcon={IconHistory}[m
+[31m-          onClick={() => {[m
+[31m-            // TODO: Перейти на страницу истории чатов[m
+[31m-          }}[m
+[32m+[m[32m          onClick={handleHistoryClick}[m
+           contentSize="sm"[m
+         />[m
+       )}[m

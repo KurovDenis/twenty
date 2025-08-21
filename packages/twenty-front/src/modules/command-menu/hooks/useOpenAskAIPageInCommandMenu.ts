@@ -23,6 +23,7 @@ export const useOpenAskAIPageInCommandMenu = () => {
 
       const newChat: AIChat = {
         id: chatId,
+        title: initialMessage || t`Ask AI`,
         context: initialMessage ? 'business-setup' : 'general',
         initialMessage: initialMessage || null,
         messages: initialMessage
@@ -36,6 +37,8 @@ export const useOpenAskAIPageInCommandMenu = () => {
           : [],
         createdAt: new Date(),
         lastAccessed: new Date(),
+        isActive: true,
+        isBusinessSetup: !!initialMessage,
       };
 
       setAiChats((prev) => ({ ...prev, [chatId]: newChat }));

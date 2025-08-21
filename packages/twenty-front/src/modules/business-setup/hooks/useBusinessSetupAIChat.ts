@@ -1,12 +1,8 @@
-import { useCreateNewAIChatThread } from '@/ai/hooks/useCreateNewAIChatThread';
+import { useAIChats, useCreateNewAIChatThread } from '@/ai/hooks';
 import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
-import {
-  businessSetupChatIdState,
-  hasBusinessSetupChatState,
-} from '@/business-setup/states/businessSetupChatState';
 import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';
 import { useCallback } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
 
 // Proper typing for Business Setup statuses
 type BusinessSetupStep =
@@ -15,60 +11,98 @@ type BusinessSetupStep =
   | 'SALES_FUNNEL_DESIGN';
 
 export const useBusinessSetupAIChat = () => {
-  const { openAskAIPage, openNewChat, restoreChat } =
-    useOpenAskAIPageInCommandMenu();
+  const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
   const currentWorkspace = useRecoilValue(currentWorkspaceState);
 
-  // ✅ Business Setup chat state
-  const [businessSetupChatId, setBusinessSetupChatId] = useRecoilState(
-    businessSetupChatIdState,
-  );
-  const [hasBusinessSetupChat, setHasBusinessSetupChat] = useRecoilState(
-    hasBusinessSetupChatState,
-  );
+  // ✅ Используем новый хук для управления чатами
+  const aiChatsHook = useAIChats();
+  console.log('🔍 useAIChats hook:', aiChatsHook);
+  
+  const {
+    createBusinessSetupChat,
+    getBusinessSetupChat,
+    restoreChat,
+    updateGraphQLThreadId,
+  } = aiChatsHook;
 
   // ✅ Hook for creating new AI chat threads (tabs)
   const agentId = currentWorkspace?.defaultAgent?.id;
   const { createAgentChatThread } = useCreateNewAIChatThread({
     agentId: agentId || '',
-    onCompleted: (chatId: string) => {
-      // ✅ Сохраняем ID нового Business Setup чата
-      setBusinessSetupChatId(chatId);
-      setHasBusinessSetupChat(true);
+    onCompleted: (graphqlThreadId: string) => {
+      // GraphQL чат создан, ID: ${graphqlThreadId}
+
+      // ✅ Получаем Business Setup чат и связываем с GraphQL
+      const businessSetupChat = getBusinessSetupChat();
+      if (businessSetupChat !== null && businessSetupChat !== undefined) {
+        // Связываем локальный чат ${businessSetupChat.id} с GraphQL чатом ${graphqlThreadId}
+        updateGraphQLThreadId(
+          businessSetupChat.id,
+          graphqlThreadId,
+          agentId || '',
+        );
+      }
+
+      // Business Setup чат полностью создан и синхронизирован
     },
   });
 
-  // ✅ Кастомный хук для создания Business Setup чата с сохранением ID
+  // ✅ Создание Business Setup чата
   const createBusinessSetupAgentChatThread = useCallback(() => {
+    console.log('🔧 createBusinessSetupAgentChatThread() вызван');
+
     if (agentId !== undefined && createAgentChatThread !== undefined) {
-      // Создаем новый чат - ID автоматически сохранится в onCompleted callback
+      console.log('🚀 Создаем Business Setup чат');
+
+      // ✅ Создаем локальный чат через новый хук
+      const _newChat = createBusinessSetupChat('Настройка системы');
+      console.log('💾 Создан локальный чат:', _newChat.id);
+
+      // ✅ Затем создаем GraphQL чат
+      console.log('🚀 Вызываем createAgentChatThread()');
       createAgentChatThread();
+    } else {
+      console.log('❌ Не можем создать чат:', { agentId, createAgentChatThread: !!createAgentChatThread });
     }
-  }, [agentId, createAgentChatThread]);
+  }, [agentId, createAgentChatThread, createBusinessSetupChat]);
 
   const openBusinessSetupChat = useCallback(() => {
+    console.log('🔍 openBusinessSetupChat() вызван');
+    console.log('🔍 Функции:', { getBusinessSetupChat, restoreChat, agentId, createAgentChatThread });
+
     try {
       // ✅ Проверяем, есть ли существующий Business Setup чат
-      if (hasBusinessSetupChat && businessSetupChatId !== null) {
-        // ✅ Восстанавливаем существующий Business Setup чат
-        restoreChat(businessSetupChatId);
+      const existingChat = getBusinessSetupChat();
+      console.log('🔍 existingChat:', existingChat);
+      
+      if (existingChat !== null && existingChat !== undefined) {
+        console.log('✅ Восстанавливаем существующий Business Setup чат:', existingChat.id);
+        
+        // ✅ Если у чата нет GraphQL ID, создаем новый поток
+        if (!existingChat.graphqlThreadId && agentId && createAgentChatThread) {
+          console.log('🔧 У чата нет GraphQL ID, создаем новый поток');
+          createAgentChatThread();
+        }
+        
+        restoreChat(existingChat.id);
+        console.log('✅ restoreChat выполнен');
         return;
       }
 
-      // ✅ Создаем новый Business Setup чат если его еще нет
+      // Создаем новый Business Setup чат
+      console.log('🆕 Создаем новый Business Setup чат');
+      // ✅ Создаем новый Business Setup чат
       if (agentId !== undefined && createAgentChatThread !== undefined) {
-        // Create new tab with AI agent for Business Setup
+        console.log('🚀 Вызываем createBusinessSetupAgentChatThread()');
+        // Вызываем createBusinessSetupAgentChatThread()
         createBusinessSetupAgentChatThread();
       } else {
-        // ✅ Fallback: Create new Business Setup chat with old method
-        const newChatId = openNewChat('Настройка системы');
-
-        if (newChatId !== null && newChatId !== undefined) {
-          setBusinessSetupChatId(newChatId);
-          setHasBusinessSetupChat(true);
-        }
+        console.log('🔄 Fallback: openAskAIPage()');
+        // Fallback: openAskAIPage()
+        openAskAIPage();
       }
-    } catch {
+    } catch (_error) {
+      // Ошибка в openBusinessSetupChat
       // Fallback - open regular AI chat
       try {
         openAskAIPage();
@@ -77,15 +111,11 @@ export const useBusinessSetupAIChat = () => {
       }
     }
   }, [
-    hasBusinessSetupChat,
-    businessSetupChatId,
+    getBusinessSetupChat,
     restoreChat,
     agentId,
     createAgentChatThread,
     openAskAIPage,
-    openNewChat,
-    setBusinessSetupChatId,
-    setHasBusinessSetupChat,
     createBusinessSetupAgentChatThread,
   ]);
 
