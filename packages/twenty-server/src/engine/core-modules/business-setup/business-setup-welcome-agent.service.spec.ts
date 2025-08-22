@@ -1,10 +1,14 @@
 import { Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
 import { WorkspaceService } from 'src/engine/core-modules/workspace/services/workspace.service';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
+import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 import { BusinessSetupWelcomeAgentService } from './services/business-setup-welcome-agent.service';
 
 describe('BusinessSetupWelcomeAgentService', () => {
@@ -14,6 +18,7 @@ describe('BusinessSetupWelcomeAgentService', () => {
   let agentChatService: AgentChatService;
   let userService: UserService;
   let workspaceService: WorkspaceService;
+  let agentRepository: Repository<AgentEntity>;
 
   const mockEventEmitter = {
     emit: jest.fn(),
@@ -34,6 +39,11 @@ describe('BusinessSetupWelcomeAgentService', () => {
 
   const mockWorkspaceService = {
     findById: jest.fn(),
+  };
+
+  const mockAgentRepository = {
+    findOne: jest.fn(),
+    save: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -60,6 +70,10 @@ describe('BusinessSetupWelcomeAgentService', () => {
           provide: WorkspaceService,
           useValue: mockWorkspaceService,
         },
+        {
+          provide: getRepositoryToken(AgentEntity, 'core'),
+          useValue: mockAgentRepository,
+        },
       ],
     }).compile();
 
@@ -69,6 +83,7 @@ describe('BusinessSetupWelcomeAgentService', () => {
     agentChatService = module.get<AgentChatService>(AgentChatService);
     userService = module.get<UserService>(UserService);
     workspaceService = module.get<WorkspaceService>(WorkspaceService);
+    agentRepository = module.get<Repository<AgentEntity>>(getRepositoryToken(AgentEntity, 'core'));
 
     // Mock logger
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
@@ -221,6 +236,57 @@ describe('BusinessSetupWelcomeAgentService', () => {
     });
   });
 
+  describe('createWelcomeChat', () => {
+    beforeEach(() => {
+      mockAgentChatService.createThread.mockResolvedValue({ id: 'thread-123' });
+      mockAgentExecutionService.executeAgent.mockResolvedValue({ 
+        result: { response: 'Hello!' } 
+      });
+    });
+
+    it('should create a welcome agent with the Gemini model if it does not exist', async () => {
+      // Arrange
+      mockAgentRepository.findOne.mockResolvedValue(null);
+      mockAgentRepository.save.mockResolvedValue({
+        id: 'agent-123',
+        name: 'Welcome Greeting Bot',
+        modelId: 'google/gemini-2.5-flash',
+      });
+      
+      // Act
+      await service['createWelcomeChat']('user-123', 'workspace-123');
+      
+      // Assert
+      expect(mockAgentRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelId: 'google/gemini-2.5-flash',
+        })
+      );
+    });
+
+    it('should use existing agent but enforce Gemini model in context', async () => {
+      // Arrange
+      const existingAgent = {
+        id: 'agent-123',
+        name: 'Welcome Greeting Bot',
+        modelId: 'some-other-model', // Different model
+      };
+      mockAgentRepository.findOne.mockResolvedValue(existingAgent);
+      
+      // Act
+      await service['createWelcomeChat']('user-123', 'workspace-123');
+      
+      // Assert
+      expect(mockAgentExecutionService.executeAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          context: expect.objectContaining({
+            modelId: 'google/gemini-2.5-flash' // Should override with Gemini
+          })
+        })
+      );
+    });
+  });
+
   describe('getPersonalizedWelcomePrompt', () => {
     it('should generate personalized welcome prompt', async () => {
       // Arrange
@@ -236,9 +302,9 @@ describe('BusinessSetupWelcomeAgentService', () => {
       const result = await service['getPersonalizedWelcomePrompt'](userId, workspaceId);
 
       // Assert
-      expect(result).toContain('Hi John!');
+      expect(result).toContain('Hello John!');
       expect(result).toContain('Test Workspace');
-      expect(result).toContain('Welcome to Business Setup Wizard');
+      expect(result).toContain('I AM A WELCOME BOT AND NOTHING MORE');
     });
 
     it('should fallback to default prompt when user/workspace data is unavailable', async () => {
@@ -253,8 +319,8 @@ describe('BusinessSetupWelcomeAgentService', () => {
       const result = await service['getPersonalizedWelcomePrompt'](userId, workspaceId);
 
       // Assert
-      expect(result).toContain('Hi there!');
-      expect(result).toContain('Welcome to Business Setup Wizard');
+      expect(result).toContain('Hello there!');
+      expect(result).toContain('I AM A WELCOME BOT AND NOTHING MORE');
     });
   });
 });

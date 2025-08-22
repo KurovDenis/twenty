@@ -2,21 +2,21 @@
 // These types are defined locally to ensure server startup works properly
 
 export const BUSINESS_SETUP_EVENTS = {
-  // Onboarding события
+  // Onboarding events
   ONBOARDING_STATUS_CHANGED: 'onboarding.status.changed',
   
-  // AI Agent события
+  // AI Agent events
   AI_AGENT_WELCOME_CHAT_CREATION_STARTED: 'ai-agent.welcome.chat-creation-started',
   AI_AGENT_WELCOME_CHAT_CREATED: 'ai-agent.welcome.chat-created',
   AI_AGENT_WELCOME_CHAT_CREATION_FAILED: 'ai-agent.welcome.chat-creation-failed',
   
-  // Chat Continuation события
+  // Chat Continuation events
   AI_AGENT_WELCOME_USER_MESSAGE_RECEIVED: 'ai-agent.welcome.user-message-received',
   AI_AGENT_WELCOME_AI_RESPONSE_GENERATED: 'ai-agent.welcome.ai-response-generated',
   BUSINESS_SETUP_READY_FOR_NEXT_STEP: 'business-setup.ready-for-next-step',
   BUSINESS_SETUP_STEP_TRANSITION: 'business-setup.step-transition',
   
-  // Chat события
+  // Chat events
   CHAT_MESSAGE_ADDED: 'chat.message.added',
   CHAT_STATUS_UPDATED: 'chat.status.updated',
 } as const;
