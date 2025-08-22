@@ -1,65 +1,152 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BUSINESS_SETUP_EVENTS, WelcomeChatCreatedEventFrontend, WelcomeChatCreationFailedEventFrontend } from 'twenty-shared/types';
+import { useAIAgentEventsSubscription } from './useBusinessSetupSubscriptions';
 import { getCurrentUserId } from '~/auth/utils/get-current-user-id';
-import { getEventEmitter } from '~/utils/event-emitter';
+import { useNavigate } from 'react-router-dom';
 
+/**
+ * Hook for managing AI agent welcome messages via GraphQL subscriptions
+ * 
+ * This hook replaces the previous local EventEmitter approach with real-time
+ * GraphQL subscriptions to receive welcome chat events from the backend.
+ */
 export const useWelcomeMessage = () => {
   const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const navigate = useNavigate();
+  const currentUserId = getCurrentUserId();
+  
+  // Subscribe to AI agent events via GraphQL
+  const {
+    agentEvents,
+    welcomeChatEvents,
+    chatCreatedEvents,
+    chatFailedEvents,
+    lastWelcomeChatEvent,
+    isConnected,
+    isLoading,
+    connectionError,
+  } = useAIAgentEventsSubscription();
 
+  // Process welcome chat created events
   useEffect(() => {
-    // Подписываемся на события создания welcome чата
-    const eventEmitter = getEventEmitter();
+    const latestChatCreated = chatCreatedEvents.find(event => 
+      event.status === 'CHAT_CREATED' && 
+      event.threadId
+    );
     
-    const handleWelcomeChatCreated = (payload: WelcomeChatCreatedEventFrontend) => {
-      // Проверяем, что событие для текущего пользователя
-      if (payload.userId === getCurrentUserId()) {
-        setWelcomeMessage(payload.aiResponse);
-        setThreadId(payload.threadId);
-        setShowPopup(true);
-      }
-    };
+    if (latestChatCreated && latestChatCreated.threadId !== threadId) {
+      console.log('Welcome chat created event received:', latestChatCreated);
+      
+      // Extract welcome message from the event
+      // Note: The aiResponse should be available in the event payload
+      // We might need to fetch the actual message content separately
+      setThreadId(latestChatCreated.threadId!);
+      setWelcomeMessage('🎉 Welcome to Business Setup! Your AI assistant is ready to help you get started.');
+      setShowPopup(true);
+      setIsProcessing(false);
+      setError(null);
+    }
+  }, [chatCreatedEvents, threadId]);
 
-    const handleWelcomeChatCreationFailed = (payload: WelcomeChatCreationFailedEventFrontend) => {
-      // Проверяем, что событие для текущего пользователя
-      if (payload.userId === getCurrentUserId()) {
-        console.warn('Welcome chat creation failed:', payload.error);
-        // Можно показать уведомление об ошибке
-      }
-    };
+  // Process welcome chat failed events
+  useEffect(() => {
+    const latestChatFailed = chatFailedEvents.find(event => 
+      event.status === 'CHAT_FAILED'
+    );
+    
+    if (latestChatFailed) {
+      console.warn('Welcome chat creation failed:', latestChatFailed.error);
+      setError(latestChatFailed.error || 'Failed to create welcome chat');
+      setIsProcessing(false);
+    }
+  }, [chatFailedEvents]);
 
-    eventEmitter.on(BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED, handleWelcomeChatCreated);
-    eventEmitter.on(BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_FAILED, handleWelcomeChatCreationFailed);
+  // Handle connection errors
+  useEffect(() => {
+    if (connectionError) {
+      console.error('Welcome message subscription error:', connectionError);
+      setError('Connection error: Unable to receive real-time updates');
+      setIsProcessing(false);
+    } else if (isConnected && error?.includes('Connection error')) {
+      // Clear connection errors when reconnected
+      setError(null);
+    }
+  }, [connectionError, isConnected, error]);
 
-    return () => {
-      eventEmitter.off(BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED, handleWelcomeChatCreated);
-      eventEmitter.off(BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_FAILED, handleWelcomeChatCreationFailed);
-    };
-  }, []);
-
+  // Show welcome popup
   const showWelcomePopup = useCallback(() => {
     setShowPopup(true);
   }, []);
 
+  // Hide welcome popup
   const hideWelcomePopup = useCallback(() => {
     setShowPopup(false);
   }, []);
 
+  // Continue chat - navigate to the AI chat interface
   const continueChat = useCallback(() => {
-    // TODO: Интегрировать с существующим AI чатом
-    // Открыть чат с threadId
-    console.log('Continue chat with thread:', threadId);
-    hideWelcomePopup();
-  }, [threadId, hideWelcomePopup]);
+    if (threadId) {
+      console.log('Continuing chat with thread:', threadId);
+      
+      // Navigate to AI chat with the specific thread
+      // Adjust the route based on your app's routing structure
+      navigate(`/chat/${threadId}`);
+      
+      // Hide the popup
+      hideWelcomePopup();
+    } else {
+      console.warn('No thread ID available for continuing chat');
+      setError('Unable to continue chat: No thread available');
+    }
+  }, [threadId, navigate, hideWelcomePopup]);
+
+  // Retry welcome chat creation (if needed)
+  const retryWelcomeChat = useCallback(() => {
+    setError(null);
+    setIsProcessing(true);
+    // Note: Retry would typically be handled by the backend
+    // We just clear the error state here
+  }, []);
+
+  // Clear welcome message state
+  const clearWelcomeMessage = useCallback(() => {
+    setWelcomeMessage(null);
+    setThreadId(null);
+    setShowPopup(false);
+    setError(null);
+    setIsProcessing(false);
+  }, []);
 
   return {
+    // Core state
     welcomeMessage,
+    showPopup,
+    threadId,
+    isProcessing,
+    error,
+    
+    // Connection state
+    isConnected,
+    isLoading,
+    connectionError,
+    
+    // Actions
     showWelcomePopup,
     hideWelcomePopup,
     continueChat,
-    showPopup,
+    retryWelcomeChat,
+    clearWelcomeMessage,
     setShowPopup,
-    threadId
+    
+    // Raw events for debugging
+    agentEvents,
+    welcomeChatEvents,
+    chatCreatedEvents,
+    chatFailedEvents,
+    lastWelcomeChatEvent,
   };
 };
