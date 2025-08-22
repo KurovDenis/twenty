@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AIAgentEventsController } from 'src/engine/core-modules/ai/controllers/ai-agent-events.controller';
 import { AiController } from 'src/engine/core-modules/ai/controllers/ai.controller';
 import { McpController } from 'src/engine/core-modules/ai/controllers/mcp.controller';
 import { AIBillingService } from 'src/engine/core-modules/ai/services/ai-billing.service';
@@ -11,6 +12,7 @@ import { ToolAdapterService } from 'src/engine/core-modules/ai/services/tool-ada
 import { ToolService } from 'src/engine/core-modules/ai/services/tool.service';
 import { TokenModule } from 'src/engine/core-modules/auth/token/token.module';
 import { FeatureFlagModule } from 'src/engine/core-modules/feature-flag/feature-flag.module';
+import { RedisClientModule } from 'src/engine/core-modules/redis-client/redis-client.module';
 import { ToolRegistryService } from 'src/engine/core-modules/tool/services/tool-registry.service';
 import { SendEmailTool } from 'src/engine/core-modules/tool/tools/send-email-tool/send-email-tool';
 import { ObjectMetadataModule } from 'src/engine/metadata-modules/object-metadata/object-metadata.module';
@@ -21,6 +23,7 @@ import { WorkspacePermissionsCacheModule } from 'src/engine/metadata-modules/wor
 import { TwentyORMModule } from 'src/engine/twenty-orm/twenty-orm.module';
 import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
 import { MessagingModule } from 'src/modules/messaging/messaging.module';
+import { AIAgentEventsService } from './services/ai-agent-events.service';
 
 @Global()
 @Module({
@@ -35,8 +38,9 @@ import { MessagingModule } from 'src/modules/messaging/messaging.module';
     TwentyORMModule,
     MessagingModule,
     PermissionsModule,
+    RedisClientModule, // Add Redis support for AI agent events
   ],
-  controllers: [AiController, McpController],
+  controllers: [AiController, McpController, AIAgentEventsController],
   providers: [
     AiService,
     AiModelRegistryService,
@@ -46,6 +50,7 @@ import { MessagingModule } from 'src/modules/messaging/messaging.module';
     AIBillingService,
     McpService,
     SendEmailTool,
+    AIAgentEventsService,
   ],
   exports: [
     AiService,
@@ -56,6 +61,7 @@ import { MessagingModule } from 'src/modules/messaging/messaging.module';
     ToolRegistryService,
     McpService,
     SendEmailTool,
+    AIAgentEventsService,
   ],
 })
 export class AiModule {}

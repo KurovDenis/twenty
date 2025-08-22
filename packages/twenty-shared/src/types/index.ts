@@ -9,6 +9,32 @@
 
 export type { AllowedAddressSubField } from './AddressFieldsType';
 export { ALLOWED_ADDRESS_SUBFIELDS } from './AddressFieldsType';
+export type {
+  BusinessSetupEventType,
+  BusinessSetupEventPayload,
+  OnboardingStatusChangedEvent,
+  WelcomeChatCreationStartedEvent,
+  WelcomeChatCreatedEvent,
+  WelcomeChatCreationFailedEvent,
+  UserMessageReceivedEvent,
+  AIResponseGeneratedEvent,
+  BusinessSetupStepTransitionEvent,
+  ChatMessageAddedEvent,
+  ChatStatusUpdatedEvent,
+  BusinessSetupEvent,
+  WelcomeChatCreatedEventFrontend,
+  WelcomeChatCreationFailedEventFrontend,
+  OnboardingStatusChangedEventFrontend,
+} from './business-setup-events.types';
+export {
+  BUSINESS_SETUP_EVENTS,
+  isValidBusinessSetupEvent,
+  isOnboardingStatusChangedEvent,
+  isWelcomeChatCreatedEvent,
+  isWelcomeChatCreationFailedEvent,
+  toFrontendEvent,
+  toBackendEvent,
+} from './business-setup-events.types';
 export type { ConfigVariableValue } from './ConfigVariableValue';
 export { ConnectedAccountProvider } from './ConnectedAccountProvider';
 export type { EnumFieldMetadataType } from './EnumFieldMetadataType';

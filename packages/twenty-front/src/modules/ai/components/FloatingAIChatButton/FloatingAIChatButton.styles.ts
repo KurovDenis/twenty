@@ -95,3 +95,82 @@ export const StyledBusinessSetupWelcomeMode = styled.div`
     color: ${({ theme }) => theme.font.color.inverted} !important;
   }
 `;
+
+// Welcome Popup стили
+export const StyledWelcomePopup = styled.div`
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  width: 320px;
+  background: ${({ theme }) => theme.background.primary};
+  border: 1px solid ${({ theme }) => theme.border.color.light};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  box-shadow: ${({ theme }) => theme.boxShadow.strong};
+  z-index: 1000;
+  animation: slideInUp 0.3s ease-out;
+  
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+export const StyledPopupHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing(3)};
+  border-bottom: 1px solid ${({ theme }) => theme.border.color.light};
+  font-weight: ${({ theme }) => theme.font.weight.semiBold};
+  
+  button {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: ${({ theme }) => theme.font.color.light};
+    
+    &:hover {
+      color: ${({ theme }) => theme.font.color.primary};
+    }
+  }
+`;
+
+export const StyledPopupContent = styled.div`
+  padding: ${({ theme }) => theme.spacing(3)};
+  max-height: 200px;
+  overflow-y: auto;
+  line-height: 1.5;
+`;
+
+export const StyledPopupActions = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing(2)};
+  padding: ${({ theme }) => theme.spacing(3)};
+  border-top: 1px solid ${({ theme }) => theme.border.color.light};
+  
+  button {
+    flex: 1;
+    padding: ${({ theme }) => theme.spacing(2)};
+    border: 1px solid ${({ theme }) => theme.border.color.light};
+    border-radius: ${({ theme }) => theme.border.radius.sm};
+    background: ${({ theme }) => theme.background.primary};
+    cursor: pointer;
+    
+    &:first-child {
+      background: ${({ theme }) => theme.color.blue};
+      color: white;
+      border-color: ${({ theme }) => theme.color.blue};
+    }
+    
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+`;

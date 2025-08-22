@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { BillingModule } from 'src/engine/core-modules/billing/billing.module';
 import { FeatureFlagModule } from 'src/engine/core-modules/feature-flag/feature-flag.module';
@@ -7,7 +8,7 @@ import { OnboardingService } from 'src/engine/core-modules/onboarding/onboarding
 import { UserVarsModule } from 'src/engine/core-modules/user/user-vars/user-vars.module';
 
 @Module({
-  imports: [BillingModule, UserVarsModule, FeatureFlagModule],
+  imports: [BillingModule, UserVarsModule, FeatureFlagModule, EventEmitterModule],
   exports: [OnboardingService],
   providers: [OnboardingService, OnboardingResolver],
 })

@@ -25,6 +25,45 @@ C:\Program Files (x86)\GnuWin32\bin
 "C:\Program Files (x86)\GnuWin32\bin\make.exe" setup-twenty
 ```
 
+## 🚀 Быстрый старт через Make (Рекомендуемый способ)
+
+### 1. Настройка PowerShell alias для make
+```powershell
+# Создать alias для make команды
+Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
+
+# Проверить что alias работает
+make --version
+```
+
+### 2. Полная настройка через make
+```bash
+# Один команда для полной настройки
+make setup-twenty
+```
+
+Эта команда автоматически:
+- Останавливает существующие контейнеры
+- Создает Docker network
+- Запускает PostgreSQL и Redis
+- Создает базы данных
+- Настраивает схему core
+
+### 3. Миграция базы данных
+```bash
+npx nx database:migrate twenty-server
+```
+
+### 4. Запуск сервера
+```bash
+npx nx start twenty-server
+```
+
+### 5. Запуск фронтенда (в новом терминале)
+```bash
+npx nx start twenty-front
+```
+
 ## Быстрый старт (5 шагов)
 
 ### 1. Запуск базы данных
@@ -93,7 +132,10 @@ make setup-twenty
 
 ### Проблема: "User does not have access to this workspace"
 ```bash
-# Полная очистка и перезапуск
+# Полная очистка и перезапуск через make
+make setup-twenty
+
+# Или ручная очистка
 docker-compose -f packages/twenty-docker/docker-compose.yml down -v
 docker-compose -f packages/twenty-docker/docker-compose.yml up -d db redis
 npx nx database:migrate twenty-server
@@ -111,7 +153,10 @@ docker-compose -f packages/twenty-docker/docker-compose.yml down
 
 ### Проблема: База данных не инициализируется
 ```bash
-# Очистить все данные и перезапустить
+# Очистить все данные и перезапустить через make
+make setup-twenty
+
+# Или ручная очистка
 docker-compose -f packages/twenty-docker/docker-compose.yml down -v
 docker system prune -f
 docker-compose -f packages/twenty-docker/docker-compose.yml up -d db redis
@@ -134,6 +179,7 @@ docker-compose -f packages/twenty-docker/docker-compose.yml down
 - Зарегистрируйтесь или войдите в систему для создания workspace
 - Все данные сохраняются в Docker volumes
 - Для полной очистки используйте `docker-compose down -v`
+- **Рекомендуется использовать `make setup-twenty` для быстрой настройки**
 
 ---
 

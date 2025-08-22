@@ -7,4 +7,7 @@
  *                              |___/
  */
 
+// Business Setup Events - Centralized Types
+export * from './types/business-setup-events.types';
+
 export default {};

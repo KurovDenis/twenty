@@ -35,9 +35,11 @@ export class OnboardingResolver {
 
   @Mutation(() => OnboardingStepSuccess)
   async skipBookOnboardingStep(
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ): Promise<OnboardingStepSuccess> {
     await this.onboardingService.setOnboardingBookOnboardingPending({
+      userId: user.id, // Add userId for event emission
       workspaceId: workspace.id,
       value: false,
     });

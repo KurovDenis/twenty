@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { WorkspaceActivationStatus } from 'twenty-shared/workspace';
 
@@ -27,6 +28,7 @@ export class OnboardingService {
   constructor(
     private readonly billingService: BillingService,
     private readonly userVarsService: UserVarsService<OnboardingKeyValueTypeMap>,
+    private readonly eventEmitter: EventEmitter2, // Добавляем EventEmitter2
   ) {}
 
   private isWorkspaceActivationPending(workspace: Workspace) {
@@ -165,9 +167,11 @@ export class OnboardingService {
   }
 
   async setOnboardingBookOnboardingPending({
+    userId,
     workspaceId,
     value,
   }: {
+    userId?: string;
     workspaceId: string;
     value: boolean;
   }) {
@@ -177,6 +181,17 @@ export class OnboardingService {
         key: OnboardingStepKeys.ONBOARDING_BOOK_ONBOARDING_PENDING,
       });
 
+      // Эмитим событие изменения статуса onboarding с правильным userId
+      if (userId) {
+        this.eventEmitter.emit('onboarding.status.changed', {
+          userId,
+          workspaceId,
+          status: OnboardingStatus.COMPLETED,
+          previousStatus: OnboardingStatus.BOOK_ONBOARDING,
+          timestamp: new Date()
+        });
+      }
+
       return;
     }
 
@@ -184,6 +199,22 @@ export class OnboardingService {
       workspaceId,
       key: OnboardingStepKeys.ONBOARDING_BOOK_ONBOARDING_PENDING,
       value: true,
+    });
+  }
+
+  // Новый метод для эмиссии событий изменения статуса
+  async emitOnboardingStatusChanged(
+    userId: string,
+    workspaceId: string,
+    status: OnboardingStatus,
+    previousStatus: OnboardingStatus,
+  ): Promise<void> {
+    this.eventEmitter.emit('onboarding.status.changed', {
+      userId,
+      workspaceId,
+      status,
+      previousStatus,
+      timestamp: new Date()
     });
   }
 }

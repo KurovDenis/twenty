@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-imports */
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { NestjsQueryGraphQLModule } from '@ptc-org/nestjs-query-graphql';
@@ -45,7 +45,7 @@ import { UserService } from './services/user.service';
     FileUploadModule,
     WorkspaceModule,
     OnboardingModule,
-    BusinessSetupModule,
+    forwardRef(() => BusinessSetupModule),
     TypeOrmModule.forFeature([KeyValuePair, UserWorkspace], 'core'),
     UserVarsModule,
     UserWorkspaceModule,
