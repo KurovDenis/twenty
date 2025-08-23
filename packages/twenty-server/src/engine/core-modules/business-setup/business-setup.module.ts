@@ -1,5 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AgentModule } from 'src/engine/metadata-modules/agent/agent.module';
+import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
 import { SubscriptionsModule } from 'src/engine/subscriptions/subscriptions.module';
 import { TokenModule } from '../auth/token/token.module';
@@ -14,10 +16,12 @@ import { BusinessSetupChatContinuationService } from './chat-continuation/busine
 import { BusinessSetupTransitionService } from './chat-continuation/business-setup-transition.service';
 import { BusinessSetupChatResolver } from './resolvers/business-setup-chat.resolver';
 import { BusinessSetupWelcomeAgentService } from './services/business-setup-welcome-agent.service';
+import { BusinessSetupAgentService } from './services/business-setup-agent.service';
 import { EventEmitterBridgeService } from './services/event-emitter-bridge.service';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([AgentEntity], 'core'),
     UserVarsModule, 
     OnboardingModule, 
     TokenModule, 
@@ -32,6 +36,7 @@ import { EventEmitterBridgeService } from './services/event-emitter-bridge.servi
     BusinessSetupResolver,
     BusinessSetupSubscriptionsResolver, // Add GraphQL subscriptions resolver
     BusinessSetupWelcomeAgentService, // Добавляем новый сервис
+    BusinessSetupAgentService, // Add new agent service
     BusinessSetupChatContinuationService, // Добавляем сервис продолжения чата
     BusinessSetupTransitionService, // Добавляем сервис переходов
     BusinessSetupChatResolver, // Добавляем новый resolver
@@ -40,6 +45,7 @@ import { EventEmitterBridgeService } from './services/event-emitter-bridge.servi
   exports: [
     BusinessSetupService,
     BusinessSetupWelcomeAgentService,
+    BusinessSetupAgentService, // Export new agent service
     BusinessSetupChatContinuationService,
     BusinessSetupTransitionService,
     EventEmitterBridgeService, // Export event bridge service

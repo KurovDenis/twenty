@@ -2,6 +2,7 @@ import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
+import { BusinessSetupStatus } from 'src/engine/core-modules/business-setup/enums/business-setup-status.enum';
 import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
 import { AuthUserWorkspaceId } from 'src/engine/decorators/auth/auth-user-workspace-id.decorator';
 import {
@@ -56,6 +57,16 @@ export class AgentChatResolver {
     @Args('input') input: CreateAgentChatThreadInput,
     @AuthUserWorkspaceId() userWorkspaceId: string,
   ) {
+    // If businessSetupStep is provided, use enhanced logic
+    if (input.businessSetupStep) {
+      return this.agentChatService.createThreadWithBusinessSetupContext(
+        input.agentId,
+        userWorkspaceId,
+        input.businessSetupStep as BusinessSetupStatus,
+      );
+    }
+
+    // Otherwise use standard logic
     return this.agentChatService.createThread(input.agentId, userWorkspaceId);
   }
 }

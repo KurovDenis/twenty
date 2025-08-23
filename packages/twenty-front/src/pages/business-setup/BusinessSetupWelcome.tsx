@@ -1,7 +1,7 @@
 import { SubTitle } from '@/auth/components/SubTitle';
 import { Title } from '@/auth/components/Title';
 import { useSetNextBusinessSetupStatus } from '@/business-setup/hooks/useSetNextBusinessSetupStatus';
-import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';
+import { useBusinessSetupAgentChat } from '@/business-setup/hooks/useBusinessSetupAgentChat';
 import { AppPath } from '@/types/AppPath';
 import { Modal } from '@/ui/layout/modal/components/Modal';
 import styled from '@emotion/styled';
@@ -55,12 +55,10 @@ export const BusinessSetupWelcome = () => {
   const { t } = useLingui();
   const navigate = useNavigate();
   const { setNextBusinessSetupStatus } = useSetNextBusinessSetupStatus();
-  const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
+  const { createBusinessSetupChat } = useBusinessSetupAgentChat();
 
   const handleStartWithAI = () => {
-    openAskAIPage(
-      "I'm ready to help you set up your business automation! Let's get started.",
-    );
+    createBusinessSetupChat();
   };
 
   const handleSkipWelcome = async () => {

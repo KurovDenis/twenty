@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AiModule } from 'src/engine/core-modules/ai/ai.module';
 import { AuditModule } from 'src/engine/core-modules/audit/audit.module';
 import { TokenModule } from 'src/engine/core-modules/auth/token/token.module';
+import { BusinessSetupModule } from 'src/engine/core-modules/business-setup/business-setup.module';
 import { DomainManagerModule } from 'src/engine/core-modules/domain-manager/domain-manager.module';
 import { FeatureFlagModule } from 'src/engine/core-modules/feature-flag/feature-flag.module';
 import { FileEntity } from 'src/engine/core-modules/file/entities/file.entity';
@@ -61,6 +62,7 @@ import { AgentService } from './agent.service';
     WorkspaceCacheStorageModule,
     TokenModule,
     DomainManagerModule,
+    forwardRef(() => BusinessSetupModule),
   ],
   controllers: [AgentChatController],
   providers: [

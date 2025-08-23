@@ -1,0 +1,220 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
+import { AgentService } from 'src/engine/metadata-modules/agent/agent.service';
+import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
+import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
+
+@Injectable()
+export class BusinessSetupAgentService {
+  private readonly logger = new Logger(BusinessSetupAgentService.name);
+
+  constructor(
+    @InjectRepository(AgentEntity, 'core')
+    private readonly agentRepository: Repository<AgentEntity>,
+    @InjectRepository(UserWorkspace, 'core')
+    private readonly userWorkspaceRepository: Repository<UserWorkspace>,
+    private readonly agentService: AgentService,
+  ) {}
+
+  async getAgentForStep(
+    step: BusinessSetupStatus,
+    userWorkspaceId: string,
+  ): Promise<AgentEntity> {
+    const agentMapping: Record<Exclude<BusinessSetupStatus, BusinessSetupStatus.COMPLETED>, string> = {
+      [BusinessSetupStatus.WELCOME]: 'welcome-agent',
+      [BusinessSetupStatus.BUSINESS_ANALYSIS]: 'business-analysis-agent',
+      [BusinessSetupStatus.SALES_FUNNEL_DESIGN]: 'funnel-designer-agent',
+      [BusinessSetupStatus.AGENT_SETUP]: 'agent-orchestrator-agent',
+      [BusinessSetupStatus.WORKFLOW_CREATION]: 'workflow-generator-agent',
+      [BusinessSetupStatus.TEAM_ASSIGNMENT]: 'team-assignment-agent',
+      [BusinessSetupStatus.TESTING_OPTIMIZATION]: 'testing-optimization-agent',
+    };
+
+    // Handle COMPLETED status - throw error as no agent is needed
+    if (step === BusinessSetupStatus.COMPLETED) {
+      throw new Error('No agent needed for COMPLETED status');
+    }
+
+    const agentName = agentMapping[step];
+    if (!agentName) {
+      throw new Error(`No agent mapping for step: ${step}`);
+    }
+
+    // Resolve actual workspace ID from userWorkspace
+    const actualWorkspaceId = await this.resolveWorkspaceId(userWorkspaceId);
+
+    // Look for existing agent
+    let agent = await this.agentRepository.findOne({
+      where: { name: agentName, workspaceId: actualWorkspaceId },
+    });
+
+    // Create agent if it doesn't exist
+    if (!agent) {
+      this.logger.log(`Creating agent for step ${step} in workspace ${actualWorkspaceId}`);
+      agent = await this.createAgentForStep(step, actualWorkspaceId);
+    }
+
+    return agent;
+  }
+
+  private async resolveWorkspaceId(userWorkspaceId: string): Promise<string> {
+    const userWorkspace = await this.userWorkspaceRepository.findOne({
+      where: { id: userWorkspaceId },
+      select: ['id', 'workspaceId'],
+    });
+
+    if (!userWorkspace) {
+      throw new Error(`UserWorkspace with ID ${userWorkspaceId} not found`);
+    }
+
+    return userWorkspace.workspaceId;
+  }
+
+  private async createAgentForStep(
+    step: BusinessSetupStatus,
+    workspaceId: string,
+  ): Promise<AgentEntity> {
+    // Handle COMPLETED status - should not reach here
+    if (step === BusinessSetupStatus.COMPLETED) {
+      throw new Error('Cannot create agent for COMPLETED status');
+    }
+
+    const agentConfigs: Record<Exclude<BusinessSetupStatus, BusinessSetupStatus.COMPLETED>, {
+      name: string;
+      label: string;
+      description: string;
+      prompt: string;
+      modelId: 'google/gemini-2.5-flash' | 'auto';
+      isCustom: boolean;
+    }> = {
+      [BusinessSetupStatus.WELCOME]: {
+        name: 'welcome-agent',
+        label: 'Welcome AI Assistant',
+        description: 'AI assistant for welcome step in business setup',
+        prompt: `You are a Welcome AI assistant for Business Setup Wizard. Your role is to:
+
+1. Greet users warmly and welcome them to the business setup process
+2. Explain what Business Setup Wizard will accomplish
+3. Guide users through the initial steps
+4. Answer questions about the setup process
+5. Motivate users to continue with business setup
+
+Be friendly, encouraging, and explain what will happen next. Focus on building excitement and confidence.`,
+        modelId: 'google/gemini-2.5-flash' as const,
+        isCustom: true,
+      },
+      [BusinessSetupStatus.BUSINESS_ANALYSIS]: {
+        name: 'business-analysis-agent',
+        label: 'Business Analysis AI',
+        description: 'AI assistant for business analysis step',
+        prompt: `You are a Business Analysis AI specialist. Your role is to:
+
+1. Help users understand their business better
+2. Ask relevant questions about industry, size, model
+3. Provide industry insights and trends
+4. Suggest optimization opportunities
+5. Prepare users for funnel design
+
+Focus on gathering actionable business intelligence.`,
+        modelId: 'auto' as const,
+        isCustom: true,
+      },
+      [BusinessSetupStatus.SALES_FUNNEL_DESIGN]: {
+        name: 'funnel-designer-agent',
+        label: 'Sales Funnel Designer AI',
+        description: 'AI assistant for sales funnel design step',
+        prompt: `You are a Sales Funnel Designer AI specialist. Your role is to:
+
+1. Design effective sales funnels based on business analysis
+2. Create conversion-optimized customer journeys
+3. Suggest funnel stages and touchpoints
+4. Recommend automation opportunities
+5. Prepare foundation for agent setup
+
+Focus on creating high-converting sales processes.`,
+        modelId: 'auto' as const,
+        isCustom: true,
+      },
+      [BusinessSetupStatus.AGENT_SETUP]: {
+        name: 'agent-orchestrator-agent',
+        label: 'Agent Orchestrator AI',
+        description: 'AI assistant for agent setup and orchestration',
+        prompt: `You are an Agent Orchestrator AI specialist. Your role is to:
+
+1. Design AI agent teams based on business needs
+2. Configure agent roles and responsibilities
+3. Set up agent handoff workflows
+4. Optimize agent performance settings
+5. Prepare agents for workflow integration
+
+Focus on creating efficient automated agent teams.`,
+        modelId: 'auto' as const,
+        isCustom: true,
+      },
+      [BusinessSetupStatus.WORKFLOW_CREATION]: {
+        name: 'workflow-generator-agent',
+        label: 'Workflow Generator AI',
+        description: 'AI assistant for workflow creation and automation',
+        prompt: `You are a Workflow Generator AI specialist. Your role is to:
+
+1. Create automated workflows based on funnel design
+2. Design business process automation
+3. Set up triggers and conditions
+4. Configure workflow optimization
+5. Prepare workflows for team assignment
+
+Focus on creating efficient automated business processes.`,
+        modelId: 'auto' as const,
+        isCustom: true,
+      },
+      [BusinessSetupStatus.TEAM_ASSIGNMENT]: {
+        name: 'team-assignment-agent',
+        label: 'Team Assignment AI',
+        description: 'AI assistant for team assignment and role management',
+        prompt: `You are a Team Assignment AI specialist. Your role is to:
+
+1. Assign team members to workflows and processes
+2. Define roles and responsibilities
+3. Set up team collaboration structures
+4. Configure access controls and permissions
+5. Prepare team for testing phase
+
+Focus on optimizing team structure and collaboration.`,
+        modelId: 'auto' as const,
+        isCustom: true,
+      },
+      [BusinessSetupStatus.TESTING_OPTIMIZATION]: {
+        name: 'testing-optimization-agent',
+        label: 'Testing & Optimization AI',
+        description: 'AI assistant for testing and optimization phase',
+        prompt: `You are a Testing & Optimization AI specialist. Your role is to:
+
+1. Design testing strategies for business setup
+2. Monitor system performance and metrics
+3. Identify optimization opportunities
+4. Suggest improvements and refinements
+5. Validate complete system functionality
+
+Focus on ensuring optimal performance and user experience.`,
+        modelId: 'auto' as const,
+        isCustom: true,
+      },
+    };
+
+    const config = agentConfigs[step];
+    if (!config) {
+      throw new Error(`No configuration for step: ${step}`);
+    }
+
+    return await this.agentService.createOneAgent(
+      {
+        ...config,
+        icon: '🤖', // Default icon for business setup agents
+      },
+      workspaceId,
+    );
+  }
+}
