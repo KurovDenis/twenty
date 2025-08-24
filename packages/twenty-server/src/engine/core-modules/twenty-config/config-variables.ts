@@ -1197,6 +1197,34 @@ export class ConfigVariables {
   })
   @ValidateIf((env) => env.IS_MAPS_AND_ADDRESS_AUTOCOMPLETE_ENABLED)
   GOOGLE_MAP_API_KEY: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.AvitoConfig,
+    description: 'URL for Avito token endpoint',
+    type: ConfigVariableType.STRING,
+    isSensitive: false,
+  })
+  @IsOptional()
+  @IsUrl({ require_tld: true, require_protocol: true })
+  AVITO_TOKEN_URL = 'https://api.avito.ru/token';
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.AvitoConfig,
+    description: 'Timeout for Avito API requests in milliseconds',
+    type: ConfigVariableType.NUMBER,
+  })
+  @IsOptional()
+  @CastToPositiveNumber()
+  AVITO_API_TIMEOUT = 30000;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.AvitoConfig,
+    description: 'Maximum number of retry attempts for Avito API requests',
+    type: ConfigVariableType.NUMBER,
+  })
+  @IsOptional()
+  @CastToPositiveNumber()
+  AVITO_MAX_RETRY_ATTEMPTS = 3;
 }
 
 export const validate = (config: Record<string, unknown>): ConfigVariables => {

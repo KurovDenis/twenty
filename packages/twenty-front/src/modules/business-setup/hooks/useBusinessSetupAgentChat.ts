@@ -15,7 +15,7 @@ export const useBusinessSetupAgentChat = () => {
 
   const getWelcomeMessageForStep = (step: BusinessSetupStatus): string => {
     const messages = {
-      WELCOME: "🎉 Welcome to Business Setup! I'm here to guide you through creating your automated business system.",
+      WELCOME: "🚀 Настройка интеграции Avito! Мне нужны ваши CLIENT_ID и CLIENT_SECRET для подключения к API.",
       BUSINESS_ANALYSIS: "🚀 Let's analyze your business! I'll help you understand your processes and opportunities.",
       SALES_FUNNEL_DESIGN: "🎯 Time to design your sales funnel! I'll help you create the perfect conversion path.",
       AGENT_SETUP: "🤖 Let's set up your AI agents! I'll help you build your automated team.",

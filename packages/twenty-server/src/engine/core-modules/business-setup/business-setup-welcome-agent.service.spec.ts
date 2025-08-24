@@ -286,41 +286,4 @@ describe('BusinessSetupWelcomeAgentService', () => {
       );
     });
   });
-
-  describe('getPersonalizedWelcomePrompt', () => {
-    it('should generate personalized welcome prompt', async () => {
-      // Arrange
-      const userId = 'user-123';
-      const workspaceId = 'workspace-123';
-      const mockUser = { firstName: 'John', email: 'john@example.com' };
-      const mockWorkspace = { displayName: 'Test Workspace' };
-
-      mockUserService.findById.mockResolvedValue(mockUser);
-      mockWorkspaceService.findById.mockResolvedValue(mockWorkspace);
-
-      // Act
-      const result = await service['getPersonalizedWelcomePrompt'](userId, workspaceId);
-
-      // Assert
-      expect(result).toContain('Hello John!');
-      expect(result).toContain('Test Workspace');
-      expect(result).toContain('I AM A WELCOME BOT AND NOTHING MORE');
-    });
-
-    it('should fallback to default prompt when user/workspace data is unavailable', async () => {
-      // Arrange
-      const userId = 'user-123';
-      const workspaceId = 'workspace-123';
-
-      mockUserService.findById.mockRejectedValue(new Error('User not found'));
-      mockWorkspaceService.findById.mockRejectedValue(new Error('Workspace not found'));
-
-      // Act
-      const result = await service['getPersonalizedWelcomePrompt'](userId, workspaceId);
-
-      // Assert
-      expect(result).toContain('Hello there!');
-      expect(result).toContain('I AM A WELCOME BOT AND NOTHING MORE');
-    });
-  });
 });

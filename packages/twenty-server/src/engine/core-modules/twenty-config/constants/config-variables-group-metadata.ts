@@ -125,4 +125,10 @@ export const CONFIG_VARIABLES_GROUP_METADATA: Record<
       'These have been set to sensible default so you probably don’t need to change them unless you have a specific use-case.',
     isHiddenOnLoad: true,
   },
+  [ConfigVariablesGroup.AvitoConfig]: {
+    position: 2100,
+    description:
+      'Configure Avito marketplace API integration credentials and settings for business setup automation',
+    isHiddenOnLoad: true,
+  },
 };

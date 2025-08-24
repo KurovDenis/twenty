@@ -189,7 +189,7 @@ export const BusinessSetupEventProvider: React.FC<BusinessSetupEventProviderProp
   const previousOnboardingStatus = subscriptions.onboardingStatus.previousStatus;
   const activeWelcomeThread = subscriptions.lastWelcomeChatEvent?.threadId || null;
   const lastWelcomeMessage = subscriptions.lastWelcomeChatEvent?.status === 'CHAT_CREATED' 
-    ? 'Welcome to Business Setup! Your AI assistant is ready to help.' 
+    ? '🎉 Настройка интеграции Avito начинается! Нажмите, чтобы продолжить.' 
     : null;
   
   // Build context value
