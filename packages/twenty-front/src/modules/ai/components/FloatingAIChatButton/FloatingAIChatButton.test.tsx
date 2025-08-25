@@ -14,6 +14,36 @@ jest.mock('../../hooks/useFloatingAIChatButton', () => ({
   }),
 }));
 
+// Mock business setup agent chat hook
+jest.mock('@/business-setup/hooks/useBusinessSetupAgentChat', () => ({
+  useBusinessSetupAgentChat: () => ({
+    createBusinessSetupChat: jest.fn(),
+    getWelcomeMessageForStep: jest.fn(() => '🚀 Настройка интеграции Avito!'),
+  }),
+}));
+
+// Mock business setup status hook
+jest.mock('@/business-setup/hooks/useBusinessSetupStatus', () => ({
+  useBusinessSetupStatus: () => 'WELCOME',
+}));
+
+// Mock command menu hooks
+jest.mock('@/command-menu/hooks/useOpenAskAIPageInCommandMenu', () => ({
+  useOpenAskAIPageInCommandMenu: () => ({
+    openAskAIPage: jest.fn(),
+  }),
+}));
+
+// Mock workspace hooks
+jest.mock('@/workspace/hooks/useIsFeatureEnabled', () => ({
+  useIsFeatureEnabled: () => true,
+}));
+
+// Mock recoil
+jest.mock('recoil', () => ({
+  useRecoilValue: () => false, // Default values for command menu states
+}));
+
 jest.mock('../../hooks/useWelcomeMessage', () => ({
   useWelcomeMessage: () => ({
     welcomeMessage: 'Test welcome message',

@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import type { AIAgentEvent, BusinessSetupEvent, OnboardingStatusEvent } from '../hooks/useBusinessSetupSubscriptions';
 import { useBusinessSetupSubscriptions } from '../hooks/useBusinessSetupSubscriptions';
-import type { BusinessSetupEvent, OnboardingStatusEvent, AIAgentEvent } from '../hooks/useBusinessSetupSubscriptions';
 
 /**
  * Business Setup Event Context State
@@ -189,7 +189,7 @@ export const BusinessSetupEventProvider: React.FC<BusinessSetupEventProviderProp
   const previousOnboardingStatus = subscriptions.onboardingStatus.previousStatus;
   const activeWelcomeThread = subscriptions.lastWelcomeChatEvent?.threadId || null;
   const lastWelcomeMessage = subscriptions.lastWelcomeChatEvent?.status === 'CHAT_CREATED' 
-    ? '🎉 Настройка интеграции Avito начинается! Нажмите, чтобы продолжить.' 
+    ? '🎉 Добро пожаловать в интеграцию с Avito! Нажмите, чтобы начать настройку API.' 
     : null;
   
   // Build context value

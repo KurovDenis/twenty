@@ -415,10 +415,12 @@ describe('BusinessSetupWelcomeAgentService - Avito Integration', () => {
       expect(result).toBe(newAgent);
       expect(mockAgentRepository.save).toHaveBeenCalledWith({
         name: 'Avito Agent',
+        label: 'Avito Agent',
         description: 'Avito API integration and credentials management agent for Russian marketplace',
         prompt: expect.stringContaining('Привет! Добро пожаловать в интеграцию Avito!'),
         modelId: 'google/gemini-2.5-flash',
-        workspaceId: 'workspace-123'
+        workspaceId: 'workspace-123',
+        isCustom: true
       });
     });
   });

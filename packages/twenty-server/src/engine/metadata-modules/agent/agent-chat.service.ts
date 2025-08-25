@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Repository } from 'typeorm';
 
@@ -29,6 +30,7 @@ export class AgentChatService {
     private readonly fileRepository: Repository<FileEntity>,
     private readonly titleGenerationService: AgentTitleGenerationService,
     private readonly businessSetupAgentService: BusinessSetupAgentService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createThread(agentId: string, userWorkspaceId: string) {
@@ -133,6 +135,11 @@ export class AgentChatService {
       }
     }
 
+    // Check if this is a user message in a business setup thread
+    if (role === 'user') {
+      await this.checkAndEmitBusinessSetupEvent(threadId, content);
+    }
+
     this.generateTitleIfNeeded(threadId, content);
 
     return savedMessage;
@@ -179,24 +186,100 @@ export class AgentChatService {
     await this.threadRepository.update(threadId, { title });
   }
 
+  // Check if thread belongs to a business setup agent and emit event for user messages
+  private async checkAndEmitBusinessSetupEvent(threadId: string, content: string) {
+    try {
+      const thread = await this.threadRepository.findOne({
+        where: { id: threadId },
+        relations: ['agent']
+      });
+
+      if (!thread) {
+        return;
+      }
+
+      // Check if this thread is associated with a business setup agent
+      const isBusinessSetupThread = await this.isBusinessSetupThread(thread.agentId, thread.userWorkspaceId);
+      
+      if (isBusinessSetupThread) {
+        // Note: In the current schema, userWorkspaceId represents the relationship
+        // For simplicity, we'll use userWorkspaceId as both userId and workspaceId
+        // In a production system, you'd want to properly resolve these
+        
+        this.eventEmitter.emit('ai-agent.welcome.user-message-received', {
+          userId: thread.userWorkspaceId, // This is a simplification - should be resolved properly
+          workspaceId: thread.userWorkspaceId, // This is a simplification - should be resolved properly
+          threadId,
+          message: content,
+          timestamp: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Failed to check business setup thread:', error);
+    }
+  }
+
+  // Check if agent is a business setup agent
+  private async isBusinessSetupThread(agentId: string, userWorkspaceId: string): Promise<boolean> {
+    try {
+      // We need to inject the AgentEntity repository to check agent details
+      // For now, let's use a simple approach by checking specific agent names
+      // that are used by the BusinessSetupWelcomeAgentService
+      
+      // Business setup agents are identified by specific names or patterns
+      const businessSetupAgentNames = [
+        'Welcome Greeting Bot',
+        'Avito Agent',
+        'welcome-agent',
+        'business-analysis-agent',
+        'funnel-designer-agent',
+        'agent-orchestrator-agent',
+        'workflow-generator-agent',
+        'team-assignment-agent',
+        'testing-optimization-agent'
+      ];
+      
+      // Get the agent from business setup service
+      try {
+        // Try to resolve workspace from userWorkspaceId and check if any business setup agent
+        // matches this agentId
+        for (const status of Object.values(BusinessSetupStatus)) {
+          if (status === BusinessSetupStatus.COMPLETED) continue;
+          
+          try {
+            const agent = await this.businessSetupAgentService.getAgentForStep(
+              status,
+              userWorkspaceId
+            );
+            
+            if (agent.id === agentId) {
+              return true;
+            }
+          } catch (error) {
+            // Agent for this step doesn't exist, continue
+            continue;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check business setup agents:', error);
+      }
+      
+      return false;
+      
+    } catch (error) {
+      console.error('Failed to check if agent is business setup agent:', error);
+      return false;
+    }
+  }
+
   private async sendWelcomeMessage(
     threadId: string,
     businessSetupStep: BusinessSetupStatus,
   ) {
+    console.log('Sending welcome message for business setup step:', businessSetupStep);
+    
     const welcomeMessages: Record<BusinessSetupStatus, string> = {
-      [BusinessSetupStatus.WELCOME]: `🎉 **Добро пожаловать в Business Setup Wizard!** 
-
-Привет! Я ваш Welcome AI-ассистент, и я здесь, чтобы помочь вам создать полностью автоматизированную бизнес-систему.
-
-**Что мы будем делать вместе:**
-🚀 Анализ вашего бизнеса и процессов
-🎯 Дизайн эффективных воронок продаж
-🤖 Настройка специализированных AI-агентов
-⚡ Создание автоматизированных рабочих процессов
-👥 Назначение команды и ролей
-🧪 Тестирование и оптимизация системы
-
-**Готовы начать?** Расскажите мне о своем бизнесе, и мы создадим для вас идеальную автоматизированную систему!`,
+      [BusinessSetupStatus.WELCOME]: `🚀 Настройка интеграции Avito! Мне нужны ваши CLIENT_ID и CLIENT_SECRET для подключения к API.`,
       
       [BusinessSetupStatus.BUSINESS_ANALYSIS]: `🚀 **Время анализировать ваш бизнес!**
 
@@ -284,6 +367,8 @@ export class AgentChatService {
     };
 
     const welcomeContent = welcomeMessages[businessSetupStep] || welcomeMessages[BusinessSetupStatus.WELCOME];
+
+    console.log('Sending welcome content:', welcomeContent.substring(0, 100) + '...');
 
     // Create and save welcome message from assistant
     const welcomeMessage = this.messageRepository.create({

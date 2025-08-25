@@ -10,6 +10,9 @@ export const useBusinessSetupAgentChat = () => {
     const currentStep = businessSetupStatus || 'WELCOME';
     const welcomeMessage = getWelcomeMessageForStep(currentStep);
     
+    console.log('Creating business setup chat with step:', currentStep);
+    console.log('Welcome message:', welcomeMessage);
+    
     openAskAIPage(welcomeMessage);
   };
 

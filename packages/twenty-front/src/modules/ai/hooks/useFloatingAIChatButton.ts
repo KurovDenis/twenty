@@ -7,6 +7,7 @@ import { useRecoilValue } from 'recoil';
 import { FeatureFlagKey } from '~/generated/graphql';
 
 import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';
+import { useBusinessSetupAgentChat } from '@/business-setup/hooks/useBusinessSetupAgentChat';
 import { isFloatingAIChatButtonVisibleState } from '../states/isFloatingAIChatButtonVisibleState';
 
 export const useFloatingAIChatButton = () => {
@@ -17,6 +18,7 @@ export const useFloatingAIChatButton = () => {
   const commandMenuPage = useRecoilValue(commandMenuPageState);
   const businessSetupStatus = useBusinessSetupStatus();
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
+  const { createBusinessSetupChat } = useBusinessSetupAgentChat();
 
   // Проверяем, открыт ли AI чат
   const isAIChatOpen =
@@ -25,10 +27,14 @@ export const useFloatingAIChatButton = () => {
       commandMenuPage === CommandMenuPages.ViewPreviousAIChats);
 
   const handleClick = () => {
-    // Если мы в Business Setup режиме, открываем специальный чат
+    console.log('Floating AI chat button clicked with businessSetupStatus:', businessSetupStatus);
+    
+    // Если мы в Business Setup режиме, используем специальный чат
     if (businessSetupStatus === 'WELCOME') {
-      openAskAIPage("Let's set up your business automation!");
+      console.log('Creating business setup chat for WELCOME status');
+      createBusinessSetupChat();
     } else {
+      console.log('Opening standard AI page');
       openAskAIPage();
     }
   };

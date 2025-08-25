@@ -1,18 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
+import { type User } from 'src/engine/core-modules/user/user.entity';
 import { WorkspaceService } from 'src/engine/core-modules/workspace/services/workspace.service';
+import { type Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 import { AgentChatMessageRole } from 'src/engine/metadata-modules/agent/agent-chat-message.entity';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
-import { type User } from 'src/engine/core-modules/user/user.entity';
-import { type Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
-import { BusinessSetupStepKeys, BusinessSetupKeyValueTypeMap } from '../business-setup.service';
+import { BusinessSetupKeyValueTypeMap, BusinessSetupStepKeys } from '../business-setup.service';
 import {
   OnboardingStatusChangedEvent
 } from '../events/business-setup.events';
@@ -29,6 +29,18 @@ export class BusinessSetupWelcomeAgentService {
   private readonly maxRetries = 3;
   private readonly retryDelayMs = 1000;
 
+  // Metrics for monitoring
+  private metrics = {
+    agentCreationAttempts: 0,
+    agentCreationSuccesses: 0,
+    agentCreationFailures: 0,
+    foreignKeyViolations: 0,
+    uuidFormatErrors: 0,
+    workspaceValidationFailures: 0,
+    transactionRollbacks: 0,
+    averageCreationTime: 0,
+  };
+
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly agentExecutionService: AgentExecutionService,
@@ -36,6 +48,7 @@ export class BusinessSetupWelcomeAgentService {
     private readonly userService: UserService,
     private readonly workspaceService: WorkspaceService,
     private readonly userVarsService: UserVarsService<BusinessSetupKeyValueTypeMap>,
+    private readonly dataSource: DataSource,
     @InjectRepository(AgentEntity, 'core')
     private readonly agentRepository: Repository<AgentEntity>,
   ) {}
@@ -71,6 +84,31 @@ export class BusinessSetupWelcomeAgentService {
     }
   }
 
+  // Handle user messages in business setup threads to process Avito credentials
+  @OnEvent('ai-agent.welcome.user-message-received')
+  private async handleUserMessage(payload: {
+    userId: string;
+    workspaceId: string;
+    threadId: string;
+    message: string;
+    timestamp: Date;
+  }) {
+    try {
+      this.logger.log(`Processing user message in business setup thread ${payload.threadId}`);
+      
+      // Process the message for Avito credentials
+      await this.processUserMessage(
+        payload.threadId, 
+        payload.message, 
+        payload.workspaceId, 
+        payload.userId
+      );
+      
+    } catch (error) {
+      this.logger.error('Failed to process user message in business setup thread:', error);
+    }
+  }
+
   // Centralized validation for event payload
   private validateEventPayload(payload: any): payload is OnboardingStatusChangedEvent {
     return payload && 
@@ -83,6 +121,13 @@ export class BusinessSetupWelcomeAgentService {
 
   // Create welcome chat with retry mechanism for reliability
   private async createWelcomeChatWithRetry(userId: string, workspaceId: string): Promise<void> {
+    // First validate that the workspace exists
+    const workspace = await this.workspaceService.findById(workspaceId);
+    if (!workspace) {
+      this.logger.error(`Workspace with ID ${workspaceId} not found. Cannot create welcome chat.`);
+      throw new Error(`Workspace with ID ${workspaceId} not found`);
+    }
+
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         await this.createWelcomeChat(userId, workspaceId);
@@ -90,6 +135,12 @@ export class BusinessSetupWelcomeAgentService {
         return; // Success
       } catch (error) {
         this.logger.warn(`Attempt ${attempt} failed for user ${userId}:`, error);
+        
+        // Check if it's a foreign key constraint violation related to workspace
+        if (error.message && error.message.includes('FK_c4cb56621768a4a325dd772bbe1')) {
+          this.logger.error(`Foreign key constraint violation: workspace ${workspaceId} does not exist`);
+          throw new Error(`Invalid workspace ID: ${workspaceId}. The workspace does not exist.`);
+        }
         
         if (attempt === this.maxRetries) {
           // Final error
@@ -111,6 +162,14 @@ export class BusinessSetupWelcomeAgentService {
 
   // Create new welcome chat using the AgentChatService with Gemini model
   private async createWelcomeChat(userId: string, workspaceId: string): Promise<void> {
+    const startTime = Date.now();
+    this.metrics.agentCreationAttempts++;
+    
+    // Use transaction for atomic agent and thread creation
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
       // Emit event for chat creation start
       this.eventEmitter.emit('ai-agent.welcome.chat-creation-started', {
@@ -119,32 +178,72 @@ export class BusinessSetupWelcomeAgentService {
         timestamp: new Date()
       });
 
+      // Validate workspace exists before creating agent
+      await this.validateAgentCreationData(workspaceId);
+
       // Fetch or create a welcome agent specifically with the Gemini model
-      const welcomeAgent = await this.agentRepository.findOne({
+      let agent = await queryRunner.manager.findOne(AgentEntity, {
         where: { 
           name: 'Welcome Greeting Bot',
           workspaceId 
         }
       });
-
-      let agent;
       
-      if (!welcomeAgent) {
-        // Create a dedicated welcome agent that uses Gemini model
-        agent = await this.agentRepository.save({
+      if (!agent) {
+        // Create a dedicated welcome agent that uses Gemini model within transaction
+        agent = await queryRunner.manager.save(AgentEntity, {
           name: 'Welcome Greeting Bot',
+          label: 'Welcome Greeting Bot',
           description: 'Simple greeting bot for welcome status',
           prompt: 'You are a simple greeting bot. You ONLY respond with greetings.',
           modelId: this.GEMINI_MODEL_ID, // Force use of Gemini model via OpenRouter
           workspaceId,
+          isCustom: true,
         });
+        this.logger.log(`Created new welcome agent for workspace ${workspaceId}`);
       } else {
-        agent = welcomeAgent;
+        this.logger.log(`Using existing welcome agent for workspace ${workspaceId}`);
       }
 
-      // Create a new chat thread using the existing AgentChatService
-      const thread = await this.agentChatService.createThread('welcome-agent', workspaceId);
+      // Commit transaction after successful agent creation
+      await queryRunner.commitTransaction();
 
+      // Create thread outside transaction (AgentChatService handles its own transactions)
+      const thread = await this.agentChatService.createThread(agent.id, workspaceId);
+
+      // Continue with the rest of the logic
+      await this.completeWelcomeChatSetup(userId, workspaceId, agent, thread);
+
+      // Record success metrics
+      const operationTime = Date.now() - startTime;
+      this.metrics.agentCreationSuccesses++;
+      this.updateAverageCreationTime(operationTime);
+      this.logger.log(`Welcome chat created successfully in ${operationTime}ms`);
+
+    } catch (error) {
+      // Rollback transaction on error
+      await queryRunner.rollbackTransaction();
+      this.metrics.transactionRollbacks++;
+      this.metrics.agentCreationFailures++;
+      
+      const operationTime = Date.now() - startTime;
+      this.logger.error(`Failed to create welcome chat (transaction rolled back) in ${operationTime}ms:`, error);
+      
+      // Handle specific database errors
+      this.handleDatabaseError(error, workspaceId);
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  // Complete welcome chat setup after agent and thread creation
+  private async completeWelcomeChatSetup(
+    userId: string, 
+    workspaceId: string, 
+    agent: AgentEntity, 
+    thread: any
+  ): Promise<void> {
+    try {
       // Get user and workspace data for personalization
       const [user, workspace] = await Promise.all([
         this.userService.findById(userId),
@@ -198,7 +297,7 @@ export class BusinessSetupWelcomeAgentService {
       this.logger.log(`Welcome chat created successfully for user ${userId}, thread ID: ${thread.id}`);
 
     } catch (error) {
-      this.logger.error('Failed to create welcome chat:', error);
+      this.logger.error('Failed to complete welcome chat setup:', error);
       throw error;
     }
   }
@@ -427,8 +526,95 @@ CLIENT_SECRET: ваш_client_secret`;
     });
   }
 
+  // Validate workspace existence and data integrity before agent creation
+  private async validateAgentCreationData(workspaceId: string): Promise<void> {
+    const startTime = Date.now();
+    this.logger.debug(`Validating workspace ${workspaceId} before agent creation`);
+    
+    try {
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(workspaceId)) {
+        this.metrics.uuidFormatErrors++;
+        this.logger.error(`Invalid workspace ID format: ${workspaceId}`);
+        throw new Error(`Invalid workspace ID format: ${workspaceId}`);
+      }
+
+      // Validate workspace exists
+      const workspace = await this.workspaceService.findById(workspaceId);
+      if (!workspace) {
+        this.metrics.workspaceValidationFailures++;
+        this.logger.error(`Workspace validation failed: workspace ${workspaceId} does not exist`);
+        throw new Error(`Cannot create agent: workspace ${workspaceId} does not exist`);
+      }
+      
+      const validationTime = Date.now() - startTime;
+      this.logger.debug(`Workspace ${workspaceId} validation successful (${validationTime}ms)`);
+    } catch (error) {
+      const validationTime = Date.now() - startTime;
+      this.logger.error(`Workspace validation failed for ${workspaceId} (${validationTime}ms):`, error);
+      throw error;
+    }
+  }
+
+  // Handle database constraint errors with specific error messages
+  private handleDatabaseError(error: any, workspaceId: string): never {
+    if (error.message && error.message.includes('FK_c4cb56621768a4a325dd772bbe1')) {
+      this.metrics.foreignKeyViolations++;
+      this.logger.error(`Foreign key constraint violation: workspace ${workspaceId} does not exist`);
+      throw new Error(`Invalid workspace ID: ${workspaceId}. The workspace does not exist.`);
+    }
+    
+    if (error.message && error.message.includes('invalid input syntax for type uuid')) {
+      this.metrics.uuidFormatErrors++;
+      this.logger.error(`Invalid UUID format provided: ${error.message}`);
+      throw new Error(`Invalid UUID format provided. Please check the agent ID.`);
+    }
+    
+    if (error.message && error.message.includes('null value in column "label"')) {
+      this.logger.error(`NULL constraint violation: label field is required`);
+      throw new Error(`Agent creation failed: label field is required.`);
+    }
+    
+    // Generic database error
+    this.logger.error(`Database operation failed:`, error);
+    throw error;
+  }
+
+  // Update average creation time for performance monitoring
+  private updateAverageCreationTime(newTime: number): void {
+    const totalOperations = this.metrics.agentCreationSuccesses;
+    this.metrics.averageCreationTime = 
+      ((this.metrics.averageCreationTime * (totalOperations - 1)) + newTime) / totalOperations;
+  }
+
+  // Get current metrics for monitoring and debugging
+  public getMetrics(): any {
+    const successRate = this.metrics.agentCreationAttempts > 0 
+      ? (this.metrics.agentCreationSuccesses / this.metrics.agentCreationAttempts) * 100 
+      : 0;
+    
+    return {
+      ...this.metrics,
+      successRate: `${successRate.toFixed(2)}%`,
+      lastUpdated: new Date().toISOString()
+    };
+  }
+
+  // Log metrics periodically for monitoring
+  public logMetrics(): void {
+    const metrics = this.getMetrics();
+    this.logger.log('Agent Creation Metrics:', JSON.stringify(metrics, null, 2));
+  }
+
   // Get the Avito agent for the workspace
   private async getAvitoAgent(workspaceId: string): Promise<AgentEntity> {
+    // Validate workspace exists before creating agent
+    const workspace = await this.workspaceService.findById(workspaceId);
+    if (!workspace) {
+      throw new Error(`Cannot create Avito agent: workspace ${workspaceId} does not exist`);
+    }
+
     const avitoAgent = await this.agentRepository.findOne({
       where: { 
         name: 'Avito Agent',
@@ -438,13 +624,23 @@ CLIENT_SECRET: ваш_client_secret`;
 
     if (!avitoAgent) {
       // Create a dedicated Avito agent that uses Gemini model
-      return await this.agentRepository.save({
-        name: 'Avito Agent',
-        description: 'Avito API integration and credentials management agent for Russian marketplace',
-        prompt: 'Привет! Добро пожаловать в интеграцию Avito! Я - агент для подключения к Avito API. Помогу вам настроить интеграцию с российским маркетплейсом Avito, собрать и проверить ваши API учетные данные CLIENT_ID и CLIENT_SECRET. Готовы начать?',
-        modelId: this.GEMINI_MODEL_ID,
-        workspaceId,
-      });
+      try {
+        return await this.agentRepository.save({
+          name: 'Avito Agent',
+          label: 'Avito Agent',
+          description: 'Avito API integration and credentials management agent for Russian marketplace',
+          prompt: 'Привет! Добро пожаловать в интеграцию Avito! Я - агент для подключения к Avito API. Помогу вам настроить интеграцию с российским маркетплейсом Avito, собрать и проверить ваши API учетные данные CLIENT_ID и CLIENT_SECRET. Готовы начать?',
+          modelId: this.GEMINI_MODEL_ID,
+          workspaceId, // Now validated workspace ID
+          isCustom: true,
+        });
+      } catch (error) {
+        this.logger.error(`Failed to create Avito agent for workspace ${workspaceId}:`, error);
+        if (error.message && error.message.includes('FK_c4cb56621768a4a325dd772bbe1')) {
+          throw new Error(`Failed to create agent: workspace ${workspaceId} does not exist`);
+        }
+        throw error;
+      }
     }
 
     return avitoAgent;
