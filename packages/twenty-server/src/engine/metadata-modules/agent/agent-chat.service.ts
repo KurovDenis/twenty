@@ -191,10 +191,16 @@ export class AgentChatService {
     try {
       const thread = await this.threadRepository.findOne({
         where: { id: threadId },
-        relations: ['agent']
+        relations: ['agent', 'userWorkspace'] // ✅ ADD userWorkspace relation
       });
 
       if (!thread) {
+        return;
+      }
+
+      // ✅ CHECK: Ensure userWorkspace relation is loaded
+      if (!thread.userWorkspace) {
+        console.error('UserWorkspace relation not found for thread:', threadId);
         return;
       }
 
@@ -202,13 +208,10 @@ export class AgentChatService {
       const isBusinessSetupThread = await this.isBusinessSetupThread(thread.agentId, thread.userWorkspaceId);
       
       if (isBusinessSetupThread) {
-        // Note: In the current schema, userWorkspaceId represents the relationship
-        // For simplicity, we'll use userWorkspaceId as both userId and workspaceId
-        // In a production system, you'd want to properly resolve these
-        
+        // ✅ FIXED: Use correct userId and workspaceId from UserWorkspace relation
         this.eventEmitter.emit('ai-agent.welcome.user-message-received', {
-          userId: thread.userWorkspaceId, // This is a simplification - should be resolved properly
-          workspaceId: thread.userWorkspaceId, // This is a simplification - should be resolved properly
+          userId: thread.userWorkspace.userId,        // ✅ CORRECT: Real userId from UserWorkspace
+          workspaceId: thread.userWorkspace.workspaceId, // ✅ CORRECT: Real workspaceId from UserWorkspace
           threadId,
           message: content,
           timestamp: new Date()
