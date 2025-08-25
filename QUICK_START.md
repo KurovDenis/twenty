@@ -1,5 +1,21 @@
 # 🚀 Быстрый запуск Twenty
 
+## ⚠️ ВАЖНО: Перед началом работы (Windows)
+
+**Если вы используете Windows с GnuWin32 Make, ОБЯЗАТЕЛЬНО создайте alias в PowerShell:**
+
+```powershell
+# Выполните эту команду в PowerShell ПЕРЕД любыми make командами
+Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
+
+# Проверьте что alias работает
+make --version
+```
+
+**Этот alias нужно создавать в каждой новой сессии PowerShell!**
+
+---
+
 ## Минимальные требования
 - Node.js 24.5.0+
 - Yarn 4.0.2+
@@ -7,6 +23,20 @@
 - Git
 
 ## 🪟 Windows с GnuWin32 Make
+
+### ⚠️ ВАЖНО: Создание alias перед началом работы
+
+Перед использованием любых make команд ОБЯЗАТЕЛЬНО создайте alias в PowerShell:
+
+```powershell
+# Создать alias для make команды (ОБЯЗАТЕЛЬНО!)
+Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
+
+# Проверить что alias работает
+make --version
+```
+
+**Этот alias необходимо создавать в каждой новой сессии PowerShell!**
 
 Если у вас установлен Make через GnuWin32 в `C:\Program Files (x86)\GnuWin32\bin`:
 
@@ -27,9 +57,9 @@ C:\Program Files (x86)\GnuWin32\bin
 
 ## 🚀 Быстрый старт через Make (Рекомендуемый способ)
 
-### 1. Настройка PowerShell alias для make
+### 1. Создание alias (ОБЯЗАТЕЛЬНЫЙ ШАГ)
 ```powershell
-# Создать alias для make команды
+# ВАЖНО: Создать alias для make команды перед началом работы
 Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
 
 # Проверить что alias работает
@@ -65,6 +95,15 @@ npx nx start twenty-front
 ```
 
 ## Быстрый старт (5 шагов)
+
+### 🚨 Шаг 0: Создание make alias (ОБЯЗАТЕЛЬНО)
+```powershell
+# Создать alias для make команды
+Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
+
+# Проверить что alias работает
+make --version
+```
 
 ### 1. Запуск базы данных
 ```bash
@@ -112,14 +151,19 @@ make setup-twenty
 "C:\Program Files (x86)\GnuWin32\bin\make.exe" setup-twenty
 ```
 
-### Вариант 3: Создать alias в PowerShell
+### Вариант 3: Создать alias в PowerShell (РЕКОМЕНДУЕМЫЙ)
 ```powershell
-# В профиле PowerShell добавить
+# ОБЯЗАТЕЛЬНО: Создать alias для make команды
 Set-Alias -Name make -Value "C:\Program Files (x86)\GnuWin32\bin\make.exe"
+
+# Проверить что alias работает
+make --version
 
 # Теперь можно использовать
 make setup-twenty
 ```
+
+**Примечание:** Этот alias действует только в текущей сессии PowerShell. Для постоянного alias добавьте команду в профиль PowerShell.
 
 ## ✅ Проверка запуска
 

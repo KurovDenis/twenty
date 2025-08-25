@@ -13,7 +13,7 @@ services:
       - "3000:3000"
     environment:
       NODE_PORT: 3000
-      PG_DATABASE_URL: postgres://${PG_DATABASE_USER:-postgres}:${PG_DATABASE_PASSWORD:-postgres}@${PG_DATABASE_HOST:-db}:${PG_DATABASE_PORT:-5432}/default
+      PG_DATABASE_URL: postgres://${PG_DATABASE_USER:-postgres}:${PG_DATABASE_PASSWORD:-postgres}@${PG_DATABASE_HOST:-db}:${PG_DATABASE_PORT:-5432}/default?connect_timeout=60&application_name=twenty_server&sslmode=prefer&keepalives_idle=300&keepalives_interval=30&keepalives_count=3
       SERVER_URL: ${SERVER_URL}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       DISABLE_DB_MIGRATIONS: ${DISABLE_DB_MIGRATIONS}
@@ -52,12 +52,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+        restart: true
     healthcheck:
       test: curl --fail http://localhost:3000/healthz
       interval: 5s
       timeout: 5s
       retries: 20
-    restart: always
+    restart: on-failure:3
 
   worker:
     image: twentycrm/twenty:${TAG:-latest}
@@ -65,7 +66,7 @@ services:
       - server-local-data:/app/packages/twenty-server/.local-storage
     command: ["yarn", "worker:prod"]
     environment:
-      PG_DATABASE_URL: postgres://${PG_DATABASE_USER:-postgres}:${PG_DATABASE_PASSWORD:-postgres}@${PG_DATABASE_HOST:-db}:${PG_DATABASE_PORT:-5432}/default
+      PG_DATABASE_URL: postgres://${PG_DATABASE_USER:-postgres}:${PG_DATABASE_PASSWORD:-postgres}@${PG_DATABASE_HOST:-db}:${PG_DATABASE_PORT:-5432}/default?connect_timeout=60&application_name=twenty_worker&sslmode=prefer&keepalives_idle=300&keepalives_interval=30&keepalives_count=3
       SERVER_URL: ${SERVER_URL}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       DISABLE_DB_MIGRATIONS: "true" # it already runs on the server
@@ -106,7 +107,7 @@ services:
         condition: service_healthy
       server:
         condition: service_healthy
-    restart: always
+    restart: on-failure:3
 
   db:
     image: postgres:16
@@ -117,12 +118,23 @@ services:
     environment:
       POSTGRES_USER: ${PG_DATABASE_USER:-postgres}
       POSTGRES_PASSWORD: ${PG_DATABASE_PASSWORD:-postgres}
+      POSTGRES_DB: default
+      POSTGRES_INITDB_ARGS: "--auth-host=md5"
     healthcheck:
-      test: pg_isready -U ${PG_DATABASE_USER:-postgres} -h localhost -d postgres
+      test: ["CMD-SHELL", "pg_isready -U ${PG_DATABASE_USER:-postgres} -d default -h localhost"]
       interval: 5s
-      timeout: 5s
-      retries: 10
+      timeout: 10s
+      retries: 30
+      start_period: 90s
     restart: always
+    command: [
+      "postgres",
+      "-c", "max_connections=200",
+      "-c", "shared_buffers=256MB",
+      "-c", "log_connections=on",
+      "-c", "log_disconnections=on",
+      "-c", "log_statement=error"
+    ]
 
   redis:
     image: redis

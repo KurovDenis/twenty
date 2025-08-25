@@ -31,9 +31,25 @@ export class TypeORMService implements OnModuleInit, OnModuleDestroy {
         ? {
             rejectUnauthorized: false,
           }
-        : undefined,
+        : false,
       extra: {
-        query_timeout: 10000,
+        connectionLimit: 20,
+        acquireTimeout: 60000,
+        timeout: 60000,
+        idleTimeoutMillis: 300000,
+        max: 20,
+        min: 2,
+        connectTimeoutMS: 60000,
+        socketTimeoutMS: 60000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 0,
+        reconnect: true,
+        reconnectTries: 10,
+        reconnectInterval: 2000,
+        pingInterval: 30000,
+        query_timeout: 60000,
+        statement_timeout: 60000,
+        idle_in_transaction_session_timeout: 300000,
       },
     });
   }
@@ -61,8 +77,31 @@ export class TypeORMService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    // Init main data source "default" schema
-    await this.mainDataSource.initialize();
+    // Init main data source "default" schema with retry logic
+    const maxRetries = 10;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
+      try {
+        this.logger.log(`Attempting to initialize database connection (attempt ${attempt + 1}/${maxRetries})`);
+        await this.mainDataSource.initialize();
+        this.logger.log('Database connection established successfully');
+        return;
+      } catch (error) {
+        attempt++;
+        this.logger.error(`Database connection attempt ${attempt} failed:`, error.message);
+        
+        if (attempt >= maxRetries) {
+          this.logger.error('Max database connection retries exceeded');
+          throw error;
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (max)
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
+        this.logger.log(`Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
 
   async onModuleDestroy() {

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
@@ -48,7 +48,8 @@ export class BusinessSetupWelcomeAgentService {
     private readonly userService: UserService,
     private readonly workspaceService: WorkspaceService,
     private readonly userVarsService: UserVarsService<BusinessSetupKeyValueTypeMap>,
-    private readonly dataSource: DataSource,
+    @InjectDataSource('core')
+    private readonly coreDataSource: DataSource,
     @InjectRepository(AgentEntity, 'core')
     private readonly agentRepository: Repository<AgentEntity>,
   ) {}
@@ -166,7 +167,7 @@ export class BusinessSetupWelcomeAgentService {
     this.metrics.agentCreationAttempts++;
     
     // Use transaction for atomic agent and thread creation
-    const queryRunner = this.dataSource.createQueryRunner();
+    const queryRunner = this.coreDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
