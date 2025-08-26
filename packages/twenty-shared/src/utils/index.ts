@@ -20,6 +20,62 @@ export {
   getLogoUrlFromDomainName,
 } from './image/getLogoUrlFromDomainName';
 export { getUniqueConstraintsFields } from './indexMetadata/getUniqueConstraintsFields';
+export {
+  InvariantError,
+  invariant,
+  debug,
+  log,
+  warn,
+  error,
+  setVerbosity,
+  getVerbosity,
+} from './invariant';
+export type {
+  VerbosityLevel,
+  ConsoleMethodName,
+  ErrorCategory,
+  ValidationErrorCode,
+  AuthenticationErrorCode,
+  DatabaseErrorCode,
+  BusinessLogicErrorCode,
+  SystemErrorCode,
+  KnownErrorCode,
+  InvariantMessage,
+  InvariantConfig,
+  ErrorContext,
+  ErrorReportingOptions,
+  AssertFunction,
+  SafeAssertFunction,
+  LoggingFunction,
+  Logger,
+  ErrorHandler,
+  ErrorRecoveryFunction,
+  MigrationOptions,
+  ValidationResult,
+  ErrorCodeGuard,
+  ErrorCodeMapper,
+  EnvironmentConfig,
+  PerformanceMetrics,
+  InvariantHookOptions,
+  ErrorInfo,
+  ErrorBoundaryProps,
+  ExceptionFilterOptions,
+  Optional,
+  DeepReadonly,
+  ValidatedErrorCode,
+  FormattedMessage,
+} from './invariant/types';
+export { verbosityLevels, ERROR_CODE_RANGES } from './invariant/types';
+export type { LegacyAssertFunction } from './migration';
+export {
+  legacyAssert,
+  enhancedAssert,
+  migrateToInvariant,
+  validateCondition,
+  createErrorCodeMigrator,
+  batchMigrate,
+  typeSafeMigrate,
+} from './migration';
 export { parseJson } from './parseJson';
 export { removePropertiesFromRecord } from './removePropertiesFromRecord';
 export { removeUndefinedFields } from './removeUndefinedFields';

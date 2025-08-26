@@ -1,14 +1,24 @@
 import { keyframes, useTheme } from '@emotion/react';
 import styled from '@emotion/styled';
-import { Avatar, IconDotsVertical, IconSparkles } from 'twenty-ui/display';
+import { 
+  Avatar, 
+  IconDotsVertical, 
+  IconSparkles,
+  IconBrain
+} from 'twenty-ui/display';
 
 import { LightCopyIconButton } from '@/object-record/record-field/components/LightCopyIconButton';
 import { AgentChatFilePreview } from '@/ai/components/internal/AgentChatFilePreview';
 import { AgentChatMessageRole } from '@/ai/constants/agent-chat-message-role';
 import { LazyMarkdownRenderer } from '@/ai/components/LazyMarkdownRenderer';
+import { EnhancedAIChatMessage } from '@/ai/components/EnhancedAIChatMessage';
 
 import { AgentChatMessage } from '~/generated/graphql';
 import { beautifyPastDateRelativeToNow } from '~/utils/date-utils';
+import { 
+  extractSGRStepFromContent,
+  extractToolExecutionFromContent
+} from '@/ai/types/sgr-message.types';
 
 const StyledMessageBubble = styled.div<{ isUser?: boolean }>`
   display: flex;
@@ -153,6 +163,22 @@ export const AIChatMessage = ({
     );
   };
 
+  // Check if this is an SGR message that should use enhanced visualization
+  const sgrStep = extractSGRStepFromContent(message.content);
+  const toolExecution = extractToolExecutionFromContent(message.content);
+  
+  const isSGREnhancedMessage = sgrStep !== null || toolExecution !== null;
+  
+  // Use enhanced component for SGR messages
+  if (isSGREnhancedMessage) {
+    return (
+      <EnhancedAIChatMessage 
+        message={message} 
+        agentStreamingMessage={agentStreamingMessage} 
+      />
+    );
+  }
+
   return (
     <StyledMessageBubble
       key={message.id}
@@ -189,7 +215,7 @@ export const AIChatMessage = ({
               ? getAssistantMessageContent(message)
               : message.content}
           </StyledMessageText>
-          {message.files.length > 0 && (
+          {message.files && message.files.length > 0 && (
             <StyledFilesContainer>
               {message.files.map((file) => (
                 <AgentChatFilePreview key={file.id} file={file} />

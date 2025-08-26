@@ -5,6 +5,7 @@ import { useRecoilState } from 'recoil';
 import { Key } from 'ts-key-enum';
 
 import { AgentChatMessageRole } from '@/ai/constants/agent-chat-message-role';
+import { useSGRStreaming } from '@/ai/hooks/useSGRStreaming';
 import { STREAM_CHAT_QUERY } from '@/ai/rest-api/agent-chat-apollo.api';
 import {
   AIChatObjectMetadataAndRecordContext,
@@ -48,7 +49,6 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
 
   const isAgentChatCurrentContextActive = useRecoilComponentValue(
     isAgentChatCurrentContextActiveState,
-    agentId,
   );
 
   const agentChatSelectedFiles = useRecoilComponentValue(
@@ -81,6 +81,13 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
   );
 
   const [isStreaming, setIsStreaming] = useState(false);
+  
+  // SGR Streaming Support
+  const { 
+    isStreamingSGR, 
+    handleSGRStreamingMessage,
+    clearSGRMessages 
+  } = useSGRStreaming(agentId);
 
   const scrollWrapperId = `scroll-wrapper-ai-chat-${agentId}`;
 
@@ -118,7 +125,7 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
     threadsLoading ||
     !currentThreadId ||
     isStreaming ||
-    agentChatSelectedFiles.length > 0;
+    (agentChatSelectedFiles as any[]).length > 0;
 
   const createOptimisticMessages = (content: string): AgentChatMessage[] => {
     const optimisticUserMessage: OptimisticMessage = {
@@ -210,7 +217,7 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
   const sendChatMessage = async (content: string) => {
     const optimisticMessages = createOptimisticMessages(content);
 
-    setAgentChatMessages((prevMessages) => [
+    setAgentChatMessages((prevMessages: AgentChatMessage[]) => [
       ...prevMessages,
       ...optimisticMessages,
     ]);
@@ -271,5 +278,6 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
     isLoading,
     agentStreamingMessage,
     scrollWrapperId,
+    currentThreadId,
   };
 };

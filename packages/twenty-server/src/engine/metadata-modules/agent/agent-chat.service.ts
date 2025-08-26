@@ -72,10 +72,10 @@ export class AgentChatService {
 
     const savedThread = await this.threadRepository.save(thread);
 
-    // Send automatic welcome message for business setup agents
-    if (isBusinessSetupAgent && businessSetupStep) {
-      await this.sendWelcomeMessage(savedThread.id, businessSetupStep);
-    }
+    // REMOVED: Automatic welcome message sending
+    // The first message should be AI response to user's input, not a pre-generated welcome message
+    // This prevents confusing automatic messages when creating new chats
+    // Users will now see an empty chat ready for their input
 
     return savedThread;
   }

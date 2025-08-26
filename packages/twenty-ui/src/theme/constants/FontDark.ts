@@ -11,6 +11,8 @@ export const FONT_DARK = {
     extraLight: GRAY_SCALE.gray55,
     inverted: GRAY_SCALE.gray100,
     danger: COLOR.red,
+    success: COLOR.turquoise,
+    warning: COLOR.orange,
   },
   ...FONT_COMMON,
 };

@@ -4,6 +4,8 @@ import { AgentModule } from 'src/engine/metadata-modules/agent/agent.module';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
 import { SubscriptionsModule } from 'src/engine/subscriptions/subscriptions.module';
+import { AiModule } from 'src/engine/core-modules/ai/ai.module';
+import { HttpTool } from 'src/engine/core-modules/tool/tools/http-tool/http-tool';
 import { TokenModule } from '../auth/token/token.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { UserVarsModule } from '../user/user-vars/user-vars.module';
@@ -18,6 +20,9 @@ import { BusinessSetupChatResolver } from './resolvers/business-setup-chat.resol
 import { BusinessSetupWelcomeAgentService } from './services/business-setup-welcome-agent.service';
 import { BusinessSetupAgentService } from './services/business-setup-agent.service';
 import { EventEmitterBridgeService } from './services/event-emitter-bridge.service';
+// SGR (Schema-Guided Reasoning) services
+import { AvitoWelcomeSGRService } from './sgr/services/avito-welcome-sgr.service';
+import { AvitoWelcomeToolDispatcherService } from './sgr/services/avito-welcome-tool-dispatcher.service';
 
 @Module({
   imports: [
@@ -27,6 +32,7 @@ import { EventEmitterBridgeService } from './services/event-emitter-bridge.servi
     TokenModule, 
     WorkspaceCacheStorageModule,
     SubscriptionsModule, // Add for GraphQL subscriptions
+    AiModule, // Add for AI model registry and SGR support
     AgentModule, // Добавляем для использования AgentChatService
     forwardRef(() => UserModule), // Fix circular dependency with forwardRef
     WorkspaceModule, // Добавляем для использования WorkspaceService
@@ -41,6 +47,10 @@ import { EventEmitterBridgeService } from './services/event-emitter-bridge.servi
     BusinessSetupTransitionService, // Добавляем сервис переходов
     BusinessSetupChatResolver, // Добавляем новый resolver
     EventEmitterBridgeService, // Add event bridge service
+    // SGR (Schema-Guided Reasoning) services
+    AvitoWelcomeSGRService,
+    AvitoWelcomeToolDispatcherService,
+    HttpTool, // Add HTTP tool for Avito API validation
   ],
   exports: [
     BusinessSetupService,
@@ -49,6 +59,9 @@ import { EventEmitterBridgeService } from './services/event-emitter-bridge.servi
     BusinessSetupChatContinuationService,
     BusinessSetupTransitionService,
     EventEmitterBridgeService, // Export event bridge service
+    // SGR services for potential external use
+    AvitoWelcomeSGRService,
+    AvitoWelcomeToolDispatcherService,
   ],
 })
 export class BusinessSetupModule {}

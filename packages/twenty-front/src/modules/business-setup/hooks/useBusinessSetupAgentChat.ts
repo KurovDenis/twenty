@@ -8,14 +8,19 @@ export const useBusinessSetupAgentChat = () => {
 
   const createBusinessSetupChat = () => {
     const currentStep = businessSetupStatus || 'WELCOME';
-    const welcomeMessage = getWelcomeMessageForStep(currentStep);
     
     console.log('Creating business setup chat with step:', currentStep);
-    console.log('Welcome message:', welcomeMessage);
+    console.log('Opening empty chat interface - no pre-filled messages');
     
-    openAskAIPage(welcomeMessage);
+    // CHANGED: Open empty chat without pre-filled message
+    // Let user type their own message to trigger AI response
+    // This prevents confusing automatic messages and allows natural conversation flow
+    openAskAIPage();
   };
 
+  // NOTE: This function is kept for reference only and help text
+  // It should NOT be used for automatic messages in the chat
+  // All messages should be AI responses to user input
   const getWelcomeMessageForStep = (step: BusinessSetupStatus): string => {
     const messages = {
       WELCOME: "🚀 Настройка интеграции Avito! Мне нужны ваши CLIENT_ID и CLIENT_SECRET для подключения к API.",

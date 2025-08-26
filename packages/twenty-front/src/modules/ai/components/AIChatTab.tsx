@@ -5,6 +5,8 @@ import { IconHistory, IconMessageCirclePlus } from 'twenty-ui/display';
 import { DropZone } from '@/activities/files/components/DropZone';
 import { AgentChatFileUploadButton } from '@/ai/components/internal/AgentChatFileUploadButton';
 import { useCreateNewAIChatThread } from '@/ai/hooks/useCreateNewAIChatThread';
+import { AgentChatMessagesComponentInstanceContext } from '@/ai/states/agentChatMessagesComponentState';
+import { IsAgentChatCurrentContextActiveInstanceContext } from '@/ai/states/isAgentChatCurrentContextActiveState';
 import { useCommandMenu } from '@/command-menu/hooks/useCommandMenu';
 import { CommandMenuPages } from '@/command-menu/types/CommandMenuPages';
 import { ScrollWrapper } from '@/ui/utilities/scroll/components/ScrollWrapper';
@@ -16,11 +18,13 @@ import { AgentChatContextPreview } from '@/ai/components/internal/AgentChatConte
 import { SendMessageButton } from '@/ai/components/internal/SendMessageButton';
 import { SendMessageWithRecordsContextButton } from '@/ai/components/internal/SendMessageWithRecordsContextButton';
 import { useAIChatFileUpload } from '@/ai/hooks/useAIChatFileUpload';
+import { isFinalResponseEvent, isThinkingEvent, isToolExecutionEvent, useSGREvents } from '@/ai/services/sgr-event-bridge.service';
 import { contextStoreCurrentObjectMetadataItemIdComponentState } from '@/context-store/states/contextStoreCurrentObjectMetadataItemIdComponentState';
 import { useRecoilComponentValue } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValue';
 import { t } from '@lingui/core/macro';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from 'twenty-ui/input';
+import { AgentChatMessage } from '~/generated-metadata/graphql';
 import { useAgentChat } from '../hooks/useAgentChat';
 
 const StyledContainer = styled.div<{ isDraggingFile: boolean }>`
@@ -58,7 +62,56 @@ const StyledButtonsContainer = styled.div`
   gap: ${({ theme }) => theme.spacing(2)};
 `;
 
+// SGR Progress Indicator Component
+const StyledSGRProgressIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing(2)};
+  padding: ${({ theme }) => theme.spacing(2)};
+  background: ${({ theme }) => theme.background.transparent.light};
+  border-radius: ${({ theme }) => theme.border.radius.sm};
+  margin-bottom: ${({ theme }) => theme.spacing(2)};
+  font-size: ${({ theme }) => theme.font.size.sm};
+`;
+
+const StyledProgressSpinner = styled.div`
+  width: 16px;
+  height: 16px;
+  border: 2px solid ${({ theme }) => theme.border.color.light};
+  border-top: 2px solid ${({ theme }) => theme.color.blue};
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
 export const AIChatTab = ({
+  agentId,
+  isWorkflowAgentNodeChat,
+}: {
+  agentId: string;
+  isWorkflowAgentNodeChat?: boolean;
+}) => {
+  return (
+    <AgentChatMessagesComponentInstanceContext.Provider
+      value={{ instanceId: agentId }}
+    >
+      <IsAgentChatCurrentContextActiveInstanceContext.Provider
+        value={{ instanceId: agentId }}
+      >
+        <AIChatTabInternal
+          agentId={agentId}
+          isWorkflowAgentNodeChat={isWorkflowAgentNodeChat}
+        />
+      </IsAgentChatCurrentContextActiveInstanceContext.Provider>
+    </AgentChatMessagesComponentInstanceContext.Provider>
+  );
+};
+
+const AIChatTabInternal = ({
   agentId,
   isWorkflowAgentNodeChat,
 }: {
@@ -78,11 +131,65 @@ export const AIChatTab = ({
     handleInputChange,
     agentStreamingMessage,
     scrollWrapperId,
+    currentThreadId,
   } = useAgentChat(agentId);
   const { uploadFiles } = useAIChatFileUpload({ agentId });
 
   const { createAgentChatThread } = useCreateNewAIChatThread({ agentId });
   const { navigateCommandMenu } = useCommandMenu();
+  
+  // SGR Event Handling
+  const { events: sgrEvents, isConnected: isSGRConnected } = useSGREvents(agentId, currentThreadId);
+  const [isProcessingSGR, setIsProcessingSGR] = useState(false);
+  const [currentSGRStep, setCurrentSGRStep] = useState<string | null>(null);
+
+  // Handle SGR events
+  useEffect(() => {
+    try {
+      if (sgrEvents.length > 0) {
+        const latestEvent = sgrEvents[sgrEvents.length - 1];
+        
+        // Validate event structure
+        if (!latestEvent || typeof latestEvent.type !== 'string') {
+          console.warn('Invalid SGR event received:', latestEvent);
+          return;
+        }
+        
+        if (isThinkingEvent(latestEvent)) {
+          // TypeScript now knows latestEvent.step exists
+          if (latestEvent.step && typeof latestEvent.step.stepNumber === 'number') {
+            setIsProcessingSGR(true);
+            setCurrentSGRStep(`Анализирую шаг ${latestEvent.step.stepNumber}...`);
+          } else {
+            console.warn('Invalid thinking event step data:', latestEvent);
+            setIsProcessingSGR(true);
+            setCurrentSGRStep('Анализирую...');
+          }
+        } else if (isToolExecutionEvent(latestEvent)) {
+          // TypeScript now knows latestEvent.toolName exists
+          if (latestEvent.toolName && latestEvent.status) {
+            setIsProcessingSGR(true);
+            setCurrentSGRStep(`${latestEvent.toolName}: ${latestEvent.status}`);
+          } else {
+            console.warn('Invalid tool execution event data:', latestEvent);
+            setIsProcessingSGR(true);
+            setCurrentSGRStep('Выполняю инструмент...');
+          }
+        } else if (isFinalResponseEvent(latestEvent)) {
+          setIsProcessingSGR(false);
+          setCurrentSGRStep(null);
+        } else {
+          // Unknown event type - graceful degradation
+          console.warn('Unknown SGR event type:', (latestEvent as any)?.type || 'undefined');
+        }
+      }
+    } catch (error) {
+      console.error('Error processing SGR events:', error);
+      // Graceful degradation - clear processing state on error
+      setIsProcessingSGR(false);
+      setCurrentSGRStep(null);
+    }
+  }, [sgrEvents]);
 
   return (
     <StyledContainer
@@ -97,9 +204,17 @@ export const AIChatTab = ({
       )}
       {!isDraggingFile && (
         <>
-          {messages.length !== 0 && (
+          {/* SGR Progress Indicator */}
+          {isProcessingSGR && currentSGRStep && (
+            <StyledSGRProgressIndicator>
+              <StyledProgressSpinner />
+              <span>{currentSGRStep}</span>
+            </StyledSGRProgressIndicator>
+          )}
+          
+          {(messages as AgentChatMessage[]).length !== 0 && (
             <StyledScrollWrapper componentInstanceId={scrollWrapperId}>
-              {messages.map((message) => (
+              {(messages as AgentChatMessage[]).map((message: AgentChatMessage) => (
                 <AIChatMessage
                   agentStreamingMessage={agentStreamingMessage}
                   message={message}
@@ -108,8 +223,8 @@ export const AIChatTab = ({
               ))}
             </StyledScrollWrapper>
           )}
-          {messages.length === 0 && !isLoading && <AIChatEmptyState />}
-          {isLoading && messages.length === 0 && <AIChatSkeletonLoader />}
+          {(messages as AgentChatMessage[]).length === 0 && !isLoading && <AIChatEmptyState />}
+          {isLoading && (messages as AgentChatMessage[]).length === 0 && <AIChatSkeletonLoader />}
 
           <StyledInputArea>
             <AgentChatContextPreview agentId={agentId} />

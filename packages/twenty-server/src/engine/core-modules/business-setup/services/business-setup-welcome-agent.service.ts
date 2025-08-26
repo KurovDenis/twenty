@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
@@ -16,6 +16,8 @@ import { BusinessSetupKeyValueTypeMap, BusinessSetupStepKeys } from '../business
 import {
   OnboardingStatusChangedEvent
 } from '../events/business-setup.events';
+import { AvitoWelcomeSGRService } from '../sgr/services/avito-welcome-sgr.service';
+import { SGRStreamingResult } from '../sgr/types/sgr-thinking-stream.types';
 import {
   type AvitoCredentials,
   type CredentialsExtractionResult,
@@ -48,6 +50,7 @@ export class BusinessSetupWelcomeAgentService {
     private readonly userService: UserService,
     private readonly workspaceService: WorkspaceService,
     private readonly userVarsService: UserVarsService<BusinessSetupKeyValueTypeMap>,
+    private readonly avitoWelcomeSGRService: AvitoWelcomeSGRService,
     @InjectDataSource('core')
     private readonly coreDataSource: DataSource,
     @InjectRepository(AgentEntity, 'core')
@@ -85,6 +88,24 @@ export class BusinessSetupWelcomeAgentService {
     }
   }
 
+  // Public method for testing and external access
+  public async processUserMessage(
+    threadId: string,
+    message: string,
+    workspaceId: string,
+    userId: string
+  ): Promise<void> {
+    const payload = {
+      userId,
+      workspaceId,
+      threadId,
+      message,
+      timestamp: new Date()
+    };
+    
+    return this.handleUserMessage(payload);
+  }
+
   // Handle user messages in business setup threads to process Avito credentials
   @OnEvent('ai-agent.welcome.user-message-received')
   private async handleUserMessage(payload: {
@@ -97,17 +118,160 @@ export class BusinessSetupWelcomeAgentService {
     try {
       this.logger.log(`Processing user message in business setup thread ${payload.threadId}`);
       
-      // Process the message for Avito credentials
-      await this.processUserMessage(
-        payload.threadId, 
-        payload.message, 
-        payload.workspaceId, 
-        payload.userId
-      );
+      // NEW: Use streaming SGR for real-time visibility into AI thinking
+      try {
+        this.logger.log('Using STREAMING SGR for transparent AI processing');
+        
+        const sgrStream = this.avitoWelcomeSGRService.processWelcomeMessageWithStreaming(
+          payload.message,
+          payload.userId,
+          payload.workspaceId,
+          payload.threadId
+        );
+
+        // Stream each step to user in real-time
+        for await (const step of sgrStream) {
+          await this.handleSGRStreamingStep(step, payload.threadId);
+        }
+        
+      } catch (streamingError) {
+        this.logger.error('Streaming SGR processing failed, falling back to legacy method:', streamingError);
+        
+        // Fallback to legacy credential extraction if streaming fails
+        await this.processUserMessageLegacy(
+          payload.threadId, 
+          payload.message, 
+          payload.workspaceId, 
+          payload.userId
+        );
+      }
       
     } catch (error) {
       this.logger.error('Failed to process user message in business setup thread:', error);
+      
+      // Send generic error message to user
+      await this.agentChatService.addMessage({
+        threadId: payload.threadId,
+        role: AgentChatMessageRole.ASSISTANT,
+        content: '❌ Произошла ошибка при обработке сообщения. Попробуйте еще раз или обратитесь в поддержку.',
+        fileIds: []
+      });
     }
+  }
+
+  /**
+   * NEW: Handle individual SGR streaming steps and send appropriate messages to chat
+   * This provides real-time visibility into AI thinking and tool execution
+   */
+  private async handleSGRStreamingStep(
+    step: SGRStreamingResult, 
+    threadId: string
+  ): Promise<void> {
+    try {
+      switch (step.type) {
+        case 'thinking':
+          await this.sendThinkingMessage(threadId, step.step!);
+          break;
+          
+        case 'tool_execution':
+          await this.sendToolExecutionMessage(threadId, step.step!);
+          break;
+          
+        case 'final_response':
+          await this.sendFinalResponse(threadId, step.content!);
+          break;
+          
+        default:
+          this.logger.warn(`Unknown SGR streaming step type: ${(step as any).type}`);
+      }
+      
+    } catch (error) {
+      this.logger.error('Failed to handle SGR streaming step:', error);
+      
+      // Send error indication to user but don't break the stream
+      await this.agentChatService.addMessage({
+        threadId,
+        role: AgentChatMessageRole.ASSISTANT,
+        content: '⚠️ Обработка была прервана. Продолжаю анализ...',
+        fileIds: []
+      });
+    }
+  }
+
+  /**
+   * Send thinking step message to show AI reasoning process
+   */
+  private async sendThinkingMessage(
+    threadId: string, 
+    step: import('../sgr/types/sgr-thinking-stream.types').SGRThinkingStep
+  ): Promise<void> {
+    const thinkingContent = `🤔 **Шаг ${step.stepNumber}: Анализ**
+
+${step.currentState}
+
+**План действий:**
+${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+**Выбранный инструмент:** ${step.selectedTool}`;
+
+    await this.agentChatService.addMessage({
+      threadId,
+      role: AgentChatMessageRole.ASSISTANT,
+      content: thinkingContent,
+      fileIds: []
+    });
+  }
+
+  /**
+   * Send tool execution message to show progress and results
+   */
+  private async sendToolExecutionMessage(
+    threadId: string, 
+    step: import('../sgr/types/sgr-thinking-stream.types').SGRThinkingStep
+  ): Promise<void> {
+    if (!step.toolExecution) {
+      return;
+    }
+
+    let executionContent = '';
+    
+    switch (step.toolExecution.status) {
+      case 'in_progress':
+        executionContent = `🔧 **Выполняю: ${step.selectedTool}**\n\nОбрабатываю ваш запрос...`;
+        break;
+        
+      case 'completed':
+        executionContent = `✅ **Инструмент ${step.selectedTool} выполнен успешно**\n\nРезультат получен, перехожу к следующему шагу.`;
+        break;
+        
+      case 'failed':
+        executionContent = `❌ **Ошибка при выполнении ${step.selectedTool}**\n\n${step.toolExecution.error || 'Неизвестная ошибка'}\n\nПробую альтернативный подход...`;
+        break;
+    }
+
+    if (executionContent) {
+      await this.agentChatService.addMessage({
+        threadId,
+        role: AgentChatMessageRole.ASSISTANT,
+        content: executionContent,
+        fileIds: []
+      });
+    }
+  }
+
+  /**
+   * Send final response message with results
+   */
+  private async sendFinalResponse(
+    threadId: string, 
+    content: string
+  ): Promise<void> {
+    await this.agentChatService.addMessage({
+      threadId,
+      role: AgentChatMessageRole.ASSISTANT,
+      content,
+      fileIds: []
+    });
   }
 
   // Centralized validation for event payload
@@ -363,8 +527,8 @@ When user provides credentials:
     };
   }
 
-  // Process user messages containing potential Avito credentials
-  async processUserMessage(threadId: string, message: string, workspaceId: string, userId: string): Promise<void> {
+  // Legacy credential processing method (kept as fallback)
+  private async processUserMessageLegacy(threadId: string, message: string, workspaceId: string, userId: string): Promise<void> {
     try {
       // Extract credentials from user message
       const credentials = this.extractCredentialsFromMessage(message);
@@ -416,7 +580,15 @@ CLIENT_SECRET: ваш_client_secret`;
         });
       }
     } catch (error) {
-      this.logger.error('Error processing user message:', error);
+      this.logger.error('Error processing user message (legacy):', error);
+      
+      // Send generic error message
+      await this.agentChatService.addMessage({
+        threadId,
+        role: AgentChatMessageRole.ASSISTANT,
+        content: '❌ Произошла ошибка при обработке сообщения. Попробуйте еще раз.',
+        fileIds: []
+      });
     }
   }
 

@@ -88,6 +88,7 @@ export {
   IconBookmark,
   IconBookmarkPlus,
   IconBox,
+  IconBrain,
   IconBrackets,
   IconBracketsAngle,
   IconBracketsContain,

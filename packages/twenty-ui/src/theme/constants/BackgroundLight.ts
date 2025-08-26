@@ -22,6 +22,7 @@ export const BACKGROUND_LIGHT = {
     light: RGBA(GRAY_SCALE.gray100, 0.04),
     lighter: RGBA(GRAY_SCALE.gray100, 0.02),
     danger: RGBA(COLOR.red, 0.08),
+    success: RGBA(COLOR.turquoise, 0.08),
     blue: RGBA(COLOR.blue, 0.08),
     orange: RGBA(COLOR.orange, 0.08),
   },
