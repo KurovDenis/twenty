@@ -159,21 +159,27 @@ const AIChatTabInternal = ({
           // TypeScript now knows latestEvent.step exists
           if (latestEvent.step && typeof latestEvent.step.stepNumber === 'number') {
             setIsProcessingSGR(true);
-            setCurrentSGRStep(`Анализирую шаг ${latestEvent.step.stepNumber}...`);
+            setCurrentSGRStep(`🤔 Анализирую шаг ${latestEvent.step.stepNumber}: ${latestEvent.step.currentState}`);
           } else {
             console.warn('Invalid thinking event step data:', latestEvent);
             setIsProcessingSGR(true);
-            setCurrentSGRStep('Анализирую...');
+            setCurrentSGRStep('🤔 Анализирую...');
           }
         } else if (isToolExecutionEvent(latestEvent)) {
           // TypeScript now knows latestEvent.toolName exists
           if (latestEvent.toolName && latestEvent.status) {
             setIsProcessingSGR(true);
-            setCurrentSGRStep(`${latestEvent.toolName}: ${latestEvent.status}`);
+            const statusEmoji = {
+              'starting': '🚀',
+              'in_progress': '⚙️', 
+              'completed': '✅',
+              'failed': '❌'
+            }[latestEvent.status] || '🔧';
+            setCurrentSGRStep(`${statusEmoji} ${latestEvent.toolName}: ${latestEvent.status}`);
           } else {
             console.warn('Invalid tool execution event data:', latestEvent);
             setIsProcessingSGR(true);
-            setCurrentSGRStep('Выполняю инструмент...');
+            setCurrentSGRStep('🔧 Выполняю инструмент...');
           }
         } else if (isFinalResponseEvent(latestEvent)) {
           setIsProcessingSGR(false);
@@ -182,6 +188,10 @@ const AIChatTabInternal = ({
           // Unknown event type - graceful degradation
           console.warn('Unknown SGR event type:', (latestEvent as any)?.type || 'undefined');
         }
+      } else {
+        // No events yet, make sure processing state is cleared
+        setIsProcessingSGR(false);
+        setCurrentSGRStep(null);
       }
     } catch (error) {
       console.error('Error processing SGR events:', error);

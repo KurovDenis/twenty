@@ -1,21 +1,44 @@
+import { useCreateNewAIChatThread } from '@/ai/hooks/useCreateNewAIChatThread';
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { useOpenAskAIPageInCommandMenu } from '@/command-menu/hooks/useOpenAskAIPageInCommandMenu';
+import { useRecoilValue } from 'recoil';
 import { useBusinessSetupStatus } from './useBusinessSetupStatus';
 import { BusinessSetupStatus } from './useSetNextBusinessSetupStatus';
 
 export const useBusinessSetupAgentChat = () => {
   const businessSetupStatus = useBusinessSetupStatus();
+  const currentWorkspace = useRecoilValue(currentWorkspaceState);
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
+  
+  // Get default agent ID as fallback
+  const defaultAgentId = currentWorkspace?.defaultAgent?.id || 'fallback-agent';
+  
+  // Create specialized agent chat thread hook with business setup context
+  const { createAgentChatThread } = useCreateNewAIChatThread({ 
+    agentId: defaultAgentId,
+    businessSetupStep: businessSetupStatus || undefined 
+  });
 
-  const createBusinessSetupChat = () => {
+  const createBusinessSetupChat = async () => {
     const currentStep = businessSetupStatus || 'WELCOME';
     
-    console.log('Creating business setup chat with step:', currentStep);
-    console.log('Opening empty chat interface - no pre-filled messages');
+    console.log('Creating business setup chat with SGR agent for step:', currentStep);
+    console.log('This will create specialized welcome-agent with Avito SGR support');
     
-    // CHANGED: Open empty chat without pre-filled message
-    // Let user type their own message to trigger AI response
-    // This prevents confusing automatic messages and allows natural conversation flow
-    openAskAIPage();
+    try {
+      // Create specialized business setup agent thread
+      // The backend will automatically create/find the appropriate agent
+      // based on businessSetupStep and use SGR for WELCOME step
+      await createAgentChatThread();
+      
+      console.log('Business setup chat thread created successfully');
+      // createAgentChatThread automatically opens the AI page with the new thread
+    } catch (error) {
+      console.error('Failed to create business setup chat thread:', error);
+      // Fallback to standard AI page
+      console.log('Falling back to standard AI page');
+      openAskAIPage();
+    }
   };
 
   // NOTE: This function is kept for reference only and help text

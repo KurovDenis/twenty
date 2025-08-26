@@ -114,8 +114,40 @@ yarn test packages/twenty-front/src/modules/ai/components/FloatingAIChatButton
 2. Проверьте, что командное меню работает корректно
 3. Проверьте консоль на наличие ошибок
 
+## SGR Avito Agent Integration
+
+### Автоматическое создание специализированных агентов
+
+Когда пользователь находится в процессе бизнес-настройки (`businessSetupStatus = 'WELCOME'`), клик на FloatingAIChatButton автоматически создает специализированный SGR Avito агент вместо стандартного AI чата.
+
+```tsx
+// Автоматическая логика определения типа агента
+const businessSetupStatus = useBusinessSetupStatus();
+
+if (businessSetupStatus === 'WELCOME') {
+  // Создается SGR Avito агент для настройки интеграции
+  createBusinessSetupChat();
+} else {
+  // Создается стандартный AI агент
+  openAskAIPage();
+}
+```
+
+### Особенности SGR интеграции
+
+- 🤖 **Специализированные агенты** - автоматический выбор типа агента
+- 🌊 **SGR Streaming** - визуализация прогресса выполнения задач
+- 🔄 **Fallback механизм** - переключение на стандартный чат при ошибках
+- 📊 **Контекстная персонализация** - агенты адаптируются к этапу настройки
+
+### Документация
+
+Подробную документацию по SGR интеграции см. в [`README-SGR-Avito-Integration.md`](../../business-setup/README-SGR-Avito-Integration.md)
+
 ## Связанные компоненты
 
-- `AIChatTab` - основной компонент AI чата
+- `AIChatTab` - основной компонент AI чата с SGR поддержкой
 - `CommandMenuRouter` - роутер командного меню
 - `FloatingIconButton` - базовая плавающая кнопка
+- `useBusinessSetupAgentChat` - хук для создания специализированных агентов
+- `BusinessSetupModule` - backend модуль для SGR агентов
