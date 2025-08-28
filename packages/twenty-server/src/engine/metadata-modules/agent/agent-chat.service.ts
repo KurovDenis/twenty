@@ -72,10 +72,43 @@ export class AgentChatService {
 
     const savedThread = await this.threadRepository.save(thread);
 
-    // REMOVED: Automatic welcome message sending
-    // The first message should be AI response to user's input, not a pre-generated welcome message
-    // This prevents confusing automatic messages when creating new chats
-    // Users will now see an empty chat ready for their input
+    // Send automatic greeting message for business setup agents
+    // This is essential for guiding users through the business setup process
+    if (isBusinessSetupAgent && businessSetupStep) {
+      try {
+        console.log(`Sending welcome message for business setup step: ${businessSetupStep}, threadId: ${savedThread.id}`);
+        
+        await this.sendWelcomeMessage(savedThread.id, businessSetupStep);
+        
+        console.log(`Welcome message sent successfully for thread: ${savedThread.id}`);
+        
+        // Emit event for real-time UI updates
+        this.eventEmitter.emit('ai-agent.welcome.chat-created', {
+          threadId: savedThread.id,
+          agentId: effectiveAgentId,
+          businessSetupStep,
+          userWorkspaceId,
+          aiResponse: 'Welcome message sent automatically', // Will be updated when actual greeting is sent
+          timestamp: new Date()
+        });
+      } catch (error) {
+        console.error(`Failed to send welcome message for business setup step ${businessSetupStep}:`, error);
+        
+        // Emit failure event for frontend error handling
+        this.eventEmitter.emit('ai-agent.welcome.chat-failed', {
+          threadId: savedThread.id,
+          agentId: effectiveAgentId,
+          businessSetupStep,
+          userWorkspaceId,
+          error: error instanceof Error ? error.message : String(error),
+          attempts: 1,
+          timestamp: new Date()
+        });
+        
+        // Don't fail thread creation if welcome message fails
+        console.warn(`Thread ${savedThread.id} created successfully but welcome message failed. Thread is still usable.`);
+      }
+    }
 
     return savedThread;
   }
@@ -282,7 +315,25 @@ export class AgentChatService {
     console.log('Sending welcome message for business setup step:', businessSetupStep);
     
     const welcomeMessages: Record<BusinessSetupStatus, string> = {
-      [BusinessSetupStatus.WELCOME]: `🚀 Настройка интеграции Avito! Мне нужны ваши CLIENT_ID и CLIENT_SECRET для подключения к API.`,
+      [BusinessSetupStatus.WELCOME]: `🤖 **Привет! Я SGR Avito Integration Assistant**
+
+**Моя задача:** Помочь вам настроить интеграцию с Avito для автоматизации вашего бизнеса.
+
+**Мои инструменты и возможности:**
+🔧 **Извлечение учетных данных** - безопасно извлекаю CLIENT_ID и CLIENT_SECRET из ваших сообщений
+🔐 **Валидация API** - проверяю подлинность ваших Avito API ключей
+📋 **Пошаговая настройка** - веду вас через весь процесс интеграции
+🔄 **SGR Processing** - использую Schema-Guided Reasoning для точной обработки
+📊 **Анализ данных** - помогаю понять структуру ваших Avito данных
+
+**Что мне нужно от вас:**
+Предоставьте ваши Avito API учетные данные:
+- CLIENT_ID (идентификатор клиента)
+- CLIENT_SECRET (секретный ключ)
+
+Я обработаю их безопасно и настрою интеграцию для вашего CRM.
+
+**Готовы начать? Отправьте мне ваши учетные данные Avito API!** 🚀`,
       
       [BusinessSetupStatus.BUSINESS_ANALYSIS]: `🚀 **Время анализировать ваш бизнес!**
 
@@ -381,5 +432,14 @@ export class AgentChatService {
     });
 
     await this.messageRepository.save(welcomeMessage);
+    
+    // Emit event for real-time UI updates and GraphQL subscriptions
+    this.eventEmitter.emit('ai-agent.welcome.greeting-sent', {
+      threadId,
+      messageId: welcomeMessage.id,
+      greetingMessage: welcomeContent,
+      businessSetupStep,
+      timestamp: new Date()
+    });
   }
 }

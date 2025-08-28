@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAIAgentEventsSubscription } from './useBusinessSetupSubscriptions';
 import { getCurrentUserId } from '~/auth/utils/get-current-user-id';
 import { useNavigate } from 'react-router-dom';
+import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';
+import { getAgentConfigForStatus, getGreetingMessage } from '@/business-setup/config/businessSetupAgents.config';
 
 /**
  * Hook for managing AI agent welcome messages via GraphQL subscriptions
@@ -18,6 +20,8 @@ export const useWelcomeMessage = () => {
   
   const navigate = useNavigate();
   const currentUserId = getCurrentUserId();
+  const businessSetupStatus = useBusinessSetupStatus();
+  const agentConfig = getAgentConfigForStatus(businessSetupStatus);
   
   // Subscribe to AI agent events via GraphQL
   const {
@@ -41,11 +45,27 @@ export const useWelcomeMessage = () => {
     if (latestChatCreated && latestChatCreated.threadId !== threadId) {
       console.log('Welcome chat created event received:', latestChatCreated);
       
-      // Extract welcome message from the event
-      // Note: The aiResponse should be available in the event payload
-      // We might need to fetch the actual message content separately
+      // Get the appropriate greeting message based on business setup status
+      let greetingMessage = getGreetingMessage(businessSetupStatus);
+      
+      // Fallback to agent config or generic message
+      if (!greetingMessage) {
+        if (agentConfig?.greetingMessage) {
+          greetingMessage = agentConfig.greetingMessage;
+        } else if (businessSetupStatus === 'WELCOME') {
+          // Specific fallback for SGR Avito agent
+          greetingMessage = `🤖 **Привет! Я SGR Avito Integration Assistant**
+
+**Моя задача:** Помочь вам настроить интеграцию с Avito для автоматизации вашего бизнеса.
+
+**Готовы начать? Отправьте мне ваши учетные данные Avito API!** 🚀`;
+        } else {
+          greetingMessage = '🎉 Welcome to Business Setup! Your AI assistant is ready to help you get started.';
+        }
+      }
+      
       setThreadId(latestChatCreated.threadId!);
-      setWelcomeMessage('🎉 Welcome to Business Setup! Your AI assistant is ready to help you get started.');
+      setWelcomeMessage(greetingMessage);
       setShowPopup(true);
       setIsProcessing(false);
       setError(null);

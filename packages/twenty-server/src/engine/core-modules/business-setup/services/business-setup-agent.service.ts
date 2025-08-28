@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 import { AgentService } from 'src/engine/metadata-modules/agent/agent.service';
-import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 
 @Injectable()
@@ -23,6 +23,25 @@ export class BusinessSetupAgentService {
     step: BusinessSetupStatus,
     userWorkspaceId: string,
   ): Promise<AgentEntity> {
+    // For WELCOME status, ALWAYS use the specific SGR Avito Agent
+    if (step === BusinessSetupStatus.WELCOME) {
+      const SGR_AVITO_AGENT_ID = '2f851163-c7ea-4eae-b960-13f019b256e3';
+      
+      // Try to find the existing SGR Avito agent
+      const actualWorkspaceId = await this.resolveWorkspaceId(userWorkspaceId);
+      
+      let sgrAgent = await this.agentRepository.findOne({
+        where: { id: SGR_AVITO_AGENT_ID, workspaceId: actualWorkspaceId },
+      });
+      
+      if (!sgrAgent) {
+        // Create the SGR Avito agent if it doesn't exist
+        this.logger.log(`Creating SGR Avito Agent for WELCOME step in workspace ${actualWorkspaceId}`);
+        sgrAgent = await this.createSGRAvitoAgent(actualWorkspaceId);
+      }
+      
+      return sgrAgent;
+    }
     const agentMapping: Record<Exclude<BusinessSetupStatus, BusinessSetupStatus.COMPLETED>, string> = {
       [BusinessSetupStatus.WELCOME]: 'welcome-agent',
       [BusinessSetupStatus.BUSINESS_ANALYSIS]: 'business-analysis-agent',
@@ -216,5 +235,46 @@ Focus on ensuring optimal performance and user experience.`,
       },
       workspaceId,
     );
+  }
+
+  /**
+   * Create the specific SGR Avito Agent for WELCOME status
+   * This agent has predefined ID and special SGR capabilities
+   */
+  private async createSGRAvitoAgent(workspaceId: string): Promise<AgentEntity> {
+    const SGR_AVITO_AGENT_ID = '2f851163-c7ea-4eae-b960-13f019b256e3';
+    
+    // Create agent directly with repository to support specific ID
+    const agent = this.agentRepository.create({
+      id: SGR_AVITO_AGENT_ID, // Force specific ID
+      name: 'sgr-avito-agent',
+      label: 'SGR Avito Integration Assistant',
+      description: 'Specialized SGR agent for Avito API integration during business setup',
+      prompt: `You are the SGR Avito Integration Assistant, a specialized AI agent with Schema-Guided Reasoning capabilities.
+
+Your role is to help users set up Avito API integration for their business automation.
+
+Key responsibilities:
+1. Extract CLIENT_ID and CLIENT_SECRET from user messages using SGR processing
+2. Validate Avito API credentials through secure API calls
+3. Guide users through the complete Avito integration setup process
+4. Use Schema-Guided Reasoning for accurate credential processing
+5. Provide step-by-step setup guidance for Avito automation
+
+Capabilities:
+- Credential extraction with multiple format support
+- API validation and testing
+- SGR-powered data processing
+- Secure credential handling
+- Integration setup guidance
+
+Always be helpful, professional, and security-focused when handling API credentials.`,
+      modelId: 'google/gemini-2.5-flash',
+      icon: '🤖',
+      workspaceId,
+      isCustom: true,
+    });
+
+    return await this.agentRepository.save(agent);
   }
 }

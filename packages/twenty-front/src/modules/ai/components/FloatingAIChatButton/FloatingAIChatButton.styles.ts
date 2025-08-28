@@ -1,4 +1,55 @@
 import styled from '@emotion/styled';
+import { keyframes } from '@emotion/react';
+
+// CSS Animations
+const fadeInScale = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
+
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+const pulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+`;
+
+const slideInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const businessSetupWelcomePulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.5);
+  }
+`;
 
 export const StyledFloatingAIChatButtonContainer = styled.div`
   position: fixed;
@@ -6,20 +57,18 @@ export const StyledFloatingAIChatButtonContainer = styled.div`
   right: ${({ theme }) => theme.spacing(4)};
   z-index: 1000;
   pointer-events: auto;
-  animation: fadeInScale 0.3s ease-out;
+  animation: ${fadeInScale} 0.3s ease-out;
   transition:
     opacity 0.3s ease,
     transform 0.3s ease;
 
-  @keyframes fadeInScale {
-    from {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
+  /* Global animation classes */
+  .spin {
+    animation: ${spin} 1s linear infinite;
+  }
+  
+  .pulse {
+    animation: ${pulse} 2s infinite;
   }
 
   @media (max-width: 768px) {
@@ -75,23 +124,11 @@ export const StyledTooltip = styled.div`
 // Business Setup анимация
 export const StyledBusinessSetupWelcomeMode = styled.div`
   &.business-setup-welcome-mode {
-    animation: businessSetupWelcomePulse 2s ease-in-out infinite;
-  }
-
-  @keyframes businessSetupWelcomePulse {
-    0%,
-    100% {
-      transform: scale(1);
-      box-shadow: 0 4px 12px ${({ theme }) => theme.color.green}30;
-    }
-    50% {
-      transform: scale(1.05);
-      box-shadow: 0 6px 20px ${({ theme }) => theme.color.green}50;
-    }
+    animation: ${businessSetupWelcomePulse} 2s ease-in-out infinite;
   }
 
   .business-setup-welcome-pulse {
-    background-color: ${({ theme }) => theme.color.green} !important;
+    background-color: ${({ theme }) => theme.color.blue} !important;
     color: ${({ theme }) => theme.font.color.inverted} !important;
   }
 `;
@@ -107,17 +144,11 @@ export const StyledWelcomePopup = styled.div`
   border-radius: ${({ theme }) => theme.border.radius.md};
   box-shadow: ${({ theme }) => theme.boxShadow.strong};
   z-index: 1000;
-  animation: slideInUp 0.3s ease-out;
+  animation: ${slideInUp} 0.3s ease-out;
   
-  @keyframes slideInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  @media (max-width: 480px) {
+    width: 280px;
+    bottom: 60px;
   }
 `;
 

@@ -10,7 +10,20 @@ import {
     SGRThinkingStep,
     SGRToolExecutionStatus
 } from '@/ai/types/sgr-message.types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+
+/**
+ * Connection state for SGR bridge pool management
+ */
+interface SGRConnectionState {
+  agentId: string;
+  threadId: string;
+  isListening: boolean;
+  connectionStartTime: Date;
+  lastEventTime: Date | null;
+  listenerCount: number;
+  pollingInterval: NodeJS.Timeout | null;
+}
 
 /**
  * SGR Event Types
@@ -124,54 +137,149 @@ export function getEventStep(event: SGRStreamingEvent): SGRThinkingStep | null {
  * SGR Event Bridge Service
  * 
  * This service handles real-time communication between backend SGR processes
- * and frontend visualization components.
+ * and frontend visualization components with proper connection pooling.
  */
 class SGREventBridgeService {
   private eventListeners: Array<(event: SGREvent) => void> = [];
-  private pollingInterval: NodeJS.Timeout | null = null;
-  private isListening = false;
+  private connectionPool: Map<string, SGRConnectionState> = new Map();
+  private readonly maxConnections = 5;
+  private readonly connectionTimeout = 300000; // 5 minutes
   private lastEventTimestamp: Date = new Date();
-  private agentId: string | null = null;
-  private threadId: string | null = null;
+  
+  private createConnectionKey(agentId: string, threadId: string): string {
+    return `${agentId}-${threadId}`;
+  }
 
   /**
    * Initialize the SGR event bridge for a specific agent and thread
    */
   initialize(agentId: string, threadId: string): void {
-    this.agentId = agentId;
-    this.threadId = threadId;
+    const connectionKey = this.createConnectionKey(agentId, threadId);
+    
+    // Clean up stale connections before creating new ones
+    this.cleanupStaleConnections();
+    
+    // Check if connection already exists and is active
+    const existingConnection = this.connectionPool.get(connectionKey);
+    if (existingConnection && existingConnection.isListening) {
+      console.log(`SGR Event Bridge: Reusing existing connection for ${connectionKey}`);
+      existingConnection.listenerCount++;
+      return;
+    }
+    
+    // Create new connection
+    const connection: SGRConnectionState = {
+      agentId,
+      threadId,
+      isListening: false,
+      connectionStartTime: new Date(),
+      lastEventTime: null,
+      listenerCount: 1,
+      pollingInterval: null
+    };
+    
+    this.connectionPool.set(connectionKey, connection);
     console.log(`SGR Event Bridge: Initialized for agent ${agentId}, thread ${threadId}`);
   }
 
   /**
    * Start listening for SGR events
    */
-  startListening(): void {
-    if (this.isListening || !this.agentId || !this.threadId) {
+  startListening(agentId: string, threadId: string): void {
+    const connectionKey = this.createConnectionKey(agentId, threadId);
+    const connection = this.connectionPool.get(connectionKey);
+    
+    if (!connection) {
+      console.warn(`SGR Event Bridge: No connection found for ${connectionKey}`);
+      return;
+    }
+    
+    if (connection.isListening) {
+      console.log(`SGR Event Bridge: Already listening for ${connectionKey}`);
       return;
     }
 
-    this.isListening = true;
-    this.lastEventTimestamp = new Date();
+    connection.isListening = true;
+    connection.lastEventTime = new Date();
     
     // For now using polling, can be upgraded to WebSocket later
-    this.pollingInterval = setInterval(() => {
-      this.pollForEvents();
+    connection.pollingInterval = setInterval(() => {
+      this.pollForEvents(agentId, threadId);
     }, 1000);
 
-    console.log('SGR Event Bridge: Started listening for events');
+    console.log(`SGR Event Bridge: Started listening for events (${connectionKey})`);
   }
 
   /**
    * Stop listening for events
    */
-  stopListening(): void {
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
+  stopListening(agentId: string, threadId: string): void {
+    const connectionKey = this.createConnectionKey(agentId, threadId);
+    const connection = this.connectionPool.get(connectionKey);
+    
+    if (!connection) {
+      return;
     }
-    this.isListening = false;
-    console.log('SGR Event Bridge: Stopped listening for events');
+    
+    // Decrease listener count
+    connection.listenerCount = Math.max(0, connection.listenerCount - 1);
+    
+    // Only stop if no more listeners
+    if (connection.listenerCount === 0) {
+      if (connection.pollingInterval) {
+        clearInterval(connection.pollingInterval);
+        connection.pollingInterval = null;
+      }
+      connection.isListening = false;
+      console.log(`SGR Event Bridge: Stopped listening for events (${connectionKey})`);
+      
+      // Remove connection after a delay to allow for reuse
+      setTimeout(() => {
+        this.connectionPool.delete(connectionKey);
+      }, 5000);
+    }
+  }
+  
+  /**
+   * Clean up stale connections
+   */
+  private cleanupStaleConnections(): void {
+    const now = new Date();
+    const connectionsToRemove: string[] = [];
+    
+    for (const [key, connection] of this.connectionPool.entries()) {
+      const age = now.getTime() - connection.connectionStartTime.getTime();
+      const isStale = age > this.connectionTimeout;
+      const isInactive = connection.listenerCount === 0 && !connection.isListening;
+      
+      if (isStale || isInactive) {
+        // Clean up polling interval if exists
+        if (connection.pollingInterval) {
+          clearInterval(connection.pollingInterval);
+        }
+        connectionsToRemove.push(key);
+      }
+    }
+    
+    connectionsToRemove.forEach(key => {
+      this.connectionPool.delete(key);
+      console.log(`SGR Bridge: Cleaned up stale connection ${key}`);
+    });
+    
+    // Enforce max connections limit
+    if (this.connectionPool.size > this.maxConnections) {
+      const oldestConnections = Array.from(this.connectionPool.entries())
+        .sort(([, a], [, b]) => a.connectionStartTime.getTime() - b.connectionStartTime.getTime())
+        .slice(0, this.connectionPool.size - this.maxConnections);
+      
+      oldestConnections.forEach(([key, connection]) => {
+        if (connection.pollingInterval) {
+          clearInterval(connection.pollingInterval);
+        }
+        this.connectionPool.delete(key);
+        console.log(`SGR Bridge: Removed old connection ${key} due to limit`);
+      });
+    }
   }
 
   /**
@@ -192,15 +300,15 @@ class SGREventBridgeService {
    * Poll for SGR events (placeholder implementation)
    * In a real implementation, this would call backend API or WebSocket
    */
-  private async pollForEvents(): Promise<void> {
-    if (!this.agentId || !this.threadId) {
+  private async pollForEvents(agentId: string, threadId: string): Promise<void> {
+    if (!agentId || !threadId) {
       return;
     }
 
     try {
       // In a real implementation, this would fetch events from backend
       // For now, we'll simulate no new events
-      // const response = await fetch(`/api/agents/${this.agentId}/threads/${this.threadId}/sgr-events`);
+      // const response = await fetch(`/api/agents/${agentId}/threads/${threadId}/sgr-events`);
       // const events: SGREvent[] = await response.json();
       // 
       // events.forEach(event => {
@@ -290,19 +398,34 @@ class SGREventBridgeService {
    * Get service status
    */
   getStatus(): {
-    isListening: boolean;
-    agentId: string | null;
-    threadId: string | null;
+    connectionCount: number;
+    activeConnections: string[];
     lastEventTimestamp: Date;
     listenerCount: number;
   } {
+    const activeConnections = Array.from(this.connectionPool.entries())
+      .filter(([, conn]) => conn.isListening)
+      .map(([key]) => key);
+    
     return {
-      isListening: this.isListening,
-      agentId: this.agentId,
-      threadId: this.threadId,
+      connectionCount: this.connectionPool.size,
+      activeConnections,
       lastEventTimestamp: this.lastEventTimestamp,
       listenerCount: this.eventListeners.length
     };
+  }
+  
+  /**
+   * Force cleanup all connections (for debugging/testing)
+   */
+  forceCleanup(): void {
+    this.connectionPool.forEach((connection, key) => {
+      if (connection.pollingInterval) {
+        clearInterval(connection.pollingInterval);
+      }
+    });
+    this.connectionPool.clear();
+    console.log('SGR Event Bridge: Force cleanup completed');
   }
 }
 
@@ -310,22 +433,41 @@ class SGREventBridgeService {
 export const sgrEventBridge = new SGREventBridgeService();
 
 /**
- * React hook for using SGR event bridge
+ * React hook for using SGR event bridge with proper connection management
  */
 export const useSGREvents = (agentId: string, threadId: string | null) => {
   const [events, setEvents] = useState<SGREvent[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const connectionRef = useRef<string | null>(null);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!threadId) {
+    if (!threadId || !agentId) {
+      setIsConnected(false);
       return;
     }
 
+    const connectionKey = `${agentId}-${threadId}`;
+    
+    // Prevent duplicate connections for the same agent/thread
+    if (connectionRef.current === connectionKey) {
+      return;
+    }
+    
+    // Cleanup previous connection if exists
+    if (connectionRef.current && isInitializedRef.current) {
+      const [prevAgentId, prevThreadId] = connectionRef.current.split('-');
+      sgrEventBridge.stopListening(prevAgentId, prevThreadId);
+    }
+
+    connectionRef.current = connectionKey;
+    isInitializedRef.current = true;
+    
     // Initialize the event bridge
     sgrEventBridge.initialize(agentId, threadId);
     
     // Start listening for events
-    sgrEventBridge.startListening();
+    sgrEventBridge.startListening(agentId, threadId);
     setIsConnected(true);
 
     // Add event listener
@@ -335,13 +477,18 @@ export const useSGREvents = (agentId: string, threadId: string | null) => {
 
     sgrEventBridge.addEventListener(handleEvent);
 
-    // Cleanup
+    // Cleanup function
     return () => {
       sgrEventBridge.removeEventListener(handleEvent);
-      sgrEventBridge.stopListening();
+      sgrEventBridge.stopListening(agentId, threadId);
       setIsConnected(false);
     };
   }, [agentId, threadId]);
+  
+  // Clear events when thread changes
+  useEffect(() => {
+    setEvents([]);
+  }, [threadId]);
 
   return {
     events,
