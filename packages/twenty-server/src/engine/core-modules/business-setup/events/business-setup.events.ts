@@ -19,6 +19,17 @@ export const BUSINESS_SETUP_EVENTS = {
   // Chat events
   CHAT_MESSAGE_ADDED: 'chat.message.added',
   CHAT_STATUS_UPDATED: 'chat.status.updated',
+  
+  // Supervisor Agent events
+  BUSINESS_SETUP_ROUTE_MESSAGE: 'business-setup.route-message',
+  SUPERVISOR_PROCESS_MESSAGE: 'supervisor.process-message', // New event for decoupled communication
+  BUSINESS_SETUP_STATUS_CHANGED: 'business-setup.status-changed',
+  BUSINESS_SETUP_AGENT_CREATED: 'business-setup.agent-created',
+  SUPERVISOR_THINKING_STEP: 'supervisor.thinking-step',
+  SUPERVISOR_ROUTING_COMPLETED: 'supervisor.routing-completed',
+  SUPERVISOR_STATUS_TRANSITION: 'supervisor.status-transition',
+  SUPERVISOR_ERROR_OCCURRED: 'supervisor.error-occurred',
+  SUPERVISOR_AGENT_HANDOFF: 'supervisor.agent-handoff',
 } as const;
 
 export type BusinessSetupEventType = typeof BUSINESS_SETUP_EVENTS[keyof typeof BUSINESS_SETUP_EVENTS];
@@ -76,6 +87,74 @@ export interface ChatStatusUpdatedEvent extends BusinessSetupEventPayload {
   previousStatus: string;
 }
 
+// Supervisor event interfaces
+export interface BusinessSetupRouteMessageEvent extends BusinessSetupEventPayload {
+  threadId: string;
+  message: string;
+  currentStatus?: string;
+}
+
+export interface BusinessSetupStatusChangedEvent extends BusinessSetupEventPayload {
+  fromStatus: string;
+  toStatus: string;
+  reason: string;
+  triggerEvent?: string;
+}
+
+export interface BusinessSetupAgentCreatedEvent extends BusinessSetupEventPayload {
+  agentId: string;
+  agentName: string;
+  agentType: 'supervisor' | 'specialized';
+}
+
+export interface SupervisorThinkingStepEvent extends BusinessSetupEventPayload {
+  threadId: string;
+  stepNumber: number;
+  currentState: string;
+  plannedSteps: string[];
+  selectedTool: string;
+  completed: boolean;
+}
+
+export interface SupervisorRoutingCompletedEvent extends BusinessSetupEventPayload {
+  threadId: string;
+  success: boolean;
+  finalMessage: string;
+  routedTo?: string;
+  stepsExecuted: string[];
+  executionTimeMs: number;
+}
+
+export interface SupervisorStatusTransitionEvent extends BusinessSetupEventPayload {
+  threadId: string;
+  fromStatus: string;
+  toStatus: string;
+  reason: string;
+  automatic: boolean;
+}
+
+export interface SupervisorErrorOccurredEvent extends BusinessSetupEventPayload {
+  threadId: string;
+  errorType: string;
+  errorMessage: string;
+  context?: Record<string, any>;
+  recoverable: boolean;
+}
+
+export interface SupervisorProcessMessageEvent extends BusinessSetupEventPayload {
+  threadId: string;
+  message: string;
+}
+
+export interface SupervisorAgentHandoffEvent extends BusinessSetupEventPayload {
+  threadId: string;
+  fromAgent: string;
+  toAgent: string;
+  handoffReason: string;
+  contextPreserved: boolean;
+  userMessage: string;
+}
+
 export type BusinessSetupEvent = 
   | OnboardingStatusChangedEvent
   | WelcomeChatCreationStartedEvent
@@ -85,7 +164,16 @@ export type BusinessSetupEvent =
   | AIResponseGeneratedEvent
   | BusinessSetupStepTransitionEvent
   | ChatMessageAddedEvent
-  | ChatStatusUpdatedEvent;
+  | ChatStatusUpdatedEvent
+  | BusinessSetupRouteMessageEvent
+  | SupervisorProcessMessageEvent
+  | BusinessSetupStatusChangedEvent
+  | BusinessSetupAgentCreatedEvent
+  | SupervisorThinkingStepEvent
+  | SupervisorRoutingCompletedEvent
+  | SupervisorStatusTransitionEvent
+  | SupervisorErrorOccurredEvent
+  | SupervisorAgentHandoffEvent;
 
 export function isValidBusinessSetupEvent(event: any): event is BusinessSetupEvent {
   return event && 

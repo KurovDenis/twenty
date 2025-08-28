@@ -277,4 +277,112 @@ Always be helpful, professional, and security-focused when handling API credenti
 
     return await this.agentRepository.save(agent);
   }
+
+  /**
+   * Get or create supervisor agent for business setup routing
+   * The supervisor agent is responsible for analyzing user requests and routing them to appropriate specialized agents
+   */
+  async getSupervisorAgent(userWorkspaceId: string): Promise<AgentEntity> {
+    this.logger.log(`Getting supervisor agent for userWorkspace ${userWorkspaceId}`);
+
+    // Resolve actual workspace ID from userWorkspace
+    const actualWorkspaceId = await this.resolveWorkspaceId(userWorkspaceId);
+
+    // Look for existing supervisor agent
+    let supervisorAgent = await this.agentRepository.findOne({
+      where: { name: 'business-setup-supervisor', workspaceId: actualWorkspaceId },
+    });
+
+    // Create supervisor agent if it doesn't exist
+    if (!supervisorAgent) {
+      this.logger.log(`Creating supervisor agent for workspace ${actualWorkspaceId}`);
+      supervisorAgent = await this.createSupervisorAgent(actualWorkspaceId);
+    }
+
+    return supervisorAgent;
+  }
+
+  /**
+   * Create supervisor agent with specialized routing capabilities
+   */
+  async createSupervisorAgent(workspaceId: string): Promise<AgentEntity> {
+    const supervisorPrompt = `You are a Supervisor Agent for the Business Setup workflow in Twenty CRM.
+
+Your responsibilities:
+1. Analyze user requests in the context of business setup progress
+2. Route requests to appropriate specialized agents based on current status
+3. Manage progression through business setup stages
+4. Provide transparent reasoning for all routing decisions
+
+Available Business Setup Stages:
+- WELCOME: Initial setup and Avito API credential collection
+- BUSINESS_ANALYSIS: Business requirements analysis
+- SALES_FUNNEL_DESIGN: Sales funnel creation and optimization
+- AGENT_SETUP: AI agent team configuration
+- WORKFLOW_CREATION: Automated workflow creation
+- TEAM_ASSIGNMENT: Team role and responsibility assignment
+- TESTING_OPTIMIZATION: System testing and optimization
+- COMPLETED: Business setup complete
+
+CRITICAL ROUTING RULES:
+- WELCOME status: ALWAYS route to SGR Avito Agent (sgr-avito-agent)
+- Never process WELCOME requests yourself - always delegate to SGR agent
+- Monitor for stage completion signals and trigger status transitions
+- Provide clear reasoning for every routing decision
+
+Use the available tools to check status, route requests, and manage transitions.
+Always maintain a helpful and informative tone while making routing decisions.`;
+
+    return await this.agentService.createOneAgent(
+      {
+        name: 'business-setup-supervisor',
+        label: 'Business Setup Supervisor',
+        description: 'Supervisor agent that routes business setup requests to appropriate specialized agents',
+        prompt: supervisorPrompt,
+        modelId: 'google/gemini-2.5-flash',
+        icon: '🎯',
+        isCustom: true,
+      },
+      workspaceId,
+    );
+  }
+
+  /**
+   * Check if an agent is a business setup supervisor agent
+   */
+  async isSupervisorAgent(agentId: string, workspaceId: string): Promise<boolean> {
+    try {
+      const agent = await this.agentRepository.findOne({
+        where: { id: agentId, workspaceId },
+      });
+
+      return agent?.name === 'business-setup-supervisor';
+    } catch (error) {
+      this.logger.error('Failed to check if agent is supervisor:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get all business setup agents for a workspace
+   */
+  async getAllBusinessSetupAgents(userWorkspaceId: string): Promise<AgentEntity[]> {
+    const actualWorkspaceId = await this.resolveWorkspaceId(userWorkspaceId);
+    
+    const businessSetupAgentNames = [
+      'business-setup-supervisor',
+      'sgr-avito-agent',
+      'welcome-agent',
+      'business-analysis-agent',
+      'funnel-designer-agent',
+      'agent-orchestrator-agent',
+      'workflow-generator-agent',
+      'team-assignment-agent',
+      'testing-optimization-agent'
+    ];
+
+    return await this.agentRepository.find({
+      where: businessSetupAgentNames.map(name => ({ name, workspaceId: actualWorkspaceId })),
+    });
+  }
 }

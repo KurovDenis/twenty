@@ -1,322 +1,234 @@
-# Avito Welcome Agent SGR Implementation
+# Business Setup SGR (Schema-Guided Reasoning) Module
 
-## Overview
+## Quick Start
 
-This implementation introduces **Schema-Guided Reasoning (SGR)** to the Avito Welcome Agent in the Twenty CRM system. SGR transforms the simple credential validation process into an intelligent, step-by-step workflow with transparent reasoning and type-safe tool execution.
+The SGR module provides intelligent business setup assistance through supervisor agents and specialized reasoning workflows.
 
-## What is SGR?
+### Key Services
 
-Schema-Guided Reasoning is an AI technique that enforces structured thinking patterns through:
+- **SupervisorSGRService**: Main orchestrator for business setup reasoning
+- **SupervisorToolDispatcherService**: Routes requests to appropriate specialized agents
+- **AvitoWelcomeSGRService**: Handles welcome workflow for Avito integration
 
-1. **Structured Decision Making**: AI must follow predefined schemas for each reasoning step
-2. **Transparent Planning**: Each step includes current state analysis and future step planning
-3. **Type-Safe Tool Execution**: All tool calls are validated through Zod schemas
-4. **Audit Trail**: Complete conversation log for debugging and monitoring
-
-## Architecture
-
-```
-User Message
-     ↓
-AvitoWelcomeSGRService
-     ↓
-Gemini 2.5 Flash (with schemas)
-     ↓
-AvitoWelcomeToolDispatcher
-     ↓
-Tool Execution (HTTP, Storage, etc.)
-     ↓
-Business Setup Transition
-```
-
-### Core Components
-
-1. **`avito-welcome-sgr.schema.ts`** - Zod schemas for structured reasoning
-2. **`avito-welcome-sgr.service.ts`** - Main SGR orchestration service  
-3. **`avito-welcome-tool-dispatcher.service.ts`** - Type-safe tool execution
-4. **Integration with existing `BusinessSetupWelcomeAgentService`**
-
-## Features
-
-### Enhanced Credential Processing
-
-- **Multiple Format Support**: Handles various credential input formats
-  - Standard: `CLIENT_ID = 'value' CLIENT_SECRET = 'value'`
-  - JSON: `{"client_id": "value", "client_secret": "value"}`
-  - YAML-style: `client_id: value`
-  - Colon-separated: `CLIENT_ID: value`
-
-### Intelligent Validation
-
-- **Real-time API Validation**: Validates credentials with actual Avito API
-- **Structured Error Handling**: Provides specific error messages and recovery suggestions
-- **Secure Storage**: Uses existing UserVarsService for encrypted credential storage
-
-### Russian Language Support
-
-- **Native Russian UI**: All user messages in Russian for target market
-- **Contextual Help**: Detailed instructions for finding and providing credentials
-- **Error Messages**: Clear, actionable error messages in Russian
-
-## SGR Workflow Example
-
-### Successful Credential Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant SGR as SGR Engine
-    participant AI as Gemini Model
-    participant Dispatcher as Tool Dispatcher
-    participant Avito as Avito API
-    participant Storage as UserVarsService
-
-    User->>SGR: "CLIENT_ID = 'abc123' CLIENT_SECRET = 'def456'"
-    
-    SGR->>AI: Analyze message + AvitoWelcomeStepSchema
-    AI->>SGR: {
-    AI->>SGR:   current_state: "User provided credentials",
-    AI->>SGR:   plan_remaining_steps: ["Extract credentials", "Validate"],
-    AI->>SGR:   function: { tool: "extract_credentials", message: "..." }
-    AI->>SGR: }
-    
-    SGR->>Dispatcher: extract_credentials
-    Dispatcher->>SGR: { client_id: "abc123", client_secret: "def456", success: true }
-    
-    SGR->>AI: Updated context + schema
-    AI->>SGR: { function: { tool: "validate_avito_token", ... } }
-    
-    SGR->>Dispatcher: validate_avito_token
-    Dispatcher->>Avito: POST /token
-    Avito->>Dispatcher: { access_token: "xyz", expires_in: 86400 }
-    
-    SGR->>Dispatcher: store_credentials
-    Dispatcher->>Storage: Store credentials securely
-    
-    SGR->>AI: Final step
-    AI->>SGR: { function: { tool: "report_welcome_completion", success: true } }
-```
-
-## Available Tools
-
-### 1. Extract Credentials (`extract_credentials`)
-Intelligently extracts CLIENT_ID and CLIENT_SECRET from user messages using multiple pattern recognition.
-
-### 2. Request Credentials (`request_credentials`)
-Generates user-friendly Russian instructions when credentials are missing or invalid.
-
-### 3. Validate Avito Token (`validate_avito_token`)
-Validates credentials with the real Avito API endpoint.
-
-### 4. Store Credentials (`store_credentials`)
-Securely stores validated credentials using the existing UserVarsService.
-
-### 5. Report Completion (`report_welcome_completion`)
-Completes the welcome stage and transitions to business analysis.
-
-## Usage
-
-### Direct Usage (for testing)
+### Usage Example
 
 ```typescript
-const sgrService = new AvitoWelcomeSGRService(/* dependencies */);
+// Inject the supervisor service
+constructor(
+  private supervisorService: SupervisorSGRService,
+  private toolDispatcher: SupervisorToolDispatcherService
+) {}
 
-await sgrService.processWelcomeMessage(
-  "CLIENT_ID = 'R3cTDMk9rEJ2lh5A9_QF' CLIENT_SECRET = 'ehAWb-RBQrLmgoJWfgtst737eQV6KIBHzmV1NmIc'",
+// Process user message with streaming
+const streamingResponse = this.supervisorService.processMessageWithStreaming(
   userId,
   workspaceId,
-  threadId
+  threadId,
+  "Help me set up my business"
 );
+
+for await (const result of streamingResponse) {
+  console.log(result);
+}
+
+// Check business setup status
+const status = await this.toolDispatcher.checkBusinessSetupStatus(userId, workspaceId);
+console.log(`Current status: ${status.status}`);
 ```
 
-### Integration Usage
+## Module Architecture
 
-The SGR system is automatically used when:
-
-1. User completes onboarding (triggers welcome chat)
-2. User sends message to welcome agent thread
-3. Message contains potential Avito credentials
-
-### Fallback Mechanism
-
-If SGR fails, the system gracefully falls back to the legacy credential processing method, ensuring reliability.
-
-## Configuration
-
-### Required Environment Variables
-
-```bash
-# Gemini Model Access (via OpenRouter)
-OPENAI_COMPATIBLE_BASE_URL=https://openrouter.ai/api/v1
-OPENAI_COMPATIBLE_API_KEY=your_openrouter_key
-OPENAI_COMPATIBLE_MODEL_NAMES=google/gemini-2.5-flash
-DEFAULT_MODEL_ID=google/gemini-2.5-flash
-```
-
-### Model Configuration
-
-The system specifically uses **Gemini 2.5 Flash** for:
-- Low latency structured reasoning
-- High reliability with schema adherence
-- Cost-effective processing for welcome stage
-
-## Testing
-
-### Unit Tests
-
-```bash
-# Run SGR-specific tests
-npm test -- --testPathPattern="sgr"
-
-# Run specific test file
-npm test avito-welcome-sgr.service.spec.ts
-```
-
-### Integration Tests
-
-```bash
-# Run complete integration tests
-npm test avito-welcome-sgr.integration.spec.ts
-```
-
-### Manual Testing
-
-1. **Complete Onboarding** to trigger welcome chat
-2. **Send credential message**: 
-   ```
-   CLIENT_ID = 'R3cTDMk9rEJ2lh5A9_QF'
-   CLIENT_SECRET = 'ehAWb-RBQrLmgoJWfgtst737eQV6KIBHzmV1NmIc'
-   ```
-3. **Verify behavior**:
-   - Credentials validated with Avito API
-   - Success message in Russian
-   - Transition to business analysis stage
-
-## Monitoring and Debugging
-
-### Events Emitted
-
-- `business-setup.welcome.completed` - Successful credential processing
-- `business-setup.welcome.failed` - Failed processing with error details
-- `business-setup.step-transition` - Stage transition events
-
-### Logging
-
-All SGR operations are logged with structured data:
+### Event-Driven Design
+The module uses an event-driven architecture to prevent circular dependencies:
 
 ```typescript
-this.logger.log(`SGR step ${stepNumber} completed: ${tool} -> ${success ? 'success' : 'failed'}`);
+// Events emitted by the supervisor system
+BUSINESS_SETUP_EVENTS.SUPERVISOR_PROCESS_MESSAGE
+BUSINESS_SETUP_EVENTS.SUPERVISOR_AGENT_HANDOFF
+BUSINESS_SETUP_EVENTS.SUPERVISOR_STATUS_CHANGE
 ```
 
-### Status Checking
-
-```typescript
-const status = await sgrService.getWelcomeStatus(userId, workspaceId);
-// Returns: { welcomePending, credentialsStored, avitoClientId }
+### Service Dependencies
 ```
+SupervisorSGRService
+├── UserVarsService
+├── AgentChatService
+├── AiModelRegistryService
+├── SupervisorToolDispatcherService (via events)
+└── EventEmitter2
+
+SupervisorToolDispatcherService
+├── UserVarsService
+├── AgentChatService
+├── BusinessSetupAgentService
+├── AvitoWelcomeSGRService
+└── EventEmitter2
+```
+
+## Development
+
+### Adding New Tools
+1. Define tool interface in `supervisor-types.ts`
+2. Implement tool logic in `SupervisorToolDispatcherService`
+3. Add error handling for the new tool
+4. Write comprehensive tests
+
+### Adding New SGR Services
+1. Create service extending base SGR patterns
+2. Register in `BusinessSetupModule` providers
+3. Update tool dispatcher routing logic
+4. Add integration tests
+
+### Running Tests
+
+```bash
+# Unit tests
+npm test -- --testPathPattern="supervisor.*\.spec\.ts"
+
+# Integration tests
+npm test -- --testPathPattern="supervisor-integration\.spec\.ts"
+
+# Error scenario tests
+npm test -- --testPathPattern="supervisor-error-scenarios\.spec\.ts"
+```
+
+## API Reference
+
+### SupervisorToolDispatcherService
+
+#### `dispatch(tool, userId, workspaceId)`
+Executes a tool based on supervisor reasoning output.
+
+**Parameters:**
+- `tool`: SupervisorStepResult['function'] - Tool definition from reasoning
+- `userId`: string - User identifier
+- `workspaceId`: string - Workspace identifier
+
+**Returns:** `Promise<SupervisorToolExecutionResult>`
+
+#### `checkBusinessSetupStatus(userId, workspaceId)`
+Checks current business setup progress.
+
+**Returns:** `Promise<BusinessSetupStatusResult>`
+
+#### `routeToSpecializedAgent(status, message, userId, workspaceId, threadId, reason)`
+Routes user to appropriate specialized agent.
+
+**Returns:** `Promise<RoutingResult>`
+
+### SupervisorSGRService
+
+#### `processMessageWithStreaming(userId, workspaceId, threadId, message)`
+Processes user message with streaming responses.
+
+**Returns:** `AsyncGenerator<SupervisorSGRStreamingResult>`
 
 ## Error Handling
 
-### Common Scenarios
+### SupervisorException
+Custom exception type for supervisor-specific errors:
 
-1. **Invalid Credentials**: Clear Russian error message with retry instructions
-2. **Network Issues**: Timeout handling with retry suggestions
-3. **API Rate Limits**: Graceful degradation with user notification
-4. **Schema Validation Errors**: Detailed error logging for debugging
+```typescript
+try {
+  await toolDispatcher.dispatch(tool, userId, workspaceId);
+} catch (error) {
+  if (error instanceof SupervisorException) {
+    console.log(`Supervisor error: ${error.errorType}`);
+    console.log(`Context:`, error.context);
+  }
+}
+```
 
-### Recovery Mechanisms
+### Error Types
+- `INVALID_TOOL`: Unknown tool type
+- `ROUTING_FAILED`: Agent routing failure
+- `STATUS_TRANSITION_ERROR`: Invalid status change
+- `DEPENDENCY_ERROR`: Service dependency failure
 
-- Automatic fallback to legacy processing
-- User-friendly error messages
-- Event emission for external monitoring
-- Comprehensive logging for debugging
+## Configuration
 
-## Performance Considerations
+### Environment Variables
+- `AI_MODEL_PROVIDER`: AI service provider (default: openai)
+- `BUSINESS_SETUP_DEFAULT_STATUS`: Default status for new users
+- `EVENT_EMITTER_MAX_LISTENERS`: Max event listeners (default: 100)
 
-### Optimizations
+### Service Configuration
+Services are configured through the NestJS dependency injection system. See `business-setup.module.ts` for provider registration.
 
-- **Schema Caching**: Zod schemas are compiled once
-- **Connection Pooling**: HTTP requests use connection pooling
-- **Structured Prompts**: Optimized prompts for faster AI response
-- **Token Limits**: Reasonable max tokens to control costs
+## Monitoring
 
-### Limits
+### Health Checks
+The module includes health check endpoints:
 
-- **Max Steps**: 5 steps for welcome stage (prevents infinite loops)
-- **Timeout**: 30 seconds per SGR workflow
-- **Token Usage**: ~1000 tokens per credential processing
+```typescript
+GET /healthz/business-setup-sgr
+```
 
-## Security
-
-### Credential Protection
-
-- **Encrypted Storage**: All credentials stored via UserVarsService
-- **Secure Transmission**: HTTPS for all Avito API calls
-- **Access Control**: User and workspace isolation
-- **Audit Trail**: Complete interaction logging
-
-### API Security
-
-- **Input Validation**: All inputs validated through Zod schemas
-- **Rate Limiting**: Respects Avito API rate limits
-- **Error Sanitization**: No sensitive data in error messages
+### Metrics
+- Tool dispatch success/failure rates
+- Event emission/handling performance
+- Service dependency health
+- User workflow completion rates
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **"SGR workflow exceeded maximum steps"**
-   - Check AI model response format
-   - Verify schema compliance
-   - Review conversation log
+1. **Circular Dependency Error**
+   - Check service registration order in module
+   - Ensure event-driven patterns are used correctly
 
-2. **"AI model not found"**
-   - Verify Gemini model configuration
-   - Check OpenRouter API key
-   - Validate model ID format
+2. **Tool Dispatch Failures**
+   - Verify tool definition matches expected interface
+   - Check service dependencies are available
 
-3. **"Avito API validation failed"**
-   - Verify client credentials
-   - Check network connectivity
-   - Review Avito API documentation
+3. **Event Handler Not Triggered**
+   - Confirm event listeners are registered after service init
+   - Check event name constants match emission calls
 
 ### Debug Mode
-
 Enable detailed logging:
 
 ```typescript
-// Set log level to debug in environment
-LOG_LEVEL=debug
+process.env.LOG_LEVEL = 'debug';
 ```
 
-## Future Enhancements
+### Testing in Development
+Use the test endpoints for simulating workflows:
 
-### Planned Features
-
-1. **Multi-language Support**: Support for other marketplaces
-2. **Advanced Analytics**: Detailed success/failure metrics
-3. **A/B Testing**: Compare SGR vs legacy performance
-4. **Smart Retries**: Intelligent retry logic for failed validations
-
-### Extension Points
-
-The SGR system is designed for easy extension:
-
-- Add new tools to `WelcomeToolUnion`
-- Extend schemas for additional functionality
-- Integrate with other marketplace APIs
-- Add custom reasoning patterns
+```bash
+curl -X GET "http://localhost:3000/ai-agent/test/simulate-welcome?userId=test&workspaceId=test"
+```
 
 ## Contributing
 
-When modifying the SGR system:
+### Code Style
+- Follow NestJS conventions
+- Use TypeScript strict mode
+- Add JSDoc comments for public methods
+- Include comprehensive error handling
 
-1. **Update Schemas**: Ensure Zod schemas reflect changes
-2. **Add Tests**: Include unit and integration tests
-3. **Update Documentation**: Keep this README current
-4. **Verify Fallback**: Ensure legacy system still works
-5. **Test Russian Language**: Verify all user-facing text
+### Testing Requirements
+- Unit tests for all public methods
+- Integration tests for service interactions
+- Error scenario tests for failure modes
+- Minimum 90% code coverage
 
-## License
+### Pull Request Process
+1. Add/update tests for changes
+2. Update documentation as needed
+3. Ensure all tests pass
+4. Verify no new circular dependencies introduced
 
-This implementation is part of the Twenty CRM project and follows the same license terms.
+## Related Documentation
+
+- [Architecture Documentation](./ARCHITECTURE.md) - Detailed technical architecture
+- [NestJS Documentation](https://docs.nestjs.com/) - Framework documentation
+- [Business Setup Module](../README.md) - Parent module documentation
+
+## Support
+
+For issues and questions:
+1. Check troubleshooting section above
+2. Review test files for usage examples
+3. Consult architecture documentation for complex scenarios
