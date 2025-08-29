@@ -1,15 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+
 import { AgentChatMessageRole } from 'src/engine/metadata-modules/agent/agent-chat-message.entity';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
+
 import { BusinessSetupService } from '../business-setup.service';
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
+
 import { ChatContinuationInput } from './dtos/chat-continuation.input';
 
 @Injectable()
 export class BusinessSetupChatContinuationService {
-  private readonly logger = new Logger(BusinessSetupChatContinuationService.name);
+  private readonly logger = new Logger(
+    BusinessSetupChatContinuationService.name,
+  );
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
@@ -24,7 +29,9 @@ export class BusinessSetupChatContinuationService {
     input: ChatContinuationInput,
   ): Promise<{ success: boolean; response: string; nextStep?: string }> {
     try {
-      this.logger.log(`Continuing welcome chat for user ${userId}, thread ${input.threadId}`);
+      this.logger.log(
+        `Continuing welcome chat for user ${userId}, thread ${input.threadId}`,
+      );
 
       // Эмитим событие получения сообщения пользователя
       this.eventEmitter.emit('ai-agent.welcome.user-message-received', {
@@ -32,7 +39,7 @@ export class BusinessSetupChatContinuationService {
         workspaceId,
         threadId: input.threadId,
         message: input.message,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       // Сохраняем сообщение пользователя в чат
@@ -40,19 +47,22 @@ export class BusinessSetupChatContinuationService {
         threadId: input.threadId,
         role: AgentChatMessageRole.USER,
         content: input.message,
-        fileIds: input.fileIds || []
+        fileIds: input.fileIds || [],
       });
 
       // Получаем контекст чата для AI
-      const chatContext = await this.getChatContext(input.threadId, workspaceId);
-      
+      const chatContext = await this.getChatContext(
+        input.threadId,
+        workspaceId,
+      );
+
       // Генерируем ответ AI
       const aiResponse = await this.generateAIResponse(
         userId,
         workspaceId,
         input.message,
         chatContext,
-        input.context
+        input.context,
       );
 
       // Сохраняем ответ AI в чат
@@ -60,7 +70,7 @@ export class BusinessSetupChatContinuationService {
         threadId: input.threadId,
         role: AgentChatMessageRole.ASSISTANT,
         content: aiResponse.response,
-        fileIds: []
+        fileIds: [],
       });
 
       // Эмитим событие генерации ответа AI
@@ -70,7 +80,7 @@ export class BusinessSetupChatContinuationService {
         threadId: input.threadId,
         response: aiResponse.response,
         context: aiResponse.context,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       // Анализируем готовность к следующему шагу
@@ -78,7 +88,7 @@ export class BusinessSetupChatContinuationService {
         userId,
         workspaceId,
         input.message,
-        aiResponse.response
+        aiResponse.response,
       );
 
       if (nextStep) {
@@ -89,34 +99,40 @@ export class BusinessSetupChatContinuationService {
           fromStep: BusinessSetupStatus.WELCOME,
           toStep: nextStep,
           reason: 'User ready for next step based on chat analysis',
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
       return {
         success: true,
         response: aiResponse.response,
-        nextStep: nextStep || undefined
+        nextStep: nextStep || undefined,
       };
-
     } catch (error) {
       this.logger.error('Failed to continue welcome chat:', error);
       throw error;
     }
   }
 
-  private async getChatContext(threadId: string, workspaceId: string): Promise<string> {
+  private async getChatContext(
+    threadId: string,
+    workspaceId: string,
+  ): Promise<string> {
     try {
-      const messages = await this.agentChatService.getMessagesForThread(threadId, workspaceId);
-      
+      const messages = await this.agentChatService.getMessagesForThread(
+        threadId,
+        workspaceId,
+      );
+
       // Формируем контекст из последних сообщений
       const recentMessages = messages.slice(-10); // Последние 10 сообщений
-      
+
       return recentMessages
         .map((msg: any) => `${msg.role}: ${msg.content}`)
         .join('\n');
     } catch (error) {
       this.logger.warn('Failed to get chat context:', error);
+
       return '';
     }
   }
@@ -126,7 +142,7 @@ export class BusinessSetupChatContinuationService {
     workspaceId: string,
     userMessage: string,
     chatContext: string,
-    additionalContext?: string
+    additionalContext?: string,
   ): Promise<{ response: string; context: Record<string, any> }> {
     try {
       // Формируем промпт для AI с контекстом
@@ -156,36 +172,38 @@ Keep your response concise but informative.`;
           step: 'WELCOME',
           userMessage,
           chatContext,
-          additionalContext
+          additionalContext,
         },
         schema: {},
         userPrompt: systemPrompt,
       });
 
       return {
-        response: (aiResponse.result as any)?.response || 'I understand your message. Let me help you with that.',
+        response:
+          (aiResponse.result as any)?.response ||
+          'I understand your message. Let me help you with that.',
         context: {
           userId,
           workspaceId,
           step: 'WELCOME',
           userMessage,
-          chatContext
-        }
+          chatContext,
+        },
       };
-
     } catch (error) {
       this.logger.error('Failed to generate AI response:', error);
-      
+
       // Fallback ответ
       return {
-        response: 'I understand your message. Let me help you with that. Could you please provide more details about what you\'d like to accomplish?',
+        response:
+          "I understand your message. Let me help you with that. Could you please provide more details about what you'd like to accomplish?",
         context: {
           userId,
           workspaceId,
           step: 'WELCOME',
           userMessage,
-          chatContext
-        }
+          chatContext,
+        },
       };
     }
   }
@@ -194,7 +212,7 @@ Keep your response concise but informative.`;
     userId: string,
     workspaceId: string,
     userMessage: string,
-    aiResponse: string
+    aiResponse: string,
   ): Promise<string | null> {
     try {
       // Простая логика анализа готовности к следующему шагу
@@ -202,36 +220,54 @@ Keep your response concise but informative.`;
       const responseLower = aiResponse.toLowerCase();
 
       // Ключевые слова для определения готовности
-      const businessKeywords = ['business', 'company', 'startup', 'enterprise', 'organization'];
+      const businessKeywords = [
+        'business',
+        'company',
+        'startup',
+        'enterprise',
+        'organization',
+      ];
       const processKeywords = ['process', 'workflow', 'automation', 'system'];
-      const salesKeywords = ['sales', 'marketing', 'funnel', 'leads', 'customers'];
+      const salesKeywords = [
+        'sales',
+        'marketing',
+        'funnel',
+        'leads',
+        'customers',
+      ];
       const teamKeywords = ['team', 'employees', 'staff', 'people', 'roles'];
 
       // Проверяем готовность к BUSINESS_ANALYSIS
-      if (businessKeywords.some(keyword => messageLower.includes(keyword)) ||
-          processKeywords.some(keyword => messageLower.includes(keyword))) {
+      if (
+        businessKeywords.some((keyword) => messageLower.includes(keyword)) ||
+        processKeywords.some((keyword) => messageLower.includes(keyword))
+      ) {
         return BusinessSetupStatus.BUSINESS_ANALYSIS;
       }
 
       // Проверяем готовность к SALES_FUNNEL_DESIGN
-      if (salesKeywords.some(keyword => messageLower.includes(keyword))) {
+      if (salesKeywords.some((keyword) => messageLower.includes(keyword))) {
         return BusinessSetupStatus.SALES_FUNNEL_DESIGN;
       }
 
       // Проверяем готовность к TEAM_ASSIGNMENT
-      if (teamKeywords.some(keyword => messageLower.includes(keyword))) {
+      if (teamKeywords.some((keyword) => messageLower.includes(keyword))) {
         return BusinessSetupStatus.TEAM_ASSIGNMENT;
       }
 
       // Если пользователь явно говорит о готовности
-      if (messageLower.includes('ready') || messageLower.includes('next') || messageLower.includes('continue')) {
+      if (
+        messageLower.includes('ready') ||
+        messageLower.includes('next') ||
+        messageLower.includes('continue')
+      ) {
         return BusinessSetupStatus.BUSINESS_ANALYSIS;
       }
 
       return null; // Пользователь еще не готов к следующему шагу
-
     } catch (error) {
       this.logger.warn('Failed to analyze readiness for next step:', error);
+
       return null;
     }
   }

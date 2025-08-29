@@ -1,24 +1,28 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Test, type TestingModule } from '@nestjs/testing';
 
-import { SupervisorToolDispatcherService } from '../services/supervisor-tool-dispatcher.service';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
-import { BusinessSetupAgentService } from '../../services/business-setup-agent.service';
-import { AvitoWelcomeSGRService } from '../services/avito-welcome-sgr.service';
-import { BusinessSetupKeyValueTypeMap, BusinessSetupStepKeys } from '../../business-setup.service';
+
+import {
+  type BusinessSetupKeyValueTypeMap,
+  BusinessSetupStepKeys,
+} from '../../business-setup.service';
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 import { BUSINESS_SETUP_EVENTS } from '../../events/business-setup.events';
-import { 
-  SupervisorStepResult,
-  SupervisorToolExecutionResult,
+import { BusinessSetupAgentService } from '../../services/business-setup-agent.service';
+import { AvitoWelcomeSGRService } from '../services/avito-welcome-sgr.service';
+import { SupervisorToolDispatcherService } from '../services/supervisor-tool-dispatcher.service';
+import {
   SupervisorException,
-  SupervisorErrorType
+  type SupervisorStepResult,
 } from '../types/supervisor-types';
 
 describe('SupervisorToolDispatcherService', () => {
   let service: SupervisorToolDispatcherService;
-  let mockUserVarsService: jest.Mocked<UserVarsService<BusinessSetupKeyValueTypeMap>>;
+  let mockUserVarsService: jest.Mocked<
+    UserVarsService<BusinessSetupKeyValueTypeMap>
+  >;
   let mockAgentChatService: jest.Mocked<AgentChatService>;
   let mockBusinessSetupAgentService: jest.Mocked<BusinessSetupAgentService>;
   let mockAvitoWelcomeSGRService: jest.Mocked<AvitoWelcomeSGRService>;
@@ -32,26 +36,26 @@ describe('SupervisorToolDispatcherService', () => {
     mockUserVarsService = {
       get: jest.fn(),
       set: jest.fn(),
-      getAll: jest.fn()
+      getAll: jest.fn(),
     } as any;
 
     mockAgentChatService = {
       addMessage: jest.fn(),
-      getMessages: jest.fn()
+      getMessages: jest.fn(),
     } as any;
 
     mockBusinessSetupAgentService = {
       getAgentForStep: jest.fn(),
       createAgent: jest.fn(),
-      updateAgent: jest.fn()
+      updateAgent: jest.fn(),
     } as any;
 
     mockAvitoWelcomeSGRService = {
-      processWelcomeMessageWithStreaming: jest.fn()
+      processWelcomeMessageWithStreaming: jest.fn(),
     } as any;
 
     mockEventEmitter = {
-      emit: jest.fn()
+      emit: jest.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -59,13 +63,21 @@ describe('SupervisorToolDispatcherService', () => {
         SupervisorToolDispatcherService,
         { provide: UserVarsService, useValue: mockUserVarsService },
         { provide: AgentChatService, useValue: mockAgentChatService },
-        { provide: BusinessSetupAgentService, useValue: mockBusinessSetupAgentService },
-        { provide: AvitoWelcomeSGRService, useValue: mockAvitoWelcomeSGRService },
+        {
+          provide: BusinessSetupAgentService,
+          useValue: mockBusinessSetupAgentService,
+        },
+        {
+          provide: AvitoWelcomeSGRService,
+          useValue: mockAvitoWelcomeSGRService,
+        },
         { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
-    service = module.get<SupervisorToolDispatcherService>(SupervisorToolDispatcherService);
+    service = module.get<SupervisorToolDispatcherService>(
+      SupervisorToolDispatcherService,
+    );
   });
 
   describe('Service Initialization', () => {
@@ -82,12 +94,13 @@ describe('SupervisorToolDispatcherService', () => {
     it('should dispatch check_business_setup_status tool successfully', async () => {
       const tool: SupervisorStepResult['function'] = {
         tool: 'check_business_setup_status',
-        reason: 'Need to check current status'
+        userId: mockUserId,
+        workspaceId: mockWorkspaceId,
       };
 
       // Mock user vars to return specific status flags
       mockUserVarsService.get
-        .mockResolvedValueOnce(true)  // BUSINESS_SETUP_WELCOME_PENDING
+        .mockResolvedValueOnce(true) // BUSINESS_SETUP_WELCOME_PENDING
         .mockResolvedValueOnce(false) // BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING
         .mockResolvedValueOnce(false); // other statuses...
 
@@ -101,39 +114,54 @@ describe('SupervisorToolDispatcherService', () => {
     it('should dispatch route_to_specialized_agent tool for WELCOME status', async () => {
       const tool: SupervisorStepResult['function'] = {
         tool: 'route_to_specialized_agent',
-        target_status: BusinessSetupStatus.WELCOME,
+        status: BusinessSetupStatus.WELCOME,
         message: 'Welcome user',
-        reason: 'User needs welcome setup'
+        reason: 'User needs welcome setup',
       };
 
       // Mock agent service
       mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue({
         id: 'agent-123',
-        name: 'Welcome Agent'
+        name: 'Welcome Agent',
       } as any);
 
       // Mock SGR service generator
       const mockGenerator = (async function* () {
-        yield { type: 'thinking', step: { stepNumber: 1 } };
-        yield { type: 'final_response', content: 'Welcome complete' };
-      })();
-      
-      mockAvitoWelcomeSGRService.processWelcomeMessageWithStreaming.mockReturnValue(mockGenerator);
+        yield {
+          type: 'thinking',
+          step: {
+            stepNumber: 1,
+            currentState: 'Starting',
+            plannedSteps: ['Step 1'],
+            selectedTool: 'test',
+            timestamp: new Date(),
+          },
+          completed: false,
+        };
+        yield {
+          type: 'final_response',
+          content: 'Welcome complete',
+          completed: true,
+        };
+      })() as AsyncGenerator<any>;
+
+      mockAvitoWelcomeSGRService.processWelcomeMessageWithStreaming.mockReturnValue(
+        mockGenerator,
+      );
 
       const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
 
       expect(result.success).toBe(true);
-      expect(mockBusinessSetupAgentService.getAgentForStep).toHaveBeenCalledWith(
-        BusinessSetupStatus.WELCOME,
-        mockWorkspaceId
-      );
+      expect(
+        mockBusinessSetupAgentService.getAgentForStep,
+      ).toHaveBeenCalledWith(BusinessSetupStatus.WELCOME, mockWorkspaceId);
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         BUSINESS_SETUP_EVENTS.SUPERVISOR_AGENT_HANDOFF,
         expect.objectContaining({
           userId: mockUserId,
           fromAgent: 'business-setup-supervisor',
-          toAgent: 'sgr-avito-agent'
-        })
+          toAgent: 'sgr-avito-agent',
+        }),
       );
     });
 
@@ -141,7 +169,7 @@ describe('SupervisorToolDispatcherService', () => {
       const tool: SupervisorStepResult['function'] = {
         tool: 'process_directly',
         response: 'Direct response to user',
-        reason: 'Simple informational request'
+        reason: 'Simple informational request',
       };
 
       const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
@@ -156,7 +184,7 @@ describe('SupervisorToolDispatcherService', () => {
         from_status: BusinessSetupStatus.WELCOME,
         to_status: BusinessSetupStatus.BUSINESS_ANALYSIS,
         reason: 'User completed welcome setup',
-        trigger_event: 'welcome_completed'
+        trigger_event: 'welcome_completed',
       };
 
       const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
@@ -166,7 +194,7 @@ describe('SupervisorToolDispatcherService', () => {
         userId: mockUserId,
         workspaceId: mockWorkspaceId,
         key: BusinessSetupStepKeys.BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING,
-        value: true
+        value: true,
       });
     });
 
@@ -175,7 +203,7 @@ describe('SupervisorToolDispatcherService', () => {
         tool: 'complete_routing',
         success: true,
         final_message: 'Routing completed successfully',
-        routed_to: 'business-analysis-agent'
+        routed_to: 'business-analysis-agent',
       };
 
       const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
@@ -188,22 +216,25 @@ describe('SupervisorToolDispatcherService', () => {
     it('should throw error for unknown tool type', async () => {
       const tool: any = {
         tool: 'unknown_tool',
-        reason: 'Testing unknown tool'
+        reason: 'Testing unknown tool',
       };
 
-      await expect(service.dispatch(tool, mockUserId, mockWorkspaceId))
-        .rejects
-        .toThrow(SupervisorException);
+      await expect(
+        service.dispatch(tool, mockUserId, mockWorkspaceId),
+      ).rejects.toThrow(SupervisorException);
     });
   });
 
   describe('Business Setup Status Check', () => {
     it('should return WELCOME status when welcome is pending', async () => {
       mockUserVarsService.get
-        .mockResolvedValueOnce(true)  // WELCOME_PENDING
+        .mockResolvedValueOnce(true) // WELCOME_PENDING
         .mockResolvedValueOnce(false); // BUSINESS_ANALYSIS_PENDING
 
-      const status = await service.checkBusinessSetupStatus(mockUserId, mockWorkspaceId);
+      const status = await service.checkBusinessSetupStatus(
+        mockUserId,
+        mockWorkspaceId,
+      );
 
       expect(status.status).toBe(BusinessSetupStatus.WELCOME);
       expect(status.isComplete).toBe(false);
@@ -213,10 +244,13 @@ describe('SupervisorToolDispatcherService', () => {
     it('should return BUSINESS_ANALYSIS status when business analysis is pending', async () => {
       mockUserVarsService.get
         .mockResolvedValueOnce(false) // WELCOME_PENDING
-        .mockResolvedValueOnce(true)  // BUSINESS_ANALYSIS_PENDING
+        .mockResolvedValueOnce(true) // BUSINESS_ANALYSIS_PENDING
         .mockResolvedValueOnce(false); // SALES_FUNNEL_DESIGN_PENDING
 
-      const status = await service.checkBusinessSetupStatus(mockUserId, mockWorkspaceId);
+      const status = await service.checkBusinessSetupStatus(
+        mockUserId,
+        mockWorkspaceId,
+      );
 
       expect(status.status).toBe(BusinessSetupStatus.BUSINESS_ANALYSIS);
       expect(status.stepsCompleted).toContain(BusinessSetupStatus.WELCOME);
@@ -226,16 +260,24 @@ describe('SupervisorToolDispatcherService', () => {
       // Mock all status checks to return false (nothing pending)
       mockUserVarsService.get.mockResolvedValue(false);
 
-      const status = await service.checkBusinessSetupStatus(mockUserId, mockWorkspaceId);
+      const status = await service.checkBusinessSetupStatus(
+        mockUserId,
+        mockWorkspaceId,
+      );
 
       expect(status.status).toBe(BusinessSetupStatus.COMPLETED);
       expect(status.isComplete).toBe(true);
     });
 
     it('should handle errors gracefully and return default status', async () => {
-      mockUserVarsService.get.mockRejectedValue(new Error('Database connection failed'));
+      mockUserVarsService.get.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
 
-      const status = await service.checkBusinessSetupStatus(mockUserId, mockWorkspaceId);
+      const status = await service.checkBusinessSetupStatus(
+        mockUserId,
+        mockWorkspaceId,
+      );
 
       expect(status.status).toBe(BusinessSetupStatus.WELCOME);
       expect(status.isComplete).toBe(false);
@@ -246,7 +288,7 @@ describe('SupervisorToolDispatcherService', () => {
     it('should route to specialized agent for non-WELCOME status', async () => {
       mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue({
         id: 'agent-456',
-        name: 'Business Analysis Agent'
+        name: 'Business Analysis Agent',
       } as any);
 
       const result = await service.routeToSpecializedAgent(
@@ -255,7 +297,7 @@ describe('SupervisorToolDispatcherService', () => {
         mockUserId,
         mockWorkspaceId,
         mockThreadId,
-        'User requested business analysis'
+        'User requested business analysis',
       );
 
       expect(result.success).toBe(true);
@@ -263,13 +305,13 @@ describe('SupervisorToolDispatcherService', () => {
         threadId: mockThreadId,
         role: expect.any(String),
         content: 'Analyze my business',
-        fileIds: []
+        fileIds: [],
       });
     });
 
     it('should handle agent routing errors', async () => {
       mockBusinessSetupAgentService.getAgentForStep.mockRejectedValue(
-        new Error('Agent not found')
+        new Error('Agent not found'),
       );
 
       await expect(
@@ -279,8 +321,8 @@ describe('SupervisorToolDispatcherService', () => {
           mockUserId,
           mockWorkspaceId,
           mockThreadId,
-          'Test routing'
-        )
+          'Test routing',
+        ),
       ).rejects.toThrow();
     });
   });
@@ -289,7 +331,8 @@ describe('SupervisorToolDispatcherService', () => {
     it('should wrap non-SupervisorException errors', async () => {
       const tool: SupervisorStepResult['function'] = {
         tool: 'check_business_setup_status',
-        reason: 'Testing error handling'
+        userId: mockUserId,
+        workspaceId: mockWorkspaceId,
       };
 
       mockUserVarsService.get.mockRejectedValue(new Error('Generic error'));
@@ -303,12 +346,12 @@ describe('SupervisorToolDispatcherService', () => {
 
     it('should preserve SupervisorException errors', async () => {
       const tool: any = {
-        tool: 'invalid_tool'
+        tool: 'invalid_tool',
       };
 
-      await expect(service.dispatch(tool, mockUserId, mockWorkspaceId))
-        .rejects
-        .toBeInstanceOf(SupervisorException);
+      await expect(
+        service.dispatch(tool, mockUserId, mockWorkspaceId),
+      ).rejects.toBeInstanceOf(SupervisorException);
     });
   });
 
@@ -323,7 +366,7 @@ describe('SupervisorToolDispatcherService', () => {
         mockUserId,
         mockWorkspaceId,
         'User completed welcome',
-        'welcome_completed'
+        'welcome_completed',
       );
 
       // Should clear welcome pending flag
@@ -331,7 +374,7 @@ describe('SupervisorToolDispatcherService', () => {
         userId: mockUserId,
         workspaceId: mockWorkspaceId,
         key: BusinessSetupStepKeys.BUSINESS_SETUP_WELCOME_PENDING,
-        value: false
+        value: false,
       });
 
       // Should set business analysis pending flag
@@ -339,7 +382,7 @@ describe('SupervisorToolDispatcherService', () => {
         userId: mockUserId,
         workspaceId: mockWorkspaceId,
         key: BusinessSetupStepKeys.BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING,
-        value: true
+        value: true,
       });
     });
   });

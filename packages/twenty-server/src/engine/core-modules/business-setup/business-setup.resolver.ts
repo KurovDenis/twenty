@@ -1,11 +1,14 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+
 import { type User } from 'src/engine/core-modules/user/user.entity';
 import { type Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 import { AuthUser } from 'src/engine/decorators/auth/auth-user.decorator';
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
 import { JwtAuthGuard } from 'src/engine/guards/jwt-auth.guard';
+
 import { BusinessSetupService } from './business-setup.service';
+
 import { BusinessSetupStatus } from './enums/business-setup-status.enum';
 
 @Resolver()
@@ -18,7 +21,10 @@ export class BusinessSetupResolver {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ): Promise<BusinessSetupStatus> {
-    return await this.businessSetupService.getBusinessSetupStatus(user, workspace);
+    return await this.businessSetupService.getBusinessSetupStatus(
+      user,
+      workspace,
+    );
   }
 
   @Mutation(() => Boolean)
@@ -32,6 +38,7 @@ export class BusinessSetupResolver {
       workspace.id,
       status,
     );
+
     return true;
   }
 }

@@ -53,15 +53,20 @@ export class AgentChatService {
     // If business setup step is provided, use appropriate agent
     if (businessSetupStep) {
       try {
-        const businessSetupAgent = await this.businessSetupAgentService.getAgentForStep(
-          businessSetupStep,
-          userWorkspaceId,
-        );
+        const businessSetupAgent =
+          await this.businessSetupAgentService.getAgentForStep(
+            businessSetupStep,
+            userWorkspaceId,
+          );
+
         effectiveAgentId = businessSetupAgent.id;
         isBusinessSetupAgent = true;
       } catch (error) {
         // Log warning but continue with original agentId as fallback
-        console.warn(`Failed to get business setup agent for step ${businessSetupStep}:`, error);
+        console.warn(
+          `Failed to get business setup agent for step ${businessSetupStep}:`,
+          error,
+        );
       }
     }
 
@@ -76,12 +81,16 @@ export class AgentChatService {
     // This is essential for guiding users through the business setup process
     if (isBusinessSetupAgent && businessSetupStep) {
       try {
-        console.log(`Sending welcome message for business setup step: ${businessSetupStep}, threadId: ${savedThread.id}`);
-        
+        console.log(
+          `Sending welcome message for business setup step: ${businessSetupStep}, threadId: ${savedThread.id}`,
+        );
+
         await this.sendWelcomeMessage(savedThread.id, businessSetupStep);
-        
-        console.log(`Welcome message sent successfully for thread: ${savedThread.id}`);
-        
+
+        console.log(
+          `Welcome message sent successfully for thread: ${savedThread.id}`,
+        );
+
         // Emit event for real-time UI updates
         this.eventEmitter.emit('ai-agent.welcome.chat-created', {
           threadId: savedThread.id,
@@ -89,11 +98,14 @@ export class AgentChatService {
           businessSetupStep,
           userWorkspaceId,
           aiResponse: 'Welcome message sent automatically', // Will be updated when actual greeting is sent
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       } catch (error) {
-        console.error(`Failed to send welcome message for business setup step ${businessSetupStep}:`, error);
-        
+        console.error(
+          `Failed to send welcome message for business setup step ${businessSetupStep}:`,
+          error,
+        );
+
         // Emit failure event for frontend error handling
         this.eventEmitter.emit('ai-agent.welcome.chat-failed', {
           threadId: savedThread.id,
@@ -102,11 +114,13 @@ export class AgentChatService {
           userWorkspaceId,
           error: error instanceof Error ? error.message : String(error),
           attempts: 1,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
-        
+
         // Don't fail thread creation if welcome message fails
-        console.warn(`Thread ${savedThread.id} created successfully but welcome message failed. Thread is still usable.`);
+        console.warn(
+          `Thread ${savedThread.id} created successfully but welcome message failed. Thread is still usable.`,
+        );
       }
     }
 
@@ -119,8 +133,11 @@ export class AgentChatService {
   async createThreadWithSupervisorAgent(userWorkspaceId: string) {
     try {
       // Get the supervisor agent for this workspace
-      const supervisorAgent = await this.businessSetupAgentService.getSupervisorAgent(userWorkspaceId);
-      
+      const supervisorAgent =
+        await this.businessSetupAgentService.getSupervisorAgent(
+          userWorkspaceId,
+        );
+
       const thread = this.threadRepository.create({
         agentId: supervisorAgent.id,
         userWorkspaceId,
@@ -131,7 +148,7 @@ export class AgentChatService {
       // Send supervisor welcome message
       try {
         await this.sendSupervisorWelcomeMessage(savedThread.id);
-        
+
         // Emit event for real-time UI updates
         this.eventEmitter.emit('ai-agent.welcome.chat-created', {
           threadId: savedThread.id,
@@ -139,7 +156,7 @@ export class AgentChatService {
           businessSetupStep: 'SUPERVISOR',
           userWorkspaceId,
           aiResponse: 'Supervisor welcome message sent',
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       } catch (error) {
         console.error(`Failed to send supervisor welcome message:`, error);
@@ -259,11 +276,14 @@ export class AgentChatService {
   }
 
   // Check if thread belongs to a business setup agent and emit event for user messages
-  private async checkAndEmitBusinessSetupEvent(threadId: string, content: string) {
+  private async checkAndEmitBusinessSetupEvent(
+    threadId: string,
+    content: string,
+  ) {
     try {
       const thread = await this.threadRepository.findOne({
         where: { id: threadId },
-        relations: ['agent', 'userWorkspace'] // ✅ ADD userWorkspace relation
+        relations: ['agent', 'userWorkspace'], // ✅ ADD userWorkspace relation
       });
 
       if (!thread) {
@@ -273,18 +293,23 @@ export class AgentChatService {
       // ✅ CHECK: Ensure userWorkspace relation is loaded
       if (!thread.userWorkspace) {
         console.error('UserWorkspace relation not found for thread:', threadId);
+
         return;
       }
 
       // Check if this thread is associated with a business setup agent
-      const isBusinessSetupThread = await this.isBusinessSetupThread(thread.agentId, thread.userWorkspaceId);
-      
+      const isBusinessSetupThread = await this.isBusinessSetupThread(
+        thread.agentId,
+        thread.userWorkspaceId,
+      );
+
       if (isBusinessSetupThread) {
         // Check if this is a supervisor agent
-        const isSupervisor = await this.businessSetupAgentService.isSupervisorAgent(
-          thread.agentId, 
-          thread.userWorkspace.workspaceId
-        );
+        const isSupervisor =
+          await this.businessSetupAgentService.isSupervisorAgent(
+            thread.agentId,
+            thread.userWorkspace.workspaceId,
+          );
 
         if (isSupervisor) {
           // Emit supervisor routing event
@@ -293,16 +318,16 @@ export class AgentChatService {
             workspaceId: thread.userWorkspace.workspaceId,
             threadId,
             message: content,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
         } else {
           // Emit regular business setup event
           this.eventEmitter.emit('ai-agent.welcome.user-message-received', {
-            userId: thread.userWorkspace.userId,        // ✅ CORRECT: Real userId from UserWorkspace
+            userId: thread.userWorkspace.userId, // ✅ CORRECT: Real userId from UserWorkspace
             workspaceId: thread.userWorkspace.workspaceId, // ✅ CORRECT: Real workspaceId from UserWorkspace
             threadId,
             message: content,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
         }
       }
@@ -312,12 +337,15 @@ export class AgentChatService {
   }
 
   // Check if agent is a business setup agent
-  private async isBusinessSetupThread(agentId: string, userWorkspaceId: string): Promise<boolean> {
+  private async isBusinessSetupThread(
+    agentId: string,
+    userWorkspaceId: string,
+  ): Promise<boolean> {
     try {
       // We need to inject the AgentEntity repository to check agent details
       // For now, let's use a simple approach by checking specific agent names
       // that are used by the BusinessSetupWelcomeAgentService
-      
+
       // Business setup agents are identified by specific names or patterns
       const businessSetupAgentNames = [
         'Welcome Greeting Bot',
@@ -328,22 +356,22 @@ export class AgentChatService {
         'agent-orchestrator-agent',
         'workflow-generator-agent',
         'team-assignment-agent',
-        'testing-optimization-agent'
+        'testing-optimization-agent',
       ];
-      
+
       // Get the agent from business setup service
       try {
         // Try to resolve workspace from userWorkspaceId and check if any business setup agent
         // matches this agentId
         for (const status of Object.values(BusinessSetupStatus)) {
           if (status === BusinessSetupStatus.COMPLETED) continue;
-          
+
           try {
             const agent = await this.businessSetupAgentService.getAgentForStep(
               status,
-              userWorkspaceId
+              userWorkspaceId,
             );
-            
+
             if (agent.id === agentId) {
               return true;
             }
@@ -355,11 +383,11 @@ export class AgentChatService {
       } catch (error) {
         console.error('Failed to check business setup agents:', error);
       }
-      
+
       return false;
-      
     } catch (error) {
       console.error('Failed to check if agent is business setup agent:', error);
+
       return false;
     }
   }
@@ -368,8 +396,11 @@ export class AgentChatService {
     threadId: string,
     businessSetupStep: BusinessSetupStatus,
   ) {
-    console.log('Sending welcome message for business setup step:', businessSetupStep);
-    
+    console.log(
+      'Sending welcome message for business setup step:',
+      businessSetupStep,
+    );
+
     const welcomeMessages: Record<BusinessSetupStatus, string> = {
       [BusinessSetupStatus.WELCOME]: `🤖 **Привет! Я SGR Avito Integration Assistant**
 
@@ -390,7 +421,7 @@ export class AgentChatService {
 Я обработаю их безопасно и настрою интеграцию для вашего CRM.
 
 **Готовы начать? Отправьте мне ваши учетные данные Avito API!** 🚀`,
-      
+
       [BusinessSetupStatus.BUSINESS_ANALYSIS]: `🚀 **Время анализировать ваш бизнес!**
 
 Привет! Я специалист по бизнес-анализу. Моя задача - помочь вам глубоко понять ваш бизнес и найти возможности для оптимизации.
@@ -403,7 +434,7 @@ export class AgentChatService {
 🔍 Подготовим данные для создания воронки
 
 Давайте начнем с основ - расскажите мне о своем бизнесе!`,
-      
+
       [BusinessSetupStatus.SALES_FUNNEL_DESIGN]: `🎯 **Создаем идеальную воронку продаж!**
 
 Здравствуйте! Я дизайнер воронок продаж. На основе анализа вашего бизнеса мы создадим высокоэффективную систему конверсии.
@@ -416,7 +447,7 @@ export class AgentChatService {
 🎨 Пользовательский опыт
 
 Готовы создать воронку, которая будет работать на автопилоте?`,
-      
+
       [BusinessSetupStatus.AGENT_SETUP]: `🤖 **Настраиваем вашу команду AI-агентов!**
 
 Привет! Я оркестратор AI-агентов. Теперь мы создадим специализированную команду агентов для автоматизации вашего бизнеса.
@@ -429,7 +460,7 @@ export class AgentChatService {
 🤝 Интеграцию с рабочими процессами
 
 Давайте создадим эффективную команду AI-агентов!`,
-      
+
       [BusinessSetupStatus.WORKFLOW_CREATION]: `⚡ **Создаем автоматизированные рабочие процессы!**
 
 Здравствуйте! Я генератор рабочих процессов. На основе вашей воронки и настроенных агентов мы создадим полную автоматизацию.
@@ -442,7 +473,7 @@ export class AgentChatService {
 🔄 Оптимизацию потоков
 
 Готовы автоматизировать ваш бизнес?`,
-      
+
       [BusinessSetupStatus.TEAM_ASSIGNMENT]: `👥 **Организуем вашу команду!**
 
 Привет! Я специалист по управлению командами. Теперь мы настроим роли, доступы и распределим ответственности.
@@ -455,7 +486,7 @@ export class AgentChatService {
 📊 Подготовку к тестированию
 
 Давайте оптимизируем работу вашей команды!`,
-      
+
       [BusinessSetupStatus.TESTING_OPTIMIZATION]: `🧪 **Тестируем и оптимизируем систему!**
 
 Здравствуйте! Я специалист по тестированию и оптимизации. Финальный этап - убедимся, что все работает идеально!
@@ -468,17 +499,22 @@ export class AgentChatService {
 🎯 Готовность к работе
 
 Давайте убедимся, что ваша система работает безупречно!`,
-      
+
       [BusinessSetupStatus.COMPLETED]: `✅ **Поздравляем! Настройка завершена!**
 
 Ваша бизнес-система полностью настроена и готова к работе! 🎉
 
-Теперь вы можете пользоваться всеми возможностями автоматизации. Если нужна помощь - обращайтесь!`
+Теперь вы можете пользоваться всеми возможностями автоматизации. Если нужна помощь - обращайтесь!`,
     };
 
-    const welcomeContent = welcomeMessages[businessSetupStep] || welcomeMessages[BusinessSetupStatus.WELCOME];
+    const welcomeContent =
+      welcomeMessages[businessSetupStep] ||
+      welcomeMessages[BusinessSetupStatus.WELCOME];
 
-    console.log('Sending welcome content:', welcomeContent.substring(0, 100) + '...');
+    console.log(
+      'Sending welcome content:',
+      welcomeContent.substring(0, 100) + '...',
+    );
 
     // Create and save welcome message from assistant
     const welcomeMessage = this.messageRepository.create({
@@ -488,14 +524,14 @@ export class AgentChatService {
     });
 
     await this.messageRepository.save(welcomeMessage);
-    
+
     // Emit event for real-time UI updates and GraphQL subscriptions
     this.eventEmitter.emit('ai-agent.welcome.greeting-sent', {
       threadId,
       messageId: welcomeMessage.id,
       greetingMessage: welcomeContent,
       businessSetupStep,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -504,7 +540,7 @@ export class AgentChatService {
    */
   private async sendSupervisorWelcomeMessage(threadId: string) {
     console.log('Sending supervisor welcome message for thread:', threadId);
-    
+
     const supervisorWelcomeContent = `🎯 **Welcome to Business Setup Assistant!**
 
 I'm your **Business Setup Supervisor** - an intelligent routing agent that will help guide you through the complete business automation setup process.
@@ -535,7 +571,10 @@ I'm your **Business Setup Supervisor** - an intelligent routing agent that will 
 
 *I'm here to make your business setup journey smooth and efficient.* 🚀`;
 
-    console.log('Sending supervisor welcome content:', supervisorWelcomeContent.substring(0, 100) + '...');
+    console.log(
+      'Sending supervisor welcome content:',
+      supervisorWelcomeContent.substring(0, 100) + '...',
+    );
 
     // Create and save welcome message from assistant
     const welcomeMessage = this.messageRepository.create({
@@ -545,14 +584,14 @@ I'm your **Business Setup Supervisor** - an intelligent routing agent that will 
     });
 
     await this.messageRepository.save(welcomeMessage);
-    
+
     // Emit event for real-time UI updates and GraphQL subscriptions
     this.eventEmitter.emit('ai-agent.welcome.greeting-sent', {
       threadId,
       messageId: welcomeMessage.id,
       greetingMessage: supervisorWelcomeContent,
       businessSetupStep: 'SUPERVISOR',
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 }

@@ -2,15 +2,21 @@ import { type LogLevel, Logger } from '@nestjs/common';
 
 import { Transform, plainToClass } from 'class-transformer';
 import {
-    IsDefined,
-    IsNumber,
-    IsOptional,
-    IsUrl,
-    Min,
-    ValidateIf,
-    type ValidationError,
-    validateSync,
+  IsDefined,
+  IsNumber,
+  IsOptional,
+  IsUrl,
+  Min,
+  ValidateIf,
+  type ValidationError,
+  validateSync,
 } from 'class-validator';
+import { isDefined } from 'twenty-shared/utils';
+
+import { AwsRegion } from 'src/engine/core-modules/twenty-config/interfaces/aws-region.interface';
+import { NodeEnvironment } from 'src/engine/core-modules/twenty-config/interfaces/node-environment.interface';
+import { SupportDriver } from 'src/engine/core-modules/twenty-config/interfaces/support.interface';
+
 import { CaptchaDriverType } from 'src/engine/core-modules/captcha/interfaces';
 import { EmailDriver } from 'src/engine/core-modules/email/enums/email-driver.enum';
 import { ExceptionHandlerDriver } from 'src/engine/core-modules/exception-handler/interfaces';
@@ -30,14 +36,10 @@ import { IsStrictlyLowerThan } from 'src/engine/core-modules/twenty-config/decor
 import { IsTwentySemVer } from 'src/engine/core-modules/twenty-config/decorators/is-twenty-semver.decorator';
 import { ConfigVariableType } from 'src/engine/core-modules/twenty-config/enums/config-variable-type.enum';
 import { ConfigVariablesGroup } from 'src/engine/core-modules/twenty-config/enums/config-variables-group.enum';
-import { AwsRegion } from 'src/engine/core-modules/twenty-config/interfaces/aws-region.interface';
-import { NodeEnvironment } from 'src/engine/core-modules/twenty-config/interfaces/node-environment.interface';
-import { SupportDriver } from 'src/engine/core-modules/twenty-config/interfaces/support.interface';
 import {
-    ConfigVariableException,
-    ConfigVariableExceptionCode,
+  ConfigVariableException,
+  ConfigVariableExceptionCode,
 } from 'src/engine/core-modules/twenty-config/twenty-config.exception';
-import { isDefined } from 'twenty-shared/utils';
 
 export class ConfigVariables {
   @ConfigVariablesMetadata({

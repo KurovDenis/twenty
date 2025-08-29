@@ -1,13 +1,18 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+
 import { type User } from 'src/engine/core-modules/user/user.entity';
 import { type Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 import { AuthUser } from 'src/engine/decorators/auth/auth-user.decorator';
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
 import { JwtAuthGuard } from 'src/engine/guards/jwt-auth.guard';
+
 import { BusinessSetupChatContinuationService } from '../chat-continuation/business-setup-chat-continuation.service';
 import { BusinessSetupTransitionService } from '../chat-continuation/business-setup-transition.service';
-import { ChatContinuationInput, BusinessSetupTransitionInput } from '../chat-continuation/dtos/chat-continuation.input';
+import {
+  ChatContinuationInput,
+  BusinessSetupTransitionInput,
+} from '../chat-continuation/dtos/chat-continuation.input';
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 
 @Resolver()

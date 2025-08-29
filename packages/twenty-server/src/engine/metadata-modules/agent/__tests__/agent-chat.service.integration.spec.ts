@@ -1,11 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
+import { type Repository } from 'typeorm';
 
 import { FileEntity } from 'src/engine/core-modules/file/entities/file.entity';
 import { BusinessSetupAgentService } from 'src/engine/core-modules/business-setup/services/business-setup-agent.service';
 import { BusinessSetupStatus } from 'src/engine/core-modules/business-setup/enums/business-setup-status.enum';
-import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
+import { type AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 import { AgentChatMessageEntity } from 'src/engine/metadata-modules/agent/agent-chat-message.entity';
 import { AgentChatThreadEntity } from 'src/engine/metadata-modules/agent/agent-chat-thread.entity';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
@@ -125,7 +126,9 @@ describe('AgentChatService Integration Tests', () => {
         agentId: 'agent-id',
         userWorkspaceId: 'workspace-id',
       });
-      expect(mockBusinessSetupAgentService.getAgentForStep).not.toHaveBeenCalled();
+      expect(
+        mockBusinessSetupAgentService.getAgentForStep,
+      ).not.toHaveBeenCalled();
     });
 
     it('should use business setup agent when step is provided', async () => {
@@ -154,10 +157,9 @@ describe('AgentChatService Integration Tests', () => {
       );
 
       expect(result.agentId).toBe('welcome-agent-id');
-      expect(mockBusinessSetupAgentService.getAgentForStep).toHaveBeenCalledWith(
-        BusinessSetupStatus.WELCOME,
-        'workspace-id',
-      );
+      expect(
+        mockBusinessSetupAgentService.getAgentForStep,
+      ).toHaveBeenCalledWith(BusinessSetupStatus.WELCOME, 'workspace-id');
       expect(mockThreadRepository.create).toHaveBeenCalledWith({
         agentId: 'welcome-agent-id',
         userWorkspaceId: 'workspace-id',
@@ -227,7 +229,9 @@ describe('AgentChatService Integration Tests', () => {
           userWorkspaceId: 'workspace-id',
         } as AgentChatThreadEntity;
 
-        mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(mockAgent);
+        mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
+          mockAgent,
+        );
         mockThreadRepository.create.mockReturnValue(mockThread);
         mockThreadRepository.save.mockResolvedValue(mockThread);
 
@@ -238,10 +242,9 @@ describe('AgentChatService Integration Tests', () => {
         );
 
         expect(result.agentId).toBe(testCase.expectedAgentId);
-        expect(mockBusinessSetupAgentService.getAgentForStep).toHaveBeenCalledWith(
-          testCase.step,
-          'workspace-id',
-        );
+        expect(
+          mockBusinessSetupAgentService.getAgentForStep,
+        ).toHaveBeenCalledWith(testCase.step, 'workspace-id');
 
         jest.clearAllMocks();
       }
@@ -260,7 +263,10 @@ describe('AgentChatService Integration Tests', () => {
       mockThreadRepository.save.mockResolvedValue(mockThread);
 
       // Test that existing createThread method still works
-      const result = await service.createThread('existing-agent-id', 'workspace-id');
+      const result = await service.createThread(
+        'existing-agent-id',
+        'workspace-id',
+      );
 
       expect(result).toBe(mockThread);
       expect(mockThreadRepository.create).toHaveBeenCalledWith({
@@ -269,7 +275,9 @@ describe('AgentChatService Integration Tests', () => {
       });
 
       // Business setup service should not be called for standard creation
-      expect(mockBusinessSetupAgentService.getAgentForStep).not.toHaveBeenCalled();
+      expect(
+        mockBusinessSetupAgentService.getAgentForStep,
+      ).not.toHaveBeenCalled();
     });
   });
 });

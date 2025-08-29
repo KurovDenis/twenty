@@ -1,13 +1,15 @@
 /**
  * AI Agent Events Service
- * 
+ *
  * Manages storage and retrieval of AI agent events using Redis for persistence
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { RedisClientService } from 'src/engine/core-modules/redis-client/redis-client.service';
+
 import { BUSINESS_SETUP_EVENTS } from 'twenty-shared/types';
+
+import { RedisClientService } from 'src/engine/core-modules/redis-client/redis-client.service';
 
 export interface StoredAIAgentEvent {
   id: string;
@@ -27,19 +29,22 @@ export class AIAgentEventsService {
   private readonly EVENT_TTL = 3600; // 1 hour TTL
   private readonly MAX_EVENTS_PER_USER = 50;
 
-  constructor(
-    private readonly redisClientService: RedisClientService,
-  ) {
+  constructor(private readonly redisClientService: RedisClientService) {
     // Clean up old events every 5 minutes
-    setInterval(() => {
-      this.cleanupOldEvents();
-    }, 5 * 60 * 1000);
+    setInterval(
+      () => {
+        this.cleanupOldEvents();
+      },
+      5 * 60 * 1000,
+    );
   }
 
   /**
    * Store an AI agent event in Redis
    */
-  private async storeEvent(event: Omit<StoredAIAgentEvent, 'id' | 'consumed'>): Promise<void> {
+  private async storeEvent(
+    event: Omit<StoredAIAgentEvent, 'id' | 'consumed'>,
+  ): Promise<void> {
     const redis = this.redisClientService.getClient();
     const eventWithId: StoredAIAgentEvent = {
       ...event,
@@ -49,25 +54,23 @@ export class AIAgentEventsService {
 
     const userKey = this.getUserEventsKey(event.userId, event.workspaceId);
     const eventKey = this.getEventKey(eventWithId.id);
-    
+
     try {
       // Store the individual event
-      await redis.setex(
-        eventKey,
-        this.EVENT_TTL,
-        JSON.stringify(eventWithId)
-      );
+      await redis.setex(eventKey, this.EVENT_TTL, JSON.stringify(eventWithId));
 
       // Add to user's event list
       await redis.lpush(userKey, eventWithId.id);
-      
+
       // Trim the list to keep only the latest events
       await redis.ltrim(userKey, 0, this.MAX_EVENTS_PER_USER - 1);
-      
+
       // Set TTL on the user list
       await redis.expire(userKey, this.EVENT_TTL);
-      
-      this.logger.log(`Stored AI agent event: ${event.type} for user ${event.userId}`);
+
+      this.logger.log(
+        `Stored AI agent event: ${event.type} for user ${event.userId}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to store event: ${error}`);
       throw error;
@@ -88,24 +91,26 @@ export class AIAgentEventsService {
     try {
       // Get all event IDs for the user
       const eventIds = await redis.lrange(userKey, 0, -1);
-      
+
       if (eventIds.length === 0) {
         return [];
       }
 
       // Get the actual events
       const pipeline = redis.pipeline();
-      eventIds.forEach(id => {
+
+      eventIds.forEach((id) => {
         pipeline.get(this.getEventKey(id));
       });
-      
+
       const results = await pipeline.exec();
       const events: StoredAIAgentEvent[] = [];
-      
+
       for (const result of results || []) {
         if (result && result[1]) {
           try {
             const event = JSON.parse(result[1] as string) as StoredAIAgentEvent;
+
             event.timestamp = new Date(event.timestamp); // Parse timestamp
             events.push(event);
           } catch (parseError) {
@@ -116,23 +121,28 @@ export class AIAgentEventsService {
 
       // Filter events by timestamp and consumed status
       const recentEvents = events
-        .filter(event => event.timestamp > since && !event.consumed)
-        .map(event => ({
+        .filter((event) => event.timestamp > since && !event.consumed)
+        .map((event) => ({
           type: event.type,
           payload: event.payload,
           timestamp: event.timestamp.toISOString(),
         }));
 
       // Mark events as consumed
-      const eventsToMarkConsumed = events.filter(event => event.timestamp > since && !event.consumed);
+      const eventsToMarkConsumed = events.filter(
+        (event) => event.timestamp > since && !event.consumed,
+      );
+
       if (eventsToMarkConsumed.length > 0) {
         const markConsumedPipeline = redis.pipeline();
-        eventsToMarkConsumed.forEach(event => {
+
+        eventsToMarkConsumed.forEach((event) => {
           const updatedEvent = { ...event, consumed: true };
+
           markConsumedPipeline.setex(
             this.getEventKey(event.id),
             this.EVENT_TTL,
-            JSON.stringify(updatedEvent)
+            JSON.stringify(updatedEvent),
           );
         });
         await markConsumedPipeline.exec();
@@ -141,6 +151,7 @@ export class AIAgentEventsService {
       return recentEvents;
     } catch (error) {
       this.logger.error(`Failed to get events for user ${userId}: ${error}`);
+
       return [];
     }
   }
@@ -148,7 +159,7 @@ export class AIAgentEventsService {
   /**
    * Event listeners for AI agent events
    */
-  
+
   @OnEvent(BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED)
   async handleWelcomeChatCreated(payload: {
     userId: string;
@@ -217,7 +228,10 @@ export class AIAgentEventsService {
   /**
    * Test method to simulate welcome chat creation
    */
-  async simulateWelcomeChatCreated(userId: string, workspaceId: string): Promise<void> {
+  async simulateWelcomeChatCreated(
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
     const mockEvent = {
       userId,
       workspaceId,
@@ -235,7 +249,7 @@ export class AIAgentEventsService {
    */
   private async cleanupOldEvents(): Promise<void> {
     const redis = this.redisClientService.getClient();
-    
+
     try {
       // Redis TTL will automatically handle cleanup
       // This method can be used for additional cleanup logic if needed

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Core SGR (Schema-Guided Reasoning) schemas for Avito Welcome Agent
- * 
+ *
  * This module defines the structured reasoning patterns that guide the AI agent
  * through the credential collection and validation process for Avito API integration.
  */
@@ -15,62 +15,87 @@ import { z } from 'zod';
  * Main reasoning control schema that guides the agent's step-by-step thinking
  */
 export const AvitoWelcomeStepSchema = z.object({
-  current_state: z.string()
-    .describe('Current understanding of the credential collection and validation task'),
-  
-  plan_remaining_steps: z.array(z.string())
-    .min(1).max(3)
-    .describe('Next 1-3 planned steps to complete the credential collection task'),
-  
-  task_completed: z.boolean()
-    .describe('Whether the credential collection and validation process is complete'),
-  
-  function: z.discriminatedUnion('tool', [
-    z.object({
-      tool: z.literal('extract_credentials'),
-      message: z.string().describe('User message to analyze for credentials'),
-      extraction_method: z.enum(['regex', 'nlp', 'guided']).optional()
-        .describe('Method to use for credential extraction')
-    }),
-    
-    z.object({
-      tool: z.literal('request_credentials'),
-      reason: z.enum([
-        'no_credentials_found',
-        'invalid_format',
-        'missing_client_id',
-        'missing_client_secret'
-      ]).describe('Reason for requesting credentials from user'),
-      user_friendly_message: z.string()
-        .describe('Russian language instructions for user on how to provide credentials')
-    }),
-    
-    z.object({
-      tool: z.literal('validate_avito_token'),
-      client_id: z.string().min(1, 'CLIENT_ID is required for validation'),
-      client_secret: z.string().min(1, 'CLIENT_SECRET is required for validation'),
-      api_url: z.string().url().default('https://api.avito.ru/token')
-        .describe('Avito API endpoint for token validation')
-    }),
-    
-    z.object({
-      tool: z.literal('store_credentials'),
-      client_id: z.string(),
-      client_secret: z.string(),
-      access_token: z.string().optional(),
-      expires_in: z.number().optional(),
-      token_type: z.string().optional()
-    }),
-    
-    z.object({
-      tool: z.literal('report_welcome_completion'),
-      success: z.boolean(),
-      credentials_stored: z.boolean(),
-      next_stage: z.enum(['business_analysis', 'error_retry']),
-      summary_message: z.string()
-        .describe('Final Russian message to user summarizing the outcome')
-    })
-  ]).describe('Tool to execute for the next step in the reasoning process')
+  current_state: z
+    .string()
+    .describe(
+      'Current understanding of the credential collection and validation task',
+    ),
+
+  plan_remaining_steps: z
+    .array(z.string())
+    .min(1)
+    .max(3)
+    .describe(
+      'Next 1-3 planned steps to complete the credential collection task',
+    ),
+
+  task_completed: z
+    .boolean()
+    .describe(
+      'Whether the credential collection and validation process is complete',
+    ),
+
+  function: z
+    .discriminatedUnion('tool', [
+      z.object({
+        tool: z.literal('extract_credentials'),
+        message: z.string().describe('User message to analyze for credentials'),
+        extraction_method: z
+          .enum(['regex', 'nlp', 'guided'])
+          .optional()
+          .describe('Method to use for credential extraction'),
+      }),
+
+      z.object({
+        tool: z.literal('request_credentials'),
+        reason: z
+          .enum([
+            'no_credentials_found',
+            'invalid_format',
+            'missing_client_id',
+            'missing_client_secret',
+          ])
+          .describe('Reason for requesting credentials from user'),
+        user_friendly_message: z
+          .string()
+          .describe(
+            'Russian language instructions for user on how to provide credentials',
+          ),
+      }),
+
+      z.object({
+        tool: z.literal('validate_avito_token'),
+        client_id: z.string().min(1, 'CLIENT_ID is required for validation'),
+        client_secret: z
+          .string()
+          .min(1, 'CLIENT_SECRET is required for validation'),
+        api_url: z
+          .string()
+          .url()
+          .default('https://api.avito.ru/token')
+          .describe('Avito API endpoint for token validation'),
+      }),
+
+      z.object({
+        tool: z.literal('store_credentials'),
+        client_id: z.string(),
+        client_secret: z.string(),
+        access_token: z.string().optional(),
+        expires_in: z.number().optional(),
+        token_type: z.string().optional(),
+      }),
+
+      z.object({
+        tool: z.literal('report_welcome_completion'),
+        success: z.boolean(),
+        credentials_stored: z.boolean(),
+        next_stage: z.enum(['business_analysis', 'error_retry']),
+        summary_message: z
+          .string()
+          .describe('Final Russian message to user summarizing the outcome'),
+      }),
+    ])
+    .describe('Tool to execute for the next step in the reasoning process'),
 });
 
 // ================================
@@ -80,7 +105,7 @@ export const AvitoWelcomeStepSchema = z.object({
 export const ExtractCredentialsSchema = z.object({
   tool: z.literal('extract_credentials'),
   message: z.string().describe('User message to analyze'),
-  extraction_method: z.enum(['regex', 'nlp', 'guided']).optional()
+  extraction_method: z.enum(['regex', 'nlp', 'guided']).optional(),
 });
 
 export const RequestCredentialsSchema = z.object({
@@ -89,17 +114,18 @@ export const RequestCredentialsSchema = z.object({
     'no_credentials_found',
     'invalid_format',
     'missing_client_id',
-    'missing_client_secret'
+    'missing_client_secret',
   ]),
-  user_friendly_message: z.string()
-    .describe('Russian language instructions for user')
+  user_friendly_message: z
+    .string()
+    .describe('Russian language instructions for user'),
 });
 
 export const ValidateAvitoTokenSchema = z.object({
   tool: z.literal('validate_avito_token'),
   client_id: z.string().min(1, 'CLIENT_ID required'),
   client_secret: z.string().min(1, 'CLIENT_SECRET required'),
-  api_url: z.string().url().default('https://api.avito.ru/token')
+  api_url: z.string().url().default('https://api.avito.ru/token'),
 });
 
 export const StoreCredentialsSchema = z.object({
@@ -108,7 +134,7 @@ export const StoreCredentialsSchema = z.object({
   client_secret: z.string(),
   access_token: z.string().optional(),
   expires_in: z.number().optional(),
-  token_type: z.string().optional()
+  token_type: z.string().optional(),
 });
 
 export const ReportWelcomeCompletionSchema = z.object({
@@ -116,8 +142,7 @@ export const ReportWelcomeCompletionSchema = z.object({
   success: z.boolean(),
   credentials_stored: z.boolean(),
   next_stage: z.enum(['business_analysis', 'error_retry']),
-  summary_message: z.string()
-    .describe('Final Russian message to user')
+  summary_message: z.string().describe('Final Russian message to user'),
 });
 
 // ================================
@@ -130,9 +155,11 @@ export type ExtractCredentialsType = z.infer<typeof ExtractCredentialsSchema>;
 export type RequestCredentialsType = z.infer<typeof RequestCredentialsSchema>;
 export type ValidateAvitoTokenType = z.infer<typeof ValidateAvitoTokenSchema>;
 export type StoreCredentialsType = z.infer<typeof StoreCredentialsSchema>;
-export type ReportWelcomeCompletionType = z.infer<typeof ReportWelcomeCompletionSchema>;
+export type ReportWelcomeCompletionType = z.infer<
+  typeof ReportWelcomeCompletionSchema
+>;
 
-export type WelcomeToolUnion = 
+export type WelcomeToolUnion =
   | ExtractCredentialsType
   | RequestCredentialsType
   | ValidateAvitoTokenType
@@ -192,19 +219,28 @@ export interface WelcomeExecutionContext {
 /**
  * Validates if a tool response indicates successful completion
  */
-export const isCompletionTool = (tool: WelcomeToolUnion): tool is ReportWelcomeCompletionType => {
+export const isCompletionTool = (
+  tool: WelcomeToolUnion,
+): tool is ReportWelcomeCompletionType => {
   return tool.tool === 'report_welcome_completion';
 };
 
 /**
  * Validates if credentials are properly formatted
  */
-export const validateCredentialFormat = (clientId: string, clientSecret: string): boolean => {
+export const validateCredentialFormat = (
+  clientId: string,
+  clientSecret: string,
+): boolean => {
   const idPattern = /^[A-Za-z0-9_-]+$/;
   const secretPattern = /^[A-Za-z0-9_-]+$/;
-  
-  return idPattern.test(clientId) && secretPattern.test(clientSecret) &&
-         clientId.length >= 10 && clientSecret.length >= 20;
+
+  return (
+    idPattern.test(clientId) &&
+    secretPattern.test(clientSecret) &&
+    clientId.length >= 10 &&
+    clientSecret.length >= 20
+  );
 };
 
 /**
@@ -267,5 +303,5 @@ Body: grant_type=client_credentials&client_id=XXX&client_secret=XXX
 4. ОПРЕДЕЛЯЙ завершена ли задача
 
 Обязательно отвечай в формате JSON со всеми требуемыми полями.
-`
+`,
 };

@@ -1,16 +1,21 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
+import { type Repository } from 'typeorm';
 
 import { BusinessSetupStatus } from 'src/engine/core-modules/business-setup/enums/business-setup-status.enum';
 import { BusinessSetupAgentService } from 'src/engine/core-modules/business-setup/services/business-setup-agent.service';
 import { FileEntity } from 'src/engine/core-modules/file/entities/file.entity';
-import { AgentChatMessageEntity, AgentChatMessageRole } from '../agent-chat-message.entity';
+
+import {
+  AgentChatMessageEntity,
+  type AgentChatMessageRole,
+} from '../agent-chat-message.entity';
 import { AgentChatThreadEntity } from '../agent-chat-thread.entity';
 import { AgentChatService } from '../agent-chat.service';
 import { AgentTitleGenerationService } from '../agent-title-generation.service';
-import { AgentEntity } from '../agent.entity';
+import { type AgentEntity } from '../agent.entity';
 
 describe('AgentChatService - Greeting System', () => {
   let service: AgentChatService;
@@ -124,7 +129,9 @@ describe('AgentChatService - Greeting System', () => {
         content: expect.stringContaining('SGR Avito Integration Assistant'),
       } as AgentChatMessageEntity;
 
-      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(mockSGRAvitoAgent);
+      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
+        mockSGRAvitoAgent,
+      );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
       mockMessageRepository.create.mockReturnValue(mockGreetingMessage);
@@ -139,11 +146,10 @@ describe('AgentChatService - Greeting System', () => {
 
       // Assert
       expect(result.agentId).toBe(SGR_AVITO_AGENT_ID);
-      expect(mockBusinessSetupAgentService.getAgentForStep).toHaveBeenCalledWith(
-        BusinessSetupStatus.WELCOME,
-        mockUserWorkspaceId,
-      );
-      
+      expect(
+        mockBusinessSetupAgentService.getAgentForStep,
+      ).toHaveBeenCalledWith(BusinessSetupStatus.WELCOME, mockUserWorkspaceId);
+
       // Verify thread creation
       expect(mockThreadRepository.create).toHaveBeenCalledWith({
         agentId: SGR_AVITO_AGENT_ID,
@@ -157,7 +163,9 @@ describe('AgentChatService - Greeting System', () => {
         role: 'assistant',
         content: expect.stringContaining('SGR Avito Integration Assistant'),
       });
-      expect(mockMessageRepository.save).toHaveBeenCalledWith(mockGreetingMessage);
+      expect(mockMessageRepository.save).toHaveBeenCalledWith(
+        mockGreetingMessage,
+      );
 
       // Verify events were emitted
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
@@ -167,7 +175,7 @@ describe('AgentChatService - Greeting System', () => {
           agentId: SGR_AVITO_AGENT_ID,
           businessSetupStep: BusinessSetupStatus.WELCOME,
           userWorkspaceId: mockUserWorkspaceId,
-        })
+        }),
       );
 
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
@@ -175,9 +183,11 @@ describe('AgentChatService - Greeting System', () => {
         expect.objectContaining({
           threadId: mockThreadId,
           messageId: mockGreetingMessage.id,
-          greetingMessage: expect.stringContaining('SGR Avito Integration Assistant'),
+          greetingMessage: expect.stringContaining(
+            'SGR Avito Integration Assistant',
+          ),
           businessSetupStep: BusinessSetupStatus.WELCOME,
-        })
+        }),
       );
     });
 
@@ -194,12 +204,15 @@ describe('AgentChatService - Greeting System', () => {
         userWorkspaceId: mockUserWorkspaceId,
       } as AgentChatThreadEntity;
 
-      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(mockSGRAvitoAgent);
+      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
+        mockSGRAvitoAgent,
+      );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
-      
+
       // Mock greeting message creation failure
       const greetingError = new Error('Failed to create greeting message');
+
       mockMessageRepository.save.mockRejectedValue(greetingError);
 
       // Act
@@ -211,7 +224,7 @@ describe('AgentChatService - Greeting System', () => {
 
       // Assert
       expect(result).toBe(mockThread); // Thread should still be created
-      
+
       // Verify error event was emitted
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         'ai-agent.welcome.chat-failed',
@@ -221,7 +234,7 @@ describe('AgentChatService - Greeting System', () => {
           businessSetupStep: BusinessSetupStatus.WELCOME,
           error: 'Failed to create greeting message',
           attempts: 1,
-        })
+        }),
       );
     });
 
@@ -246,11 +259,11 @@ describe('AgentChatService - Greeting System', () => {
 
       // Assert
       expect(result).toBe(mockThread);
-      
+
       // Verify no greeting message was created
       expect(mockMessageRepository.create).not.toHaveBeenCalled();
       expect(mockMessageRepository.save).not.toHaveBeenCalled();
-      
+
       // Verify no events were emitted
       expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
@@ -268,11 +281,15 @@ describe('AgentChatService - Greeting System', () => {
         userWorkspaceId: mockUserWorkspaceId,
       } as AgentChatThreadEntity;
 
-      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(mockSGRAvitoAgent);
+      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
+        mockSGRAvitoAgent,
+      );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
       mockMessageRepository.create.mockImplementation((message) => message);
-      mockMessageRepository.save.mockImplementation((message) => Promise.resolve(message));
+      mockMessageRepository.save.mockImplementation((message) =>
+        Promise.resolve(message),
+      );
 
       // Act
       await service.createThreadWithBusinessSetupContext(
@@ -285,11 +302,14 @@ describe('AgentChatService - Greeting System', () => {
       expect(mockMessageRepository.create).toHaveBeenCalledWith({
         threadId: mockThreadId,
         role: 'assistant',
-        content: expect.stringContaining('🤖 **Привет! Я SGR Avito Integration Assistant**'),
+        content: expect.stringContaining(
+          '🤖 **Привет! Я SGR Avito Integration Assistant**',
+        ),
       });
 
       // Verify greeting message contains expected elements
       const greetingCall = mockMessageRepository.create.mock.calls[0][0];
+
       expect(greetingCall.content).toContain('CLIENT_ID');
       expect(greetingCall.content).toContain('CLIENT_SECRET');
       expect(greetingCall.content).toContain('Schema-Guided Reasoning');
@@ -307,7 +327,7 @@ describe('AgentChatService - Greeting System', () => {
 
       // Mock business setup agent service failure
       mockBusinessSetupAgentService.getAgentForStep.mockRejectedValue(
-        new Error('SGR Agent not found')
+        new Error('SGR Agent not found'),
       );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
@@ -326,7 +346,7 @@ describe('AgentChatService - Greeting System', () => {
       expect(result.agentId).toBe(fallbackAgentId);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         'Failed to get business setup agent for step WELCOME:',
-        expect.any(Error)
+        expect.any(Error),
       );
 
       consoleWarnSpy.mockRestore();
@@ -338,7 +358,11 @@ describe('AgentChatService - Greeting System', () => {
       const testCases = [
         {
           step: BusinessSetupStatus.WELCOME,
-          expectedContent: ['SGR Avito Integration Assistant', 'CLIENT_ID', 'CLIENT_SECRET'],
+          expectedContent: [
+            'SGR Avito Integration Assistant',
+            'CLIENT_ID',
+            'CLIENT_SECRET',
+          ],
         },
         {
           step: BusinessSetupStatus.BUSINESS_ANALYSIS,
@@ -353,10 +377,10 @@ describe('AgentChatService - Greeting System', () => {
       testCases.forEach(({ step, expectedContent }) => {
         // Use reflection to call private method for testing
         const method = service['sendWelcomeMessage'];
-        
+
         // Create a mock thread and test greeting generation
         const mockThreadId = 'test-thread';
-        
+
         // Verify the method exists (we can't call it directly due to privacy)
         expect(typeof method).toBe('function');
       });

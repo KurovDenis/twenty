@@ -23,6 +23,7 @@ import { WorkspacePermissionsCacheModule } from 'src/engine/metadata-modules/wor
 import { TwentyORMModule } from 'src/engine/twenty-orm/twenty-orm.module';
 import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/workspace-cache-storage.module';
 import { MessagingModule } from 'src/modules/messaging/messaging.module';
+
 import { AIAgentEventsService } from './services/ai-agent-events.service';
 
 @Global()

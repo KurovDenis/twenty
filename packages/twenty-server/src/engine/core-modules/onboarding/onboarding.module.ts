@@ -8,7 +8,12 @@ import { OnboardingService } from 'src/engine/core-modules/onboarding/onboarding
 import { UserVarsModule } from 'src/engine/core-modules/user/user-vars/user-vars.module';
 
 @Module({
-  imports: [BillingModule, UserVarsModule, FeatureFlagModule, EventEmitterModule],
+  imports: [
+    BillingModule,
+    UserVarsModule,
+    FeatureFlagModule,
+    EventEmitterModule,
+  ],
   exports: [OnboardingService],
   providers: [OnboardingService, OnboardingResolver],
 })

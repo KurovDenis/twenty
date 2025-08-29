@@ -80,26 +80,33 @@ export class TypeORMService implements OnModuleInit, OnModuleDestroy {
     // Init main data source "default" schema with retry logic
     const maxRetries = 10;
     let attempt = 0;
-    
+
     while (attempt < maxRetries) {
       try {
-        this.logger.log(`Attempting to initialize database connection (attempt ${attempt + 1}/${maxRetries})`);
+        this.logger.log(
+          `Attempting to initialize database connection (attempt ${attempt + 1}/${maxRetries})`,
+        );
         await this.mainDataSource.initialize();
         this.logger.log('Database connection established successfully');
+
         return;
       } catch (error) {
         attempt++;
-        this.logger.error(`Database connection attempt ${attempt} failed:`, error.message);
-        
+        this.logger.error(
+          `Database connection attempt ${attempt} failed:`,
+          error.message,
+        );
+
         if (attempt >= maxRetries) {
           this.logger.error('Max database connection retries exceeded');
           throw error;
         }
-        
+
         // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (max)
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
+
         this.logger.log(`Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
   }

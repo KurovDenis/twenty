@@ -1,14 +1,16 @@
 import { Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
+import { type Repository } from 'typeorm';
 
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
 import { WorkspaceService } from 'src/engine/core-modules/workspace/services/workspace.service';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
+
 import { BusinessSetupWelcomeAgentService } from './services/business-setup-welcome-agent.service';
 
 describe('BusinessSetupWelcomeAgentService', () => {
@@ -77,13 +79,19 @@ describe('BusinessSetupWelcomeAgentService', () => {
       ],
     }).compile();
 
-    service = module.get<BusinessSetupWelcomeAgentService>(BusinessSetupWelcomeAgentService);
+    service = module.get<BusinessSetupWelcomeAgentService>(
+      BusinessSetupWelcomeAgentService,
+    );
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
-    agentExecutionService = module.get<AgentExecutionService>(AgentExecutionService);
+    agentExecutionService = module.get<AgentExecutionService>(
+      AgentExecutionService,
+    );
     agentChatService = module.get<AgentChatService>(AgentChatService);
     userService = module.get<UserService>(UserService);
     workspaceService = module.get<WorkspaceService>(WorkspaceService);
-    agentRepository = module.get<Repository<AgentEntity>>(getRepositoryToken(AgentEntity, 'core'));
+    agentRepository = module.get<Repository<AgentEntity>>(
+      getRepositoryToken(AgentEntity, 'core'),
+    );
 
     // Mock logger
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
@@ -116,27 +124,38 @@ describe('BusinessSetupWelcomeAgentService', () => {
       mockAgentChatService.createThread.mockResolvedValue(mockThread);
       mockAgentExecutionService.executeAgent.mockResolvedValue(mockAIResponse);
       mockAgentChatService.addMessage.mockResolvedValue({});
-      mockUserService.findById.mockResolvedValue({ firstName: 'John', email: 'john@example.com' });
-      mockWorkspaceService.findById.mockResolvedValue({ displayName: 'Test Workspace' });
+      mockUserService.findById.mockResolvedValue({
+        firstName: 'John',
+        email: 'john@example.com',
+      });
+      mockWorkspaceService.findById.mockResolvedValue({
+        displayName: 'Test Workspace',
+      });
 
       // Act
       await service['handleOnboardingStatusChange'](payload);
 
       // Assert
-      expect(mockAgentChatService.createThread).toHaveBeenCalledWith('welcome-agent', 'workspace-123');
+      expect(mockAgentChatService.createThread).toHaveBeenCalledWith(
+        'welcome-agent',
+        'workspace-123',
+      );
       expect(mockAgentExecutionService.executeAgent).toHaveBeenCalled();
       expect(mockAgentChatService.addMessage).toHaveBeenCalledWith({
         threadId: 'thread-123',
         role: 'assistant',
         content: 'Welcome message',
-        fileIds: []
+        fileIds: [],
       });
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith('ai-agent.welcome.chat-created', expect.objectContaining({
-        userId: 'user-123',
-        workspaceId: 'workspace-123',
-        threadId: 'thread-123',
-        aiResponse: 'Welcome message'
-      }));
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'ai-agent.welcome.chat-created',
+        expect.objectContaining({
+          userId: 'user-123',
+          workspaceId: 'workspace-123',
+          threadId: 'thread-123',
+          aiResponse: 'Welcome message',
+        }),
+      );
     });
 
     it('should not create welcome chat when onboarding status is not COMPLETED', async () => {
@@ -186,18 +205,22 @@ describe('BusinessSetupWelcomeAgentService', () => {
       };
 
       const error = new Error('Failed to create chat');
+
       mockAgentChatService.createThread.mockRejectedValue(error);
 
       // Act
       await service['handleOnboardingStatusChange'](payload);
 
       // Assert
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith('ai-agent.welcome.chat-creation-failed', expect.objectContaining({
-        userId: 'user-123',
-        workspaceId: 'workspace-123',
-        error: 'Failed to create chat',
-        attempts: 3
-      }));
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'ai-agent.welcome.chat-creation-failed',
+        expect.objectContaining({
+          userId: 'user-123',
+          workspaceId: 'workspace-123',
+          error: 'Failed to create chat',
+          attempts: 3,
+        }),
+      );
     });
   });
 
@@ -239,8 +262,8 @@ describe('BusinessSetupWelcomeAgentService', () => {
   describe('createWelcomeChat', () => {
     beforeEach(() => {
       mockAgentChatService.createThread.mockResolvedValue({ id: 'thread-123' });
-      mockAgentExecutionService.executeAgent.mockResolvedValue({ 
-        result: { response: 'Hello!' } 
+      mockAgentExecutionService.executeAgent.mockResolvedValue({
+        result: { response: 'Hello!' },
       });
     });
 
@@ -252,15 +275,15 @@ describe('BusinessSetupWelcomeAgentService', () => {
         name: 'Welcome Greeting Bot',
         modelId: 'google/gemini-2.5-flash',
       });
-      
+
       // Act
       await service['createWelcomeChat']('user-123', 'workspace-123');
-      
+
       // Assert
       expect(mockAgentRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           modelId: 'google/gemini-2.5-flash',
-        })
+        }),
       );
     });
 
@@ -271,18 +294,19 @@ describe('BusinessSetupWelcomeAgentService', () => {
         name: 'Welcome Greeting Bot',
         modelId: 'some-other-model', // Different model
       };
+
       mockAgentRepository.findOne.mockResolvedValue(existingAgent);
-      
+
       // Act
       await service['createWelcomeChat']('user-123', 'workspace-123');
-      
+
       // Assert
       expect(mockAgentExecutionService.executeAgent).toHaveBeenCalledWith(
         expect.objectContaining({
           context: expect.objectContaining({
-            modelId: 'google/gemini-2.5-flash' // Should override with Gemini
-          })
-        })
+            modelId: 'google/gemini-2.5-flash', // Should override with Gemini
+          }),
+        }),
       );
     });
   });

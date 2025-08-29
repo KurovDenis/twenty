@@ -1,6 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
+import { type Repository } from 'typeorm';
 
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 import { AgentService } from 'src/engine/metadata-modules/agent/agent.service';
@@ -123,10 +124,7 @@ describe('BusinessSetupAgentService', () => {
 
     it('should throw error for COMPLETED status', async () => {
       await expect(
-        service.getAgentForStep(
-          BusinessSetupStatus.COMPLETED,
-          'workspace-id',
-        ),
+        service.getAgentForStep(BusinessSetupStatus.COMPLETED, 'workspace-id'),
       ).rejects.toThrow('No agent needed for COMPLETED status');
     });
 
@@ -142,12 +140,30 @@ describe('BusinessSetupAgentService', () => {
     it('should handle all business setup steps correctly', async () => {
       const steps = [
         { step: BusinessSetupStatus.WELCOME, expectedName: 'welcome-agent' },
-        { step: BusinessSetupStatus.BUSINESS_ANALYSIS, expectedName: 'business-analysis-agent' },
-        { step: BusinessSetupStatus.SALES_FUNNEL_DESIGN, expectedName: 'funnel-designer-agent' },
-        { step: BusinessSetupStatus.AGENT_SETUP, expectedName: 'agent-orchestrator-agent' },
-        { step: BusinessSetupStatus.WORKFLOW_CREATION, expectedName: 'workflow-generator-agent' },
-        { step: BusinessSetupStatus.TEAM_ASSIGNMENT, expectedName: 'team-assignment-agent' },
-        { step: BusinessSetupStatus.TESTING_OPTIMIZATION, expectedName: 'testing-optimization-agent' },
+        {
+          step: BusinessSetupStatus.BUSINESS_ANALYSIS,
+          expectedName: 'business-analysis-agent',
+        },
+        {
+          step: BusinessSetupStatus.SALES_FUNNEL_DESIGN,
+          expectedName: 'funnel-designer-agent',
+        },
+        {
+          step: BusinessSetupStatus.AGENT_SETUP,
+          expectedName: 'agent-orchestrator-agent',
+        },
+        {
+          step: BusinessSetupStatus.WORKFLOW_CREATION,
+          expectedName: 'workflow-generator-agent',
+        },
+        {
+          step: BusinessSetupStatus.TEAM_ASSIGNMENT,
+          expectedName: 'team-assignment-agent',
+        },
+        {
+          step: BusinessSetupStatus.TESTING_OPTIMIZATION,
+          expectedName: 'testing-optimization-agent',
+        },
       ];
 
       for (const { step, expectedName } of steps) {
@@ -178,9 +194,13 @@ describe('BusinessSetupAgentService', () => {
         id: 'new-agent-id',
         name: 'welcome-agent',
       } as AgentEntity;
+
       mockAgentService.createOneAgent.mockResolvedValue(mockCreatedAgent);
 
-      await service.getAgentForStep(BusinessSetupStatus.WELCOME, 'workspace-id');
+      await service.getAgentForStep(
+        BusinessSetupStatus.WELCOME,
+        'workspace-id',
+      );
 
       expect(mockAgentService.createOneAgent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -189,7 +209,9 @@ describe('BusinessSetupAgentService', () => {
           description: 'AI assistant for welcome step in business setup',
           modelId: 'google/gemini-2.5-flash',
           isCustom: true,
-          prompt: expect.stringContaining('Welcome AI assistant for Business Setup Wizard'),
+          prompt: expect.stringContaining(
+            'Welcome AI assistant for Business Setup Wizard',
+          ),
         }),
         'workspace-id',
       );
@@ -201,9 +223,13 @@ describe('BusinessSetupAgentService', () => {
         id: 'new-agent-id',
         name: 'business-analysis-agent',
       } as AgentEntity;
+
       mockAgentService.createOneAgent.mockResolvedValue(mockCreatedAgent);
 
-      await service.getAgentForStep(BusinessSetupStatus.BUSINESS_ANALYSIS, 'workspace-id');
+      await service.getAgentForStep(
+        BusinessSetupStatus.BUSINESS_ANALYSIS,
+        'workspace-id',
+      );
 
       expect(mockAgentService.createOneAgent).toHaveBeenCalledWith(
         expect.objectContaining({

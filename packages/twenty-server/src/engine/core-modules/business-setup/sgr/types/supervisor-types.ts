@@ -1,5 +1,11 @@
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
-import { SupervisorStepResult, BusinessSetupProgress } from '../schemas/supervisor-sgr.schema';
+import {
+  SupervisorStepResult,
+  BusinessSetupProgress,
+} from '../schemas/supervisor-sgr.schema';
+
+// Export important types for use in test files
+export { SupervisorStepResult, BusinessSetupProgress };
 
 /**
  * Supervisor Agent Configuration
@@ -15,16 +21,17 @@ export interface SupervisorAgentConfig {
 /**
  * Agent mapping for all business setup stages
  */
-export const BUSINESS_SETUP_AGENT_MAPPING: Record<BusinessSetupStatus, string> = {
-  [BusinessSetupStatus.WELCOME]: 'sgr-avito-agent',
-  [BusinessSetupStatus.BUSINESS_ANALYSIS]: 'business-analysis-agent',
-  [BusinessSetupStatus.SALES_FUNNEL_DESIGN]: 'funnel-designer-agent',
-  [BusinessSetupStatus.AGENT_SETUP]: 'agent-orchestrator-agent',
-  [BusinessSetupStatus.WORKFLOW_CREATION]: 'workflow-generator-agent',
-  [BusinessSetupStatus.TEAM_ASSIGNMENT]: 'team-assignment-agent',
-  [BusinessSetupStatus.TESTING_OPTIMIZATION]: 'testing-optimization-agent',
-  [BusinessSetupStatus.COMPLETED]: 'no-agent-needed'
-};
+export const BUSINESS_SETUP_AGENT_MAPPING: Record<BusinessSetupStatus, string> =
+  {
+    [BusinessSetupStatus.WELCOME]: 'sgr-avito-agent',
+    [BusinessSetupStatus.BUSINESS_ANALYSIS]: 'business-analysis-agent',
+    [BusinessSetupStatus.SALES_FUNNEL_DESIGN]: 'funnel-designer-agent',
+    [BusinessSetupStatus.AGENT_SETUP]: 'agent-orchestrator-agent',
+    [BusinessSetupStatus.WORKFLOW_CREATION]: 'workflow-generator-agent',
+    [BusinessSetupStatus.TEAM_ASSIGNMENT]: 'team-assignment-agent',
+    [BusinessSetupStatus.TESTING_OPTIMIZATION]: 'testing-optimization-agent',
+    [BusinessSetupStatus.COMPLETED]: 'no-agent-needed',
+  };
 
 /**
  * Route message payload for supervisor routing
@@ -46,6 +53,10 @@ export interface SupervisorThinkingStep {
   currentState: string;
   plannedSteps: string[];
   selectedTool: string;
+  thinking?: string; // Used in test files
+  reasoning?: string; // Used in test files
+  step?: any; // Used in some test cases
+  function?: any; // Used in function_call step type
   toolExecution?: {
     status: 'in_progress' | 'completed' | 'failed';
     result?: any;
@@ -57,10 +68,11 @@ export interface SupervisorThinkingStep {
 /**
  * Supervisor SGR streaming result types
  */
-export type SupervisorSGRStreamingResult = 
+export type SupervisorSGRStreamingResult =
   | SupervisorThinkingStreamResult
   | SupervisorToolExecutionStreamResult
-  | SupervisorFinalResponseStreamResult;
+  | SupervisorFinalResponseStreamResult
+  | { type: 'function_call'; function: any; completed: boolean };
 
 export interface SupervisorThinkingStreamResult {
   type: 'thinking';
@@ -102,12 +114,12 @@ export interface BusinessSetupKeyValueTypeMapExtension {
   SUPERVISOR_ENABLED: boolean;
   SUPERVISOR_MAX_STEPS: number;
   SUPERVISOR_TIMEOUT_MS: number;
-  
+
   // Business setup progress tracking
   BUSINESS_SETUP_CURRENT_STATUS: BusinessSetupStatus;
   BUSINESS_SETUP_STEPS_COMPLETED: BusinessSetupStatus[];
   BUSINESS_SETUP_LAST_UPDATED: string; // ISO date string
-  
+
   // Agent routing history
   BUSINESS_SETUP_ROUTING_HISTORY: Array<{
     timestamp: string;
@@ -155,41 +167,41 @@ export interface ISupervisorToolDispatcher {
   dispatch(
     tool: SupervisorStepResult['function'],
     userId: string,
-    workspaceId: string
+    workspaceId: string,
   ): Promise<SupervisorToolExecutionResult>;
-  
+
   checkBusinessSetupStatus(
     userId: string,
-    workspaceId: string
+    workspaceId: string,
   ): Promise<BusinessSetupProgress>;
-  
+
   routeToSpecializedAgent(
     status: BusinessSetupStatus,
     message: string,
     userId: string,
     workspaceId: string,
     threadId: string,
-    reason: string
+    reason: string,
   ): Promise<SupervisorToolExecutionResult>;
-  
+
   processDirectly(
     response: string,
-    reason: string
+    reason: string,
   ): Promise<SupervisorToolExecutionResult>;
-  
+
   statusChange(
     fromStatus: BusinessSetupStatus,
     toStatus: BusinessSetupStatus,
     userId: string,
     workspaceId: string,
     reason: string,
-    triggerEvent?: string
+    triggerEvent?: string,
   ): Promise<SupervisorToolExecutionResult>;
-  
+
   completeRouting(
     success: boolean,
     finalMessage: string,
-    routedTo?: string
+    routedTo?: string,
   ): Promise<SupervisorToolExecutionResult>;
 }
 
@@ -201,7 +213,7 @@ export interface ISupervisorSGRService {
     userMessage: string,
     userId: string,
     workspaceId: string,
-    threadId: string
+    threadId: string,
   ): AsyncGenerator<SupervisorSGRStreamingResult>;
 }
 
@@ -215,17 +227,21 @@ export enum SupervisorErrorType {
   SGR_WORKFLOW_FAILED = 'SGR_WORKFLOW_FAILED',
   TOOL_EXECUTION_FAILED = 'TOOL_EXECUTION_FAILED',
   STREAMING_TIMEOUT = 'STREAMING_TIMEOUT',
-  INVALID_BUSINESS_SETUP_STATE = 'INVALID_BUSINESS_SETUP_STATE'
+  INVALID_BUSINESS_SETUP_STATE = 'INVALID_BUSINESS_SETUP_STATE',
+  INVALID_TOOL = 'INVALID_TOOL',
 }
 
 export class SupervisorException extends Error {
+  public readonly errorType: SupervisorErrorType;
+
   constructor(
     public readonly type: SupervisorErrorType,
     message: string,
-    public readonly context?: Record<string, any>
+    public readonly context?: Record<string, any>,
   ) {
     super(message);
     this.name = 'SupervisorException';
+    this.errorType = type;
   }
 }
 
@@ -238,7 +254,7 @@ export const SUPERVISOR_CONFIG = {
   MAX_STEPS: 10,
   TIMEOUT_MS: 30000,
   STEP_TIMEOUT_MS: 5000,
-  RETRY_ATTEMPTS: 3
+  RETRY_ATTEMPTS: 3,
 } as const;
 
 /**
@@ -266,7 +282,8 @@ export interface SupervisorThinkingEventPayload extends SupervisorEventPayload {
   completed: boolean;
 }
 
-export interface SupervisorCompletionEventPayload extends SupervisorEventPayload {
+export interface SupervisorCompletionEventPayload
+  extends SupervisorEventPayload {
   success: boolean;
   finalMessage: string;
   routedTo?: string;
@@ -326,7 +343,8 @@ export const SUPERVISOR_EVENTS = {
   ROUTING_COMPLETED: 'supervisor.routing-completed',
   STATUS_CHANGED: 'supervisor.status-changed',
   AGENT_CREATED: 'supervisor.agent-created',
-  ERROR_OCCURRED: 'supervisor.error-occurred'
+  ERROR_OCCURRED: 'supervisor.error-occurred',
 } as const;
 
-export type SupervisorEventName = typeof SUPERVISOR_EVENTS[keyof typeof SUPERVISOR_EVENTS];
+export type SupervisorEventName =
+  (typeof SUPERVISOR_EVENTS)[keyof typeof SUPERVISOR_EVENTS];

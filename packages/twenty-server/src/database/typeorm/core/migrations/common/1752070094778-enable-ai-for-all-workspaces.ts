@@ -1,6 +1,8 @@
 import { type MigrationInterface, type QueryRunner } from 'typeorm';
 
-export class EnableAIForAllWorkspaces1752070094778 implements MigrationInterface {
+export class EnableAIForAllWorkspaces1752070094778
+  implements MigrationInterface
+{
   name = 'EnableAIForAllWorkspaces1752070094778';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -188,7 +188,7 @@ export class OnboardingService {
           workspaceId,
           status: OnboardingStatus.COMPLETED,
           previousStatus: OnboardingStatus.BOOK_ONBOARDING,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
@@ -214,7 +214,7 @@ export class OnboardingService {
       workspaceId,
       status,
       previousStatus,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 }

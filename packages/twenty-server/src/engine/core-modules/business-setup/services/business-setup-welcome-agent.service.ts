@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+
 import { DataSource, Repository } from 'typeorm';
 
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
@@ -12,10 +13,12 @@ import { AgentChatMessageRole } from 'src/engine/metadata-modules/agent/agent-ch
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
-import { BusinessSetupKeyValueTypeMap, BusinessSetupStepKeys } from '../business-setup.service';
+
 import {
-  OnboardingStatusChangedEvent
-} from '../events/business-setup.events';
+  BusinessSetupKeyValueTypeMap,
+  BusinessSetupStepKeys,
+} from '../business-setup.service';
+import { OnboardingStatusChangedEvent } from '../events/business-setup.events';
 import { AvitoWelcomeSGRService } from '../sgr/services/avito-welcome-sgr.service';
 import { SGRStreamingResult } from '../sgr/types/sgr-thinking-stream.types';
 import {
@@ -59,30 +62,41 @@ export class BusinessSetupWelcomeAgentService {
 
   // Handle onboarding status changes to create welcome chat
   @OnEvent('onboarding.status.changed')
-  private async handleOnboardingStatusChange(payload: OnboardingStatusChangedEvent) {
+  private async handleOnboardingStatusChange(
+    payload: OnboardingStatusChangedEvent,
+  ) {
     // Validate event payload
     if (!this.validateEventPayload(payload)) {
       this.logger.warn('Invalid onboarding status change payload:', payload);
+
       return;
     }
 
-    if (payload.status === 'COMPLETED' && payload.previousStatus !== 'COMPLETED') {
+    if (
+      payload.status === 'COMPLETED' &&
+      payload.previousStatus !== 'COMPLETED'
+    ) {
       try {
         this.logger.log(`Onboarding completed for user ${payload.userId}`);
-        
+
         // Use retry mechanism for reliability
-        await this.createWelcomeChatWithRetry(payload.userId, payload.workspaceId);
-        
+        await this.createWelcomeChatWithRetry(
+          payload.userId,
+          payload.workspaceId,
+        );
       } catch (error) {
-        this.logger.error('Failed to create welcome chat after all retries:', error);
-        
+        this.logger.error(
+          'Failed to create welcome chat after all retries:',
+          error,
+        );
+
         // Emit error event
         this.eventEmitter.emit('ai-agent.welcome.chat-creation-failed', {
           userId: payload.userId,
           workspaceId: payload.workspaceId,
           error: error.message,
           attempts: this.maxRetries,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
     }
@@ -93,16 +107,16 @@ export class BusinessSetupWelcomeAgentService {
     threadId: string,
     message: string,
     workspaceId: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
     const payload = {
       userId,
       workspaceId,
       threadId,
       message,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-    
+
     return this.handleUserMessage(payload);
   }
 
@@ -116,45 +130,53 @@ export class BusinessSetupWelcomeAgentService {
     timestamp: Date;
   }) {
     try {
-      this.logger.log(`Processing user message in business setup thread ${payload.threadId}`);
-      
+      this.logger.log(
+        `Processing user message in business setup thread ${payload.threadId}`,
+      );
+
       // NEW: Use streaming SGR for real-time visibility into AI thinking
       try {
         this.logger.log('Using STREAMING SGR for transparent AI processing');
-        
-        const sgrStream = this.avitoWelcomeSGRService.processWelcomeMessageWithStreaming(
-          payload.message,
-          payload.userId,
-          payload.workspaceId,
-          payload.threadId
-        );
+
+        const sgrStream =
+          this.avitoWelcomeSGRService.processWelcomeMessageWithStreaming(
+            payload.message,
+            payload.userId,
+            payload.workspaceId,
+            payload.threadId,
+          );
 
         // Stream each step to user in real-time
         for await (const step of sgrStream) {
           await this.handleSGRStreamingStep(step, payload.threadId);
         }
-        
       } catch (streamingError) {
-        this.logger.error('Streaming SGR processing failed, falling back to legacy method:', streamingError);
-        
+        this.logger.error(
+          'Streaming SGR processing failed, falling back to legacy method:',
+          streamingError,
+        );
+
         // Fallback to legacy credential extraction if streaming fails
         await this.processUserMessageLegacy(
-          payload.threadId, 
-          payload.message, 
-          payload.workspaceId, 
-          payload.userId
+          payload.threadId,
+          payload.message,
+          payload.workspaceId,
+          payload.userId,
         );
       }
-      
     } catch (error) {
-      this.logger.error('Failed to process user message in business setup thread:', error);
-      
+      this.logger.error(
+        'Failed to process user message in business setup thread:',
+        error,
+      );
+
       // Send generic error message to user
       await this.agentChatService.addMessage({
         threadId: payload.threadId,
         role: AgentChatMessageRole.ASSISTANT,
-        content: '❌ Произошла ошибка при обработке сообщения. Попробуйте еще раз или обратитесь в поддержку.',
-        fileIds: []
+        content:
+          '❌ Произошла ошибка при обработке сообщения. Попробуйте еще раз или обратитесь в поддержку.',
+        fileIds: [],
       });
     }
   }
@@ -164,36 +186,37 @@ export class BusinessSetupWelcomeAgentService {
    * This provides real-time visibility into AI thinking and tool execution
    */
   private async handleSGRStreamingStep(
-    step: SGRStreamingResult, 
-    threadId: string
+    step: SGRStreamingResult,
+    threadId: string,
   ): Promise<void> {
     try {
       switch (step.type) {
         case 'thinking':
           await this.sendThinkingMessage(threadId, step.step!);
           break;
-          
+
         case 'tool_execution':
           await this.sendToolExecutionMessage(threadId, step.step!);
           break;
-          
+
         case 'final_response':
           await this.sendFinalResponse(threadId, step.content!);
           break;
-          
+
         default:
-          this.logger.warn(`Unknown SGR streaming step type: ${(step as any).type}`);
+          this.logger.warn(
+            `Unknown SGR streaming step type: ${(step as any).type}`,
+          );
       }
-      
     } catch (error) {
       this.logger.error('Failed to handle SGR streaming step:', error);
-      
+
       // Send error indication to user but don't break the stream
       await this.agentChatService.addMessage({
         threadId,
         role: AgentChatMessageRole.ASSISTANT,
         content: '⚠️ Обработка была прервана. Продолжаю анализ...',
-        fileIds: []
+        fileIds: [],
       });
     }
   }
@@ -202,8 +225,8 @@ export class BusinessSetupWelcomeAgentService {
    * Send thinking step message to show AI reasoning process
    */
   private async sendThinkingMessage(
-    threadId: string, 
-    step: import('../sgr/types/sgr-thinking-stream.types').SGRThinkingStep
+    threadId: string,
+    step: import('../sgr/types/sgr-thinking-stream.types').SGRThinkingStep,
   ): Promise<void> {
     const thinkingContent = `🤔 **Шаг ${step.stepNumber}: Анализ**
 
@@ -218,7 +241,7 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
       threadId,
       role: AgentChatMessageRole.ASSISTANT,
       content: thinkingContent,
-      fileIds: []
+      fileIds: [],
     });
   }
 
@@ -226,24 +249,24 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
    * Send tool execution message to show progress and results
    */
   private async sendToolExecutionMessage(
-    threadId: string, 
-    step: import('../sgr/types/sgr-thinking-stream.types').SGRThinkingStep
+    threadId: string,
+    step: import('../sgr/types/sgr-thinking-stream.types').SGRThinkingStep,
   ): Promise<void> {
     if (!step.toolExecution) {
       return;
     }
 
     let executionContent = '';
-    
+
     switch (step.toolExecution.status) {
       case 'in_progress':
         executionContent = `🔧 **Выполняю: ${step.selectedTool}**\n\nОбрабатываю ваш запрос...`;
         break;
-        
+
       case 'completed':
         executionContent = `✅ **Инструмент ${step.selectedTool} выполнен успешно**\n\nРезультат получен, перехожу к следующему шагу.`;
         break;
-        
+
       case 'failed':
         executionContent = `❌ **Ошибка при выполнении ${step.selectedTool}**\n\n${step.toolExecution.error || 'Неизвестная ошибка'}\n\nПробую альтернативный подход...`;
         break;
@@ -254,7 +277,7 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
         threadId,
         role: AgentChatMessageRole.ASSISTANT,
         content: executionContent,
-        fileIds: []
+        fileIds: [],
       });
     }
   }
@@ -263,58 +286,84 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
    * Send final response message with results
    */
   private async sendFinalResponse(
-    threadId: string, 
-    content: string
+    threadId: string,
+    content: string,
   ): Promise<void> {
     await this.agentChatService.addMessage({
       threadId,
       role: AgentChatMessageRole.ASSISTANT,
       content,
-      fileIds: []
+      fileIds: [],
     });
   }
 
   // Centralized validation for event payload
-  private validateEventPayload(payload: any): payload is OnboardingStatusChangedEvent {
-    return payload && 
-           typeof payload.userId === 'string' &&
-           typeof payload.workspaceId === 'string' &&
-           typeof payload.status === 'string' &&
-           typeof payload.previousStatus === 'string' &&
-           payload.timestamp instanceof Date;
+  private validateEventPayload(
+    payload: any,
+  ): payload is OnboardingStatusChangedEvent {
+    return (
+      payload &&
+      typeof payload.userId === 'string' &&
+      typeof payload.workspaceId === 'string' &&
+      typeof payload.status === 'string' &&
+      typeof payload.previousStatus === 'string' &&
+      payload.timestamp instanceof Date
+    );
   }
 
   // Create welcome chat with retry mechanism for reliability
-  private async createWelcomeChatWithRetry(userId: string, workspaceId: string): Promise<void> {
+  private async createWelcomeChatWithRetry(
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
     // First validate that the workspace exists
     const workspace = await this.workspaceService.findById(workspaceId);
+
     if (!workspace) {
-      this.logger.error(`Workspace with ID ${workspaceId} not found. Cannot create welcome chat.`);
+      this.logger.error(
+        `Workspace with ID ${workspaceId} not found. Cannot create welcome chat.`,
+      );
       throw new Error(`Workspace with ID ${workspaceId} not found`);
     }
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         await this.createWelcomeChat(userId, workspaceId);
-        this.logger.log(`Welcome chat created successfully on attempt ${attempt}`);
+        this.logger.log(
+          `Welcome chat created successfully on attempt ${attempt}`,
+        );
+
         return; // Success
       } catch (error) {
-        this.logger.warn(`Attempt ${attempt} failed for user ${userId}:`, error);
-        
+        this.logger.warn(
+          `Attempt ${attempt} failed for user ${userId}:`,
+          error,
+        );
+
         // Check if it's a foreign key constraint violation related to workspace
-        if (error.message && error.message.includes('FK_c4cb56621768a4a325dd772bbe1')) {
-          this.logger.error(`Foreign key constraint violation: workspace ${workspaceId} does not exist`);
-          throw new Error(`Invalid workspace ID: ${workspaceId}. The workspace does not exist.`);
+        if (
+          error.message &&
+          error.message.includes('FK_c4cb56621768a4a325dd772bbe1')
+        ) {
+          this.logger.error(
+            `Foreign key constraint violation: workspace ${workspaceId} does not exist`,
+          );
+          throw new Error(
+            `Invalid workspace ID: ${workspaceId}. The workspace does not exist.`,
+          );
         }
-        
+
         if (attempt === this.maxRetries) {
           // Final error
-          this.logger.error(`All ${this.maxRetries} attempts failed for user ${userId}`);
+          this.logger.error(
+            `All ${this.maxRetries} attempts failed for user ${userId}`,
+          );
           throw error;
         }
-        
+
         // Use exponential backoff before retry
         const delayMs = Math.pow(2, attempt) * this.retryDelayMs;
+
         await this.delay(delayMs);
       }
     }
@@ -322,16 +371,21 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
   // Utility method for delay with promise
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // Create new welcome chat using the AgentChatService with Gemini model
-  private async createWelcomeChat(userId: string, workspaceId: string): Promise<void> {
+  private async createWelcomeChat(
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
     const startTime = Date.now();
+
     this.metrics.agentCreationAttempts++;
-    
+
     // Use transaction for atomic agent and thread creation
     const queryRunner = this.coreDataSource.createQueryRunner();
+
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -340,7 +394,7 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
       this.eventEmitter.emit('ai-agent.welcome.chat-creation-started', {
         userId,
         workspaceId,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       // Validate workspace exists before creating agent
@@ -348,52 +402,66 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
       // Fetch or create a welcome agent specifically with the Gemini model
       let agent = await queryRunner.manager.findOne(AgentEntity, {
-        where: { 
+        where: {
           name: 'Welcome Greeting Bot',
-          workspaceId 
-        }
+          workspaceId,
+        },
       });
-      
+
       if (!agent) {
         // Create a dedicated welcome agent that uses Gemini model within transaction
         agent = await queryRunner.manager.save(AgentEntity, {
           name: 'Welcome Greeting Bot',
           label: 'Welcome Greeting Bot',
           description: 'Simple greeting bot for welcome status',
-          prompt: 'You are a simple greeting bot. You ONLY respond with greetings.',
+          prompt:
+            'You are a simple greeting bot. You ONLY respond with greetings.',
           modelId: this.GEMINI_MODEL_ID, // Force use of Gemini model via OpenRouter
           workspaceId,
           isCustom: true,
         });
-        this.logger.log(`Created new welcome agent for workspace ${workspaceId}`);
+        this.logger.log(
+          `Created new welcome agent for workspace ${workspaceId}`,
+        );
       } else {
-        this.logger.log(`Using existing welcome agent for workspace ${workspaceId}`);
+        this.logger.log(
+          `Using existing welcome agent for workspace ${workspaceId}`,
+        );
       }
 
       // Commit transaction after successful agent creation
       await queryRunner.commitTransaction();
 
       // Create thread outside transaction (AgentChatService handles its own transactions)
-      const thread = await this.agentChatService.createThread(agent.id, workspaceId);
+      const thread = await this.agentChatService.createThread(
+        agent.id,
+        workspaceId,
+      );
 
       // Continue with the rest of the logic
       await this.completeWelcomeChatSetup(userId, workspaceId, agent, thread);
 
       // Record success metrics
       const operationTime = Date.now() - startTime;
+
       this.metrics.agentCreationSuccesses++;
       this.updateAverageCreationTime(operationTime);
-      this.logger.log(`Welcome chat created successfully in ${operationTime}ms`);
-
+      this.logger.log(
+        `Welcome chat created successfully in ${operationTime}ms`,
+      );
     } catch (error) {
       // Rollback transaction on error
       await queryRunner.rollbackTransaction();
       this.metrics.transactionRollbacks++;
       this.metrics.agentCreationFailures++;
-      
+
       const operationTime = Date.now() - startTime;
-      this.logger.error(`Failed to create welcome chat (transaction rolled back) in ${operationTime}ms:`, error);
-      
+
+      this.logger.error(
+        `Failed to create welcome chat (transaction rolled back) in ${operationTime}ms:`,
+        error,
+      );
+
       // Handle specific database errors
       this.handleDatabaseError(error, workspaceId);
     } finally {
@@ -403,16 +471,16 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
   // Complete welcome chat setup after agent and thread creation
   private async completeWelcomeChatSetup(
-    userId: string, 
-    workspaceId: string, 
-    agent: AgentEntity, 
-    thread: any
+    userId: string,
+    workspaceId: string,
+    agent: AgentEntity,
+    thread: any,
   ): Promise<void> {
     try {
       // Get user and workspace data for personalization
       const [user, workspace] = await Promise.all([
         this.userService.findById(userId),
-        this.workspaceService.findById(workspaceId)
+        this.workspaceService.findById(workspaceId),
       ]);
 
       if (!user) {
@@ -425,29 +493,31 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
       // Get Avito-specific welcome prompt
       const welcomePrompt = await this.getAvitoWelcomePrompt(user, workspace);
-      
+
       // Send prompt to LLM through the AgentExecutionService using the specific Gemini agent
       const aiResponse = await this.agentExecutionService.executeAgent({
         agent, // Use the specific Gemini-based welcome agent
-        context: { 
-          userId, 
-          workspaceId, 
+        context: {
+          userId,
+          workspaceId,
           step: 'WELCOME',
           prompt: welcomePrompt,
           threadId: thread.id,
-          modelId: this.GEMINI_MODEL_ID // Ensure this specific model is used
+          modelId: this.GEMINI_MODEL_ID, // Ensure this specific model is used
         },
         schema: {}, // Simple schema for welcome
         userPrompt: welcomePrompt,
       });
 
       // Save LLM response to chat through existing AgentChatService
-      const responseContent = (aiResponse.result as any)?.response || 'Welcome message';
+      const responseContent =
+        (aiResponse.result as any)?.response || 'Welcome message';
+
       await this.agentChatService.addMessage({
         threadId: thread.id,
         role: AgentChatMessageRole.ASSISTANT,
         content: responseContent,
-        fileIds: []
+        fileIds: [],
       });
 
       // Emit successful chat creation event
@@ -456,11 +526,12 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
         workspaceId,
         threadId: thread.id,
         aiResponse: responseContent,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
-      this.logger.log(`Welcome chat created successfully for user ${userId}, thread ID: ${thread.id}`);
-
+      this.logger.log(
+        `Welcome chat created successfully for user ${userId}, thread ID: ${thread.id}`,
+      );
     } catch (error) {
       this.logger.error('Failed to complete welcome chat setup:', error);
       throw error;
@@ -468,7 +539,10 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
   }
 
   // Get Avito-specific welcome prompt with credential collection instructions
-  private async getAvitoWelcomePrompt(user: User, workspace: Workspace): Promise<string> {
+  private async getAvitoWelcomePrompt(
+    user: User,
+    workspace: Workspace,
+  ): Promise<string> {
     return `
 Привет, ${user.firstName || 'пользователь'}! 👋
 
@@ -512,27 +586,35 @@ When user provides credentials:
   }
 
   // Extract CLIENT_ID and CLIENT_SECRET from user message using regex
-  private extractCredentialsFromMessage(message: string): CredentialsExtractionResult {
+  private extractCredentialsFromMessage(
+    message: string,
+  ): CredentialsExtractionResult {
     // Support multiple formats: CLIENT_ID = 'value', CLIENT_ID: value, CLIENT_ID=value
     const clientIdRegex = /CLIENT_ID[\s=:]*['"]*([A-Za-z0-9_-]+)['"]*(?:\s|$)/i;
-    const clientSecretRegex = /CLIENT_SECRET[\s=:]*['"]*([A-Za-z0-9_-]+)['"]*(?:\s|$)/i;
-    
+    const clientSecretRegex =
+      /CLIENT_SECRET[\s=:]*['"]*([A-Za-z0-9_-]+)['"]*(?:\s|$)/i;
+
     const clientIdMatch = message.match(clientIdRegex);
     const clientSecretMatch = message.match(clientSecretRegex);
-    
+
     return {
       clientId: clientIdMatch ? clientIdMatch[1] : null,
       clientSecret: clientSecretMatch ? clientSecretMatch[1] : null,
-      isValid: !!(clientIdMatch && clientSecretMatch)
+      isValid: !!(clientIdMatch && clientSecretMatch),
     };
   }
 
   // Legacy credential processing method (kept as fallback)
-  private async processUserMessageLegacy(threadId: string, message: string, workspaceId: string, userId: string): Promise<void> {
+  private async processUserMessageLegacy(
+    threadId: string,
+    message: string,
+    workspaceId: string,
+    userId: string,
+  ): Promise<void> {
     try {
       // Extract credentials from user message
       const credentials = this.extractCredentialsFromMessage(message);
-      
+
       if (credentials.isValid) {
         // Agent uses HTTP tool to validate credentials automatically
         const validationPrompt = `
@@ -547,7 +629,7 @@ Validate these credentials using the http_request tool:
 - Body: grant_type=client_credentials&client_id=${credentials.clientId}&client_secret=${credentials.clientSecret}
 
 Respond with validation results and next steps.`;
-        
+
         // Execute agent with HTTP tool for validation
         const agent = await this.getAvitoAgent(workspaceId);
         const agentResponse = await this.agentExecutionService.executeAgent({
@@ -556,14 +638,19 @@ Respond with validation results and next steps.`;
             workspaceId,
             userId,
             threadId,
-            prompt: validationPrompt
+            prompt: validationPrompt,
           },
           schema: {},
-          userPrompt: validationPrompt
+          userPrompt: validationPrompt,
         });
-        
-        await this.handleValidationResponse(agentResponse, credentials, workspaceId, userId, threadId);
-        
+
+        await this.handleValidationResponse(
+          agentResponse,
+          credentials,
+          workspaceId,
+          userId,
+          threadId,
+        );
       } else {
         // Request credentials again with helpful message
         const retryMessage = `🔍 Не удалось найти CLIENT_ID и CLIENT_SECRET в вашем сообщении.
@@ -571,50 +658,52 @@ Respond with validation results and next steps.`;
 💡 Пожалуйста, отправьте данные в формате:
 CLIENT_ID: ваш_client_id
 CLIENT_SECRET: ваш_client_secret`;
-        
+
         await this.agentChatService.addMessage({
           threadId,
           role: AgentChatMessageRole.ASSISTANT,
           content: retryMessage,
-          fileIds: []
+          fileIds: [],
         });
       }
     } catch (error) {
       this.logger.error('Error processing user message (legacy):', error);
-      
+
       // Send generic error message
       await this.agentChatService.addMessage({
         threadId,
         role: AgentChatMessageRole.ASSISTANT,
-        content: '❌ Произошла ошибка при обработке сообщения. Попробуйте еще раз.',
-        fileIds: []
+        content:
+          '❌ Произошла ошибка при обработке сообщения. Попробуйте еще раз.',
+        fileIds: [],
       });
     }
   }
 
   // Process agent validation response and handle success/failure
   private async handleValidationResponse(
-    agentResponse: any, 
-    credentials: CredentialsExtractionResult, 
-    workspaceId: string, 
-    userId: string, 
-    threadId: string
+    agentResponse: any,
+    credentials: CredentialsExtractionResult,
+    workspaceId: string,
+    userId: string,
+    threadId: string,
   ): Promise<void> {
     // Check if the agent's response indicates successful validation
     const responseText = agentResponse.result?.response || agentResponse.text;
     const isValidationSuccessful = this.parseValidationResult(responseText);
-    
+
     if (isValidationSuccessful) {
       // Store credentials using UserVarsService
       await this.storeAvitoCredentials(workspaceId, userId, {
         clientId: credentials.clientId!,
-        clientSecret: credentials.clientSecret!
+        clientSecret: credentials.clientSecret!,
       });
-      
+
       await this.transitionToBusinessAnalysis(workspaceId, userId);
-      
     } else {
-      this.logger.warn(`Avito credentials validation failed for workspace ${workspaceId}`);
+      this.logger.warn(
+        `Avito credentials validation failed for workspace ${workspaceId}`,
+      );
     }
   }
 
@@ -626,34 +715,34 @@ CLIENT_SECRET: ваш_client_secret`;
       'успешно',
       'status":200',
       'successfully',
-      'validated'
+      'validated',
     ];
-    
+
     const errorIndicators = [
       'error',
       'failed',
       'invalid',
       'unauthorized',
       'status":400',
-      'status":401'
+      'status":401',
     ];
-    
-    const hasSuccess = successIndicators.some(indicator => 
-      agentResponse.toLowerCase().includes(indicator)
+
+    const hasSuccess = successIndicators.some((indicator) =>
+      agentResponse.toLowerCase().includes(indicator),
     );
-    
-    const hasError = errorIndicators.some(indicator => 
-      agentResponse.toLowerCase().includes(indicator)
+
+    const hasError = errorIndicators.some((indicator) =>
+      agentResponse.toLowerCase().includes(indicator),
     );
-    
+
     return hasSuccess && !hasError;
   }
 
   // Store Avito credentials securely using UserVarsService
   private async storeAvitoCredentials(
-    workspaceId: string, 
-    userId: string, 
-    credentials: AvitoCredentials
+    workspaceId: string,
+    userId: string,
+    credentials: AvitoCredentials,
   ): Promise<void> {
     // Store using existing UserVarsService
     await Promise.all([
@@ -661,52 +750,60 @@ CLIENT_SECRET: ваш_client_secret`;
         userId,
         workspaceId,
         key: BusinessSetupStepKeys.AVITO_CLIENT_ID,
-        value: credentials.clientId
+        value: credentials.clientId,
       }),
       this.userVarsService.set({
         userId,
         workspaceId,
         key: BusinessSetupStepKeys.AVITO_CLIENT_SECRET,
-        value: credentials.clientSecret
-      })
+        value: credentials.clientSecret,
+      }),
     ]);
   }
 
   // Transition from welcome step to business analysis step
-  private async transitionToBusinessAnalysis(workspaceId: string, userId: string): Promise<void> {
+  private async transitionToBusinessAnalysis(
+    workspaceId: string,
+    userId: string,
+  ): Promise<void> {
     // Mark welcome step as completed and transition to business analysis
     await this.userVarsService.set({
       userId,
       workspaceId,
       key: BusinessSetupStepKeys.BUSINESS_SETUP_WELCOME_PENDING,
-      value: false
+      value: false,
     });
-    
+
     await this.userVarsService.set({
       userId,
       workspaceId,
       key: BusinessSetupStepKeys.BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING,
-      value: true
+      value: true,
     });
-    
+
     // Emit transition event
     this.eventEmitter.emit('business-setup.step-transition', {
       userId,
       workspaceId,
       fromStep: 'WELCOME',
       toStep: 'BUSINESS_ANALYSIS',
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
   // Validate workspace existence and data integrity before agent creation
   private async validateAgentCreationData(workspaceId: string): Promise<void> {
     const startTime = Date.now();
-    this.logger.debug(`Validating workspace ${workspaceId} before agent creation`);
-    
+
+    this.logger.debug(
+      `Validating workspace ${workspaceId} before agent creation`,
+    );
+
     try {
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
       if (!uuidRegex.test(workspaceId)) {
         this.metrics.uuidFormatErrors++;
         this.logger.error(`Invalid workspace ID format: ${workspaceId}`);
@@ -715,40 +812,67 @@ CLIENT_SECRET: ваш_client_secret`;
 
       // Validate workspace exists
       const workspace = await this.workspaceService.findById(workspaceId);
+
       if (!workspace) {
         this.metrics.workspaceValidationFailures++;
-        this.logger.error(`Workspace validation failed: workspace ${workspaceId} does not exist`);
-        throw new Error(`Cannot create agent: workspace ${workspaceId} does not exist`);
+        this.logger.error(
+          `Workspace validation failed: workspace ${workspaceId} does not exist`,
+        );
+        throw new Error(
+          `Cannot create agent: workspace ${workspaceId} does not exist`,
+        );
       }
-      
+
       const validationTime = Date.now() - startTime;
-      this.logger.debug(`Workspace ${workspaceId} validation successful (${validationTime}ms)`);
+
+      this.logger.debug(
+        `Workspace ${workspaceId} validation successful (${validationTime}ms)`,
+      );
     } catch (error) {
       const validationTime = Date.now() - startTime;
-      this.logger.error(`Workspace validation failed for ${workspaceId} (${validationTime}ms):`, error);
+
+      this.logger.error(
+        `Workspace validation failed for ${workspaceId} (${validationTime}ms):`,
+        error,
+      );
       throw error;
     }
   }
 
   // Handle database constraint errors with specific error messages
   private handleDatabaseError(error: any, workspaceId: string): never {
-    if (error.message && error.message.includes('FK_c4cb56621768a4a325dd772bbe1')) {
+    if (
+      error.message &&
+      error.message.includes('FK_c4cb56621768a4a325dd772bbe1')
+    ) {
       this.metrics.foreignKeyViolations++;
-      this.logger.error(`Foreign key constraint violation: workspace ${workspaceId} does not exist`);
-      throw new Error(`Invalid workspace ID: ${workspaceId}. The workspace does not exist.`);
+      this.logger.error(
+        `Foreign key constraint violation: workspace ${workspaceId} does not exist`,
+      );
+      throw new Error(
+        `Invalid workspace ID: ${workspaceId}. The workspace does not exist.`,
+      );
     }
-    
-    if (error.message && error.message.includes('invalid input syntax for type uuid')) {
+
+    if (
+      error.message &&
+      error.message.includes('invalid input syntax for type uuid')
+    ) {
       this.metrics.uuidFormatErrors++;
       this.logger.error(`Invalid UUID format provided: ${error.message}`);
-      throw new Error(`Invalid UUID format provided. Please check the agent ID.`);
+      throw new Error(
+        `Invalid UUID format provided. Please check the agent ID.`,
+      );
     }
-    
-    if (error.message && error.message.includes('null value in column "label"')) {
+
+    if (
+      error.message &&
+      error.message.includes('null value in column "label"')
+    ) {
       this.logger.error(`NULL constraint violation: label field is required`);
       throw new Error(`Agent creation failed: label field is required.`);
     }
-    
+
     // Generic database error
     this.logger.error(`Database operation failed:`, error);
     throw error;
@@ -757,42 +881,54 @@ CLIENT_SECRET: ваш_client_secret`;
   // Update average creation time for performance monitoring
   private updateAverageCreationTime(newTime: number): void {
     const totalOperations = this.metrics.agentCreationSuccesses;
-    this.metrics.averageCreationTime = 
-      ((this.metrics.averageCreationTime * (totalOperations - 1)) + newTime) / totalOperations;
+
+    this.metrics.averageCreationTime =
+      (this.metrics.averageCreationTime * (totalOperations - 1) + newTime) /
+      totalOperations;
   }
 
   // Get current metrics for monitoring and debugging
   public getMetrics(): any {
-    const successRate = this.metrics.agentCreationAttempts > 0 
-      ? (this.metrics.agentCreationSuccesses / this.metrics.agentCreationAttempts) * 100 
-      : 0;
-    
+    const successRate =
+      this.metrics.agentCreationAttempts > 0
+        ? (this.metrics.agentCreationSuccesses /
+            this.metrics.agentCreationAttempts) *
+          100
+        : 0;
+
     return {
       ...this.metrics,
       successRate: `${successRate.toFixed(2)}%`,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
   }
 
   // Log metrics periodically for monitoring
   public logMetrics(): void {
     const metrics = this.getMetrics();
-    this.logger.log('Agent Creation Metrics:', JSON.stringify(metrics, null, 2));
+
+    this.logger.log(
+      'Agent Creation Metrics:',
+      JSON.stringify(metrics, null, 2),
+    );
   }
 
   // Get the Avito agent for the workspace
   private async getAvitoAgent(workspaceId: string): Promise<AgentEntity> {
     // Validate workspace exists before creating agent
     const workspace = await this.workspaceService.findById(workspaceId);
+
     if (!workspace) {
-      throw new Error(`Cannot create Avito agent: workspace ${workspaceId} does not exist`);
+      throw new Error(
+        `Cannot create Avito agent: workspace ${workspaceId} does not exist`,
+      );
     }
 
     const avitoAgent = await this.agentRepository.findOne({
-      where: { 
+      where: {
         name: 'Avito Agent',
-        workspaceId 
-      }
+        workspaceId,
+      },
     });
 
     if (!avitoAgent) {
@@ -801,16 +937,26 @@ CLIENT_SECRET: ваш_client_secret`;
         return await this.agentRepository.save({
           name: 'Avito Agent',
           label: 'Avito Agent',
-          description: 'Avito API integration and credentials management agent for Russian marketplace',
-          prompt: 'Привет! Добро пожаловать в интеграцию Avito! Я - агент для подключения к Avito API. Помогу вам настроить интеграцию с российским маркетплейсом Avito, собрать и проверить ваши API учетные данные CLIENT_ID и CLIENT_SECRET. Готовы начать?',
+          description:
+            'Avito API integration and credentials management agent for Russian marketplace',
+          prompt:
+            'Привет! Добро пожаловать в интеграцию Avito! Я - агент для подключения к Avito API. Помогу вам настроить интеграцию с российским маркетплейсом Avito, собрать и проверить ваши API учетные данные CLIENT_ID и CLIENT_SECRET. Готовы начать?',
           modelId: this.GEMINI_MODEL_ID,
           workspaceId, // Now validated workspace ID
           isCustom: true,
         });
       } catch (error) {
-        this.logger.error(`Failed to create Avito agent for workspace ${workspaceId}:`, error);
-        if (error.message && error.message.includes('FK_c4cb56621768a4a325dd772bbe1')) {
-          throw new Error(`Failed to create agent: workspace ${workspaceId} does not exist`);
+        this.logger.error(
+          `Failed to create Avito agent for workspace ${workspaceId}:`,
+          error,
+        );
+        if (
+          error.message &&
+          error.message.includes('FK_c4cb56621768a4a325dd772bbe1')
+        ) {
+          throw new Error(
+            `Failed to create agent: workspace ${workspaceId} does not exist`,
+          );
         }
         throw error;
       }

@@ -1,28 +1,29 @@
-import { Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
+import { type Repository } from 'typeorm';
 
 import { UserService } from 'src/engine/core-modules/user/services/user.service';
 import { WorkspaceService } from 'src/engine/core-modules/workspace/services/workspace.service';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
+
 import { BusinessSetupWelcomeAgentService } from '../services/business-setup-welcome-agent.service';
 
 describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
   let service: BusinessSetupWelcomeAgentService;
   let agentExecutionService: AgentExecutionService;
   let agentRepository: Repository<AgentEntity>;
-  
+
   const mockEventEmitter = {
     emit: jest.fn(),
   };
 
   const mockAgentExecutionService = {
     executeAgent: jest.fn().mockResolvedValue({
-      result: { response: 'Hello!' }
+      result: { response: 'Hello!' },
     }),
   };
 
@@ -32,15 +33,15 @@ describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
   };
 
   const mockUserService = {
-    findById: jest.fn().mockResolvedValue({ 
-      firstName: 'Test', 
-      email: 'test@example.com' 
+    findById: jest.fn().mockResolvedValue({
+      firstName: 'Test',
+      email: 'test@example.com',
     }),
   };
 
   const mockWorkspaceService = {
-    findById: jest.fn().mockResolvedValue({ 
-      displayName: 'Test Workspace' 
+    findById: jest.fn().mockResolvedValue({
+      displayName: 'Test Workspace',
     }),
   };
 
@@ -81,9 +82,15 @@ describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
       ],
     }).compile();
 
-    service = module.get<BusinessSetupWelcomeAgentService>(BusinessSetupWelcomeAgentService);
-    agentExecutionService = module.get<AgentExecutionService>(AgentExecutionService);
-    agentRepository = module.get<Repository<AgentEntity>>(getRepositoryToken(AgentEntity, 'core'));
+    service = module.get<BusinessSetupWelcomeAgentService>(
+      BusinessSetupWelcomeAgentService,
+    );
+    agentExecutionService = module.get<AgentExecutionService>(
+      AgentExecutionService,
+    );
+    agentRepository = module.get<Repository<AgentEntity>>(
+      getRepositoryToken(AgentEntity, 'core'),
+    );
   });
 
   it('should be defined', () => {
@@ -94,10 +101,12 @@ describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
     it('should create a welcome agent with the Gemini model if it does not exist', async () => {
       // Setup
       mockAgentRepository.findOne.mockResolvedValue(null);
-      mockAgentRepository.save.mockImplementation((agent) => Promise.resolve({
-        ...agent,
-        id: 'agent-123'
-      }));
+      mockAgentRepository.save.mockImplementation((agent) =>
+        Promise.resolve({
+          ...agent,
+          id: 'agent-123',
+        }),
+      );
 
       // Trigger welcome chat creation
       await service['handleOnboardingStatusChange']({
@@ -110,18 +119,18 @@ describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
 
       // Verify agent creation
       expect(mockAgentRepository.findOne).toHaveBeenCalledWith({
-        where: { 
+        where: {
           name: 'Welcome Greeting Bot',
-          workspaceId: 'workspace-123' 
-        }
+          workspaceId: 'workspace-123',
+        },
       });
-      
+
       expect(mockAgentRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Welcome Greeting Bot',
           modelId: 'google/gemini-2.5-flash', // Verify correct model is used
           workspaceId: 'workspace-123',
-        })
+        }),
       );
     });
 
@@ -131,9 +140,9 @@ describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
         id: 'agent-123',
         name: 'Welcome Greeting Bot',
         modelId: 'google/gemini-2.5-flash',
-        workspaceId: 'workspace-123'
+        workspaceId: 'workspace-123',
       };
-      
+
       mockAgentRepository.findOne.mockResolvedValue(existingAgent);
 
       // Trigger welcome chat creation
@@ -147,15 +156,15 @@ describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
 
       // Verify agent not created again
       expect(mockAgentRepository.save).not.toHaveBeenCalled();
-      
+
       // Verify agent execution uses the existing agent
       expect(mockAgentExecutionService.executeAgent).toHaveBeenCalledWith(
         expect.objectContaining({
           agent: existingAgent,
           context: expect.objectContaining({
-            modelId: 'google/gemini-2.5-flash' // Verify context contains correct model
-          })
-        })
+            modelId: 'google/gemini-2.5-flash', // Verify context contains correct model
+          }),
+        }),
       );
     });
 
@@ -165,7 +174,7 @@ describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
         id: 'agent-123',
         name: 'Welcome Greeting Bot',
         modelId: 'some-other-model', // Different model in agent
-        workspaceId: 'workspace-123'
+        workspaceId: 'workspace-123',
       });
 
       // Trigger welcome chat creation
@@ -181,9 +190,9 @@ describe('BusinessSetupWelcomeAgentService - Gemini Model Testing', () => {
       expect(mockAgentExecutionService.executeAgent).toHaveBeenCalledWith(
         expect.objectContaining({
           context: expect.objectContaining({
-            modelId: 'google/gemini-2.5-flash' // Enforced model in context
-          })
-        })
+            modelId: 'google/gemini-2.5-flash', // Enforced model in context
+          }),
+        }),
       );
     });
   });

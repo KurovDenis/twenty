@@ -1,4 +1,10 @@
-import { createUnionType, Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import {
+  createUnionType,
+  Field,
+  InputType,
+  ObjectType,
+  registerEnumType,
+} from '@nestjs/graphql';
 
 /**
  * Business Setup Event Types for GraphQL Subscriptions
@@ -161,11 +167,12 @@ export class AIAgentWelcomeChatErrorPayload {
  */
 export const BusinessSetupEventPayload = createUnionType({
   name: 'BusinessSetupEventPayload',
-  types: () => [
-    OnboardingStatusChangedPayload,
-    AIAgentWelcomeChatPayload,
-    AIAgentWelcomeChatErrorPayload,
-  ] as const,
+  types: () =>
+    [
+      OnboardingStatusChangedPayload,
+      AIAgentWelcomeChatPayload,
+      AIAgentWelcomeChatErrorPayload,
+    ] as const,
   resolveType(value) {
     if ('status' in value && 'previousStatus' in value) {
       return OnboardingStatusChangedPayload;
@@ -176,6 +183,7 @@ export const BusinessSetupEventPayload = createUnionType({
     if ('error' in value && 'attempts' in value) {
       return AIAgentWelcomeChatErrorPayload;
     }
+
     return null;
   },
 });
@@ -256,19 +264,19 @@ export const SUBSCRIPTION_CHANNELS = {
 export class EventRouter {
   static routeEvent(eventType: BusinessSetupEventType): string[] {
     const channels: string[] = [];
-    
+
     // Add to main channel
     channels.push(SUBSCRIPTION_CHANNELS.BUSINESS_SETUP_EVENTS);
-    
+
     // Add to category-specific channels
     if (eventType.startsWith('ONBOARDING_')) {
       channels.push(SUBSCRIPTION_CHANNELS.ONBOARDING_EVENTS);
     }
-    
+
     if (eventType.startsWith('AI_AGENT_')) {
       channels.push(SUBSCRIPTION_CHANNELS.AI_AGENT_EVENTS);
     }
-    
+
     return channels;
   }
 

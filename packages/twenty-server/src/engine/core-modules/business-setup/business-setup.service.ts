@@ -1,12 +1,19 @@
-import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { OnboardingService } from 'src/engine/core-modules/onboarding/onboarding.service';
-import { BusinessSetupStatus } from './enums/business-setup-status.enum';
 import { OnboardingStatus } from 'src/engine/core-modules/onboarding/enums/onboarding-status.enum';
 import { type User } from 'src/engine/core-modules/user/user.entity';
 import { type Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
-import { BUSINESS_SETUP_EVENTS, BusinessSetupRouteMessageEvent, SupervisorThinkingStepEvent, SupervisorRoutingCompletedEvent } from './events/business-setup.events';
+
+import { BusinessSetupStatus } from './enums/business-setup-status.enum';
+import {
+  BUSINESS_SETUP_EVENTS,
+  BusinessSetupRouteMessageEvent,
+  SupervisorThinkingStepEvent,
+  SupervisorRoutingCompletedEvent,
+} from './events/business-setup.events';
 
 export enum BusinessSetupStepKeys {
   BUSINESS_SETUP_WELCOME_PENDING = 'BUSINESS_SETUP_WELCOME_PENDING',
@@ -16,16 +23,17 @@ export enum BusinessSetupStepKeys {
   BUSINESS_SETUP_WORKFLOW_CREATION_PENDING = 'BUSINESS_SETUP_WORKFLOW_CREATION_PENDING',
   BUSINESS_SETUP_TEAM_ASSIGNMENT_PENDING = 'BUSINESS_SETUP_TEAM_ASSIGNMENT_PENDING',
   BUSINESS_SETUP_TESTING_OPTIMIZATION_PENDING = 'BUSINESS_SETUP_TESTING_OPTIMIZATION_PENDING',
-  
+
   // Supervisor specific settings
   SUPERVISOR_ENABLED = 'SUPERVISOR_ENABLED',
   BUSINESS_SETUP_CURRENT_STATUS = 'BUSINESS_SETUP_CURRENT_STATUS',
-  
+
   // Avito API credentials
   AVITO_CLIENT_ID = 'AVITO_CLIENT_ID',
   AVITO_CLIENT_SECRET = 'AVITO_CLIENT_SECRET',
   AVITO_ACCESS_TOKEN = 'AVITO_ACCESS_TOKEN',
   AVITO_TOKEN_EXPIRES_AT = 'AVITO_TOKEN_EXPIRES_AT',
+  AVITO_CREDENTIALS_STORED = 'AVITO_CREDENTIALS_STORED',
 }
 
 export type BusinessSetupKeyValueTypeMap = {
@@ -36,16 +44,25 @@ export type BusinessSetupKeyValueTypeMap = {
   [BusinessSetupStepKeys.BUSINESS_SETUP_WORKFLOW_CREATION_PENDING]: boolean;
   [BusinessSetupStepKeys.BUSINESS_SETUP_TEAM_ASSIGNMENT_PENDING]: boolean;
   [BusinessSetupStepKeys.BUSINESS_SETUP_TESTING_OPTIMIZATION_PENDING]: boolean;
-  
+
   // Supervisor specific settings
   [BusinessSetupStepKeys.SUPERVISOR_ENABLED]: boolean;
   [BusinessSetupStepKeys.BUSINESS_SETUP_CURRENT_STATUS]: BusinessSetupStatus;
-  
+
   // Avito API credentials
   [BusinessSetupStepKeys.AVITO_CLIENT_ID]: string;
   [BusinessSetupStepKeys.AVITO_CLIENT_SECRET]: string;
   [BusinessSetupStepKeys.AVITO_ACCESS_TOKEN]: string;
   [BusinessSetupStepKeys.AVITO_TOKEN_EXPIRES_AT]: string;
+
+  // Additional Avito workflow keys
+  AVITO_CREDENTIALS_STORED: string;
+  AVITO_CLIENT_SECRET_STATUS: string;
+  AVITO_CLIENT_SECRET_BACKUP: string;
+  'health-check-test': string;
+
+  // Dynamic keys for testing and other purposes
+  [key: string]: string | boolean | BusinessSetupStatus | undefined;
 };
 
 @Injectable()
@@ -58,10 +75,16 @@ export class BusinessSetupService {
     private readonly eventEmitter: EventEmitter2, // Use EventEmitter2 for decoupled communication
   ) {}
 
-  async getBusinessSetupStatus(user: User, workspace: Workspace): Promise<BusinessSetupStatus> {
+  async getBusinessSetupStatus(
+    user: User,
+    workspace: Workspace,
+  ): Promise<BusinessSetupStatus> {
     // Проверяем завершен ли onboarding
-    const onboardingStatus = await this.onboardingService.getOnboardingStatus(user, workspace);
-    
+    const onboardingStatus = await this.onboardingService.getOnboardingStatus(
+      user,
+      workspace,
+    );
+
     if (onboardingStatus !== OnboardingStatus.COMPLETED) {
       return BusinessSetupStatus.WELCOME;
     }
@@ -72,13 +95,32 @@ export class BusinessSetupService {
       workspaceId: workspace.id,
     });
 
-    const isWelcomePending = userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_WELCOME_PENDING) === true;
-    const isBusinessAnalysisPending = userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING) === true;
-    const isSalesFunnelDesignPending = userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_SALES_FUNNEL_DESIGN_PENDING) === true;
-    const isAgentSetupPending = userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_AGENT_SETUP_PENDING) === true;
-    const isWorkflowCreationPending = userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_WORKFLOW_CREATION_PENDING) === true;
-    const isTeamAssignmentPending = userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_TEAM_ASSIGNMENT_PENDING) === true;
-    const isTestingOptimizationPending = userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_TESTING_OPTIMIZATION_PENDING) === true;
+    const isWelcomePending =
+      userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_WELCOME_PENDING) ===
+      true;
+    const isBusinessAnalysisPending =
+      userVars.get(
+        BusinessSetupStepKeys.BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING,
+      ) === true;
+    const isSalesFunnelDesignPending =
+      userVars.get(
+        BusinessSetupStepKeys.BUSINESS_SETUP_SALES_FUNNEL_DESIGN_PENDING,
+      ) === true;
+    const isAgentSetupPending =
+      userVars.get(BusinessSetupStepKeys.BUSINESS_SETUP_AGENT_SETUP_PENDING) ===
+      true;
+    const isWorkflowCreationPending =
+      userVars.get(
+        BusinessSetupStepKeys.BUSINESS_SETUP_WORKFLOW_CREATION_PENDING,
+      ) === true;
+    const isTeamAssignmentPending =
+      userVars.get(
+        BusinessSetupStepKeys.BUSINESS_SETUP_TEAM_ASSIGNMENT_PENDING,
+      ) === true;
+    const isTestingOptimizationPending =
+      userVars.get(
+        BusinessSetupStepKeys.BUSINESS_SETUP_TESTING_OPTIMIZATION_PENDING,
+      ) === true;
 
     if (isWelcomePending) {
       return BusinessSetupStatus.WELCOME;
@@ -183,9 +225,12 @@ export class BusinessSetupService {
     }
   }
 
-  private async clearAllBusinessSetupStatuses(userId: string, workspaceId: string): Promise<void> {
+  private async clearAllBusinessSetupStatuses(
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
     const keys = Object.values(BusinessSetupStepKeys);
-    
+
     for (const key of keys) {
       await this.userVarsService.set({
         userId,
@@ -201,8 +246,12 @@ export class BusinessSetupService {
    * This is the main entry point for supervisor routing using event-driven architecture
    */
   @OnEvent(BUSINESS_SETUP_EVENTS.BUSINESS_SETUP_ROUTE_MESSAGE)
-  async handleRouteMessage(payload: BusinessSetupRouteMessageEvent): Promise<void> {
-    this.logger.log(`Handling supervisor route message for user ${payload.userId}`);
+  async handleRouteMessage(
+    payload: BusinessSetupRouteMessageEvent,
+  ): Promise<void> {
+    this.logger.log(
+      `Handling supervisor route message for user ${payload.userId}`,
+    );
 
     try {
       // Use event-driven approach to decouple dependencies
@@ -212,10 +261,12 @@ export class BusinessSetupService {
         userId: payload.userId,
         workspaceId: payload.workspaceId,
         threadId: payload.threadId,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
-      
-      this.logger.debug(`Emitted supervisor process message event for user ${payload.userId}`);
+
+      this.logger.debug(
+        `Emitted supervisor process message event for user ${payload.userId}`,
+      );
     } catch (error) {
       this.logger.error('Failed to handle supervisor route message:', error);
     }
@@ -225,29 +276,40 @@ export class BusinessSetupService {
    * Handle supervisor thinking step events for monitoring and debugging
    */
   @OnEvent(BUSINESS_SETUP_EVENTS.SUPERVISOR_THINKING_STEP)
-  async handleSupervisorThinkingStep(payload: SupervisorThinkingStepEvent): Promise<void> {
-    this.logger.debug(`Supervisor thinking step ${payload.stepNumber}: ${payload.selectedTool}`);
-    
+  async handleSupervisorThinkingStep(
+    payload: SupervisorThinkingStepEvent,
+  ): Promise<void> {
+    this.logger.debug(
+      `Supervisor thinking step ${payload.stepNumber}: ${payload.selectedTool}`,
+    );
+
     // Here you could add logic to:
     // - Store thinking steps for debugging
     // - Monitor supervisor performance
     // - Log decision patterns
-    
+
     // For now, just log the thinking step
-    this.logger.debug(`Step ${payload.stepNumber} state: ${payload.currentState.substring(0, 100)}...`);
+    this.logger.debug(
+      `Step ${payload.stepNumber} state: ${payload.currentState.substring(0, 100)}...`,
+    );
   }
 
   /**
    * Handle supervisor routing completion events
    */
   @OnEvent(BUSINESS_SETUP_EVENTS.SUPERVISOR_ROUTING_COMPLETED)
-  async handleSupervisorRoutingCompleted(payload: SupervisorRoutingCompletedEvent): Promise<void> {
-    this.logger.log(`Supervisor routing completed for user ${payload.userId}:`, {
-      success: payload.success,
-      routedTo: payload.routedTo,
-      executionTime: payload.executionTimeMs,
-      stepsExecuted: payload.stepsExecuted.length
-    });
+  async handleSupervisorRoutingCompleted(
+    payload: SupervisorRoutingCompletedEvent,
+  ): Promise<void> {
+    this.logger.log(
+      `Supervisor routing completed for user ${payload.userId}:`,
+      {
+        success: payload.success,
+        routedTo: payload.routedTo,
+        executionTime: payload.executionTimeMs,
+        stepsExecuted: payload.stepsExecuted.length,
+      },
+    );
 
     // Here you could add logic to:
     // - Update user statistics
@@ -261,18 +323,25 @@ export class BusinessSetupService {
    */
   @OnEvent(BUSINESS_SETUP_EVENTS.SUPERVISOR_STATUS_TRANSITION)
   async handleSupervisorStatusTransition(payload: any): Promise<void> {
-    this.logger.log(`Supervisor triggered status transition: ${payload.fromStatus} -> ${payload.toStatus}`);
+    this.logger.log(
+      `Supervisor triggered status transition: ${payload.fromStatus} -> ${payload.toStatus}`,
+    );
 
     try {
       // Extract user info from the thread or payload
       const { userId, workspaceId, fromStatus, toStatus, reason } = payload;
-      
+
       // Update the business setup status
       await this.setBusinessSetupStatus(userId, workspaceId, toStatus);
-      
-      this.logger.log(`Successfully updated business setup status to ${toStatus} for user ${userId}`);
+
+      this.logger.log(
+        `Successfully updated business setup status to ${toStatus} for user ${userId}`,
+      );
     } catch (error) {
-      this.logger.error('Failed to handle supervisor status transition:', error);
+      this.logger.error(
+        'Failed to handle supervisor status transition:',
+        error,
+      );
     }
   }
 
@@ -285,7 +354,7 @@ export class BusinessSetupService {
       errorType: payload.errorType,
       errorMessage: payload.errorMessage,
       recoverable: payload.recoverable,
-      context: payload.context
+      context: payload.context,
     });
 
     // Here you could add logic to:
@@ -300,11 +369,14 @@ export class BusinessSetupService {
    */
   @OnEvent(BUSINESS_SETUP_EVENTS.SUPERVISOR_AGENT_HANDOFF)
   async handleSupervisorAgentHandoff(payload: any): Promise<void> {
-    this.logger.log(`Supervisor agent handoff: ${payload.fromAgent} -> ${payload.toAgent}`, {
-      reason: payload.handoffReason,
-      contextPreserved: payload.contextPreserved,
-      userMessage: payload.userMessage.substring(0, 100) + '...'
-    });
+    this.logger.log(
+      `Supervisor agent handoff: ${payload.fromAgent} -> ${payload.toAgent}`,
+      {
+        reason: payload.handoffReason,
+        contextPreserved: payload.contextPreserved,
+        userMessage: payload.userMessage.substring(0, 100) + '...',
+      },
+    );
 
     // Here you could add logic to:
     // - Track agent performance metrics

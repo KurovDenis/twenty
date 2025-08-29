@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+
 import { Repository } from 'typeorm';
 
 import { UserWorkspace } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 import { AgentService } from 'src/engine/metadata-modules/agent/agent.service';
+
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 
 @Injectable()
@@ -26,23 +28,28 @@ export class BusinessSetupAgentService {
     // For WELCOME status, ALWAYS use the specific SGR Avito Agent
     if (step === BusinessSetupStatus.WELCOME) {
       const SGR_AVITO_AGENT_ID = '2f851163-c7ea-4eae-b960-13f019b256e3';
-      
+
       // Try to find the existing SGR Avito agent
       const actualWorkspaceId = await this.resolveWorkspaceId(userWorkspaceId);
-      
+
       let sgrAgent = await this.agentRepository.findOne({
         where: { id: SGR_AVITO_AGENT_ID, workspaceId: actualWorkspaceId },
       });
-      
+
       if (!sgrAgent) {
         // Create the SGR Avito agent if it doesn't exist
-        this.logger.log(`Creating SGR Avito Agent for WELCOME step in workspace ${actualWorkspaceId}`);
+        this.logger.log(
+          `Creating SGR Avito Agent for WELCOME step in workspace ${actualWorkspaceId}`,
+        );
         sgrAgent = await this.createSGRAvitoAgent(actualWorkspaceId);
       }
-      
+
       return sgrAgent;
     }
-    const agentMapping: Record<Exclude<BusinessSetupStatus, BusinessSetupStatus.COMPLETED>, string> = {
+    const agentMapping: Record<
+      Exclude<BusinessSetupStatus, BusinessSetupStatus.COMPLETED>,
+      string
+    > = {
       [BusinessSetupStatus.WELCOME]: 'welcome-agent',
       [BusinessSetupStatus.BUSINESS_ANALYSIS]: 'business-analysis-agent',
       [BusinessSetupStatus.SALES_FUNNEL_DESIGN]: 'funnel-designer-agent',
@@ -58,6 +65,7 @@ export class BusinessSetupAgentService {
     }
 
     const agentName = agentMapping[step];
+
     if (!agentName) {
       throw new Error(`No agent mapping for step: ${step}`);
     }
@@ -72,7 +80,9 @@ export class BusinessSetupAgentService {
 
     // Create agent if it doesn't exist
     if (!agent) {
-      this.logger.log(`Creating agent for step ${step} in workspace ${actualWorkspaceId}`);
+      this.logger.log(
+        `Creating agent for step ${step} in workspace ${actualWorkspaceId}`,
+      );
       agent = await this.createAgentForStep(step, actualWorkspaceId);
     }
 
@@ -101,14 +111,17 @@ export class BusinessSetupAgentService {
       throw new Error('Cannot create agent for COMPLETED status');
     }
 
-    const agentConfigs: Record<Exclude<BusinessSetupStatus, BusinessSetupStatus.COMPLETED>, {
-      name: string;
-      label: string;
-      description: string;
-      prompt: string;
-      modelId: 'google/gemini-2.5-flash' | 'auto';
-      isCustom: boolean;
-    }> = {
+    const agentConfigs: Record<
+      Exclude<BusinessSetupStatus, BusinessSetupStatus.COMPLETED>,
+      {
+        name: string;
+        label: string;
+        description: string;
+        prompt: string;
+        modelId: 'google/gemini-2.5-flash' | 'auto';
+        isCustom: boolean;
+      }
+    > = {
       [BusinessSetupStatus.WELCOME]: {
         name: 'welcome-agent',
         label: 'Welcome AI Assistant',
@@ -224,6 +237,7 @@ Focus on ensuring optimal performance and user experience.`,
     };
 
     const config = agentConfigs[step];
+
     if (!config) {
       throw new Error(`No configuration for step: ${step}`);
     }
@@ -243,13 +257,14 @@ Focus on ensuring optimal performance and user experience.`,
    */
   private async createSGRAvitoAgent(workspaceId: string): Promise<AgentEntity> {
     const SGR_AVITO_AGENT_ID = '2f851163-c7ea-4eae-b960-13f019b256e3';
-    
+
     // Create agent directly with repository to support specific ID
     const agent = this.agentRepository.create({
       id: SGR_AVITO_AGENT_ID, // Force specific ID
       name: 'sgr-avito-agent',
       label: 'SGR Avito Integration Assistant',
-      description: 'Specialized SGR agent for Avito API integration during business setup',
+      description:
+        'Specialized SGR agent for Avito API integration during business setup',
       prompt: `You are the SGR Avito Integration Assistant, a specialized AI agent with Schema-Guided Reasoning capabilities.
 
 Your role is to help users set up Avito API integration for their business automation.
@@ -283,19 +298,26 @@ Always be helpful, professional, and security-focused when handling API credenti
    * The supervisor agent is responsible for analyzing user requests and routing them to appropriate specialized agents
    */
   async getSupervisorAgent(userWorkspaceId: string): Promise<AgentEntity> {
-    this.logger.log(`Getting supervisor agent for userWorkspace ${userWorkspaceId}`);
+    this.logger.log(
+      `Getting supervisor agent for userWorkspace ${userWorkspaceId}`,
+    );
 
     // Resolve actual workspace ID from userWorkspace
     const actualWorkspaceId = await this.resolveWorkspaceId(userWorkspaceId);
 
     // Look for existing supervisor agent
     let supervisorAgent = await this.agentRepository.findOne({
-      where: { name: 'business-setup-supervisor', workspaceId: actualWorkspaceId },
+      where: {
+        name: 'business-setup-supervisor',
+        workspaceId: actualWorkspaceId,
+      },
     });
 
     // Create supervisor agent if it doesn't exist
     if (!supervisorAgent) {
-      this.logger.log(`Creating supervisor agent for workspace ${actualWorkspaceId}`);
+      this.logger.log(
+        `Creating supervisor agent for workspace ${actualWorkspaceId}`,
+      );
       supervisorAgent = await this.createSupervisorAgent(actualWorkspaceId);
     }
 
@@ -337,7 +359,8 @@ Always maintain a helpful and informative tone while making routing decisions.`;
       {
         name: 'business-setup-supervisor',
         label: 'Business Setup Supervisor',
-        description: 'Supervisor agent that routes business setup requests to appropriate specialized agents',
+        description:
+          'Supervisor agent that routes business setup requests to appropriate specialized agents',
         prompt: supervisorPrompt,
         modelId: 'google/gemini-2.5-flash',
         icon: '🎯',
@@ -350,7 +373,10 @@ Always maintain a helpful and informative tone while making routing decisions.`;
   /**
    * Check if an agent is a business setup supervisor agent
    */
-  async isSupervisorAgent(agentId: string, workspaceId: string): Promise<boolean> {
+  async isSupervisorAgent(
+    agentId: string,
+    workspaceId: string,
+  ): Promise<boolean> {
     try {
       const agent = await this.agentRepository.findOne({
         where: { id: agentId, workspaceId },
@@ -359,6 +385,7 @@ Always maintain a helpful and informative tone while making routing decisions.`;
       return agent?.name === 'business-setup-supervisor';
     } catch (error) {
       this.logger.error('Failed to check if agent is supervisor:', error);
+
       return false;
     }
   }
@@ -366,9 +393,11 @@ Always maintain a helpful and informative tone while making routing decisions.`;
   /**
    * Get all business setup agents for a workspace
    */
-  async getAllBusinessSetupAgents(userWorkspaceId: string): Promise<AgentEntity[]> {
+  async getAllBusinessSetupAgents(
+    userWorkspaceId: string,
+  ): Promise<AgentEntity[]> {
     const actualWorkspaceId = await this.resolveWorkspaceId(userWorkspaceId);
-    
+
     const businessSetupAgentNames = [
       'business-setup-supervisor',
       'sgr-avito-agent',
@@ -378,11 +407,14 @@ Always maintain a helpful and informative tone while making routing decisions.`;
       'agent-orchestrator-agent',
       'workflow-generator-agent',
       'team-assignment-agent',
-      'testing-optimization-agent'
+      'testing-optimization-agent',
     ];
 
     return await this.agentRepository.find({
-      where: businessSetupAgentNames.map(name => ({ name, workspaceId: actualWorkspaceId })),
+      where: businessSetupAgentNames.map((name) => ({
+        name,
+        workspaceId: actualWorkspaceId,
+      })),
     });
   }
 }

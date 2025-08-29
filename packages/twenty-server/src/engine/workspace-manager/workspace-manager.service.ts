@@ -228,7 +228,8 @@ export class WorkspaceManagerService {
         label: 'AI Assistant',
         name: 'ai-assistant',
         description: 'Default AI Assistant for this workspace',
-        prompt: 'You are a helpful AI assistant for this workspace. Help users with their tasks, provide insights about their data, and guide them through workflows. Be concise but thorough in your responses. You can help with data analysis, workflow guidance, task management, and general workspace assistance.',
+        prompt:
+          'You are a helpful AI assistant for this workspace. Help users with their tasks, provide insights about their data, and guide them through workflows. Be concise but thorough in your responses. You can help with data analysis, workflow guidance, task management, and general workspace assistance.',
         modelId: 'auto',
         isCustom: false,
       },

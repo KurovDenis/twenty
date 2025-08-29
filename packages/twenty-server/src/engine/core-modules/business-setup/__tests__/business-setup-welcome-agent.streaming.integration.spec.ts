@@ -1,12 +1,17 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
+
 import { AiModelRegistryService } from 'src/engine/core-modules/ai/services/ai-model-registry.service';
 import { HttpTool } from 'src/engine/core-modules/tool/tools/http-tool/http-tool';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { AgentChatMessageRole } from 'src/engine/metadata-modules/agent/agent-chat-message.entity';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
-import { BusinessSetupKeyValueTypeMap, BusinessSetupStepKeys } from '../business-setup.service';
+
+import {
+  type BusinessSetupKeyValueTypeMap,
+  BusinessSetupStepKeys,
+} from '../business-setup.service';
 import { BusinessSetupWelcomeAgentService } from '../services/business-setup-welcome-agent.service';
 import { AvitoWelcomeSGRService } from '../sgr/services/avito-welcome-sgr.service';
 
@@ -17,13 +22,15 @@ jest.mock('ai', () => ({
 
 /**
  * Integration test for the Business Setup Welcome Agent with streaming SGR
- * 
+ *
  * This test validates the complete end-to-end flow with real-time streaming
  * of AI thinking processes during credential validation.
  */
 describe('BusinessSetupWelcomeAgentService - Streaming SGR Integration', () => {
   let businessSetupService: BusinessSetupWelcomeAgentService;
-  let mockUserVarsService: jest.Mocked<UserVarsService<BusinessSetupKeyValueTypeMap>>;
+  let mockUserVarsService: jest.Mocked<
+    UserVarsService<BusinessSetupKeyValueTypeMap>
+  >;
   let mockAgentChatService: jest.Mocked<AgentChatService>;
   let mockAiModelRegistryService: jest.Mocked<AiModelRegistryService>;
   let mockEventEmitter: jest.Mocked<EventEmitter2>;
@@ -83,8 +90,8 @@ describe('BusinessSetupWelcomeAgentService - Streaming SGR Integration', () => {
     mockAgentExecutionService = {
       executeAgent: jest.fn().mockResolvedValue({
         result: {
-          response: 'Welcome message'
-        }
+          response: 'Welcome message',
+        },
       }),
     } as any;
 
@@ -93,14 +100,14 @@ describe('BusinessSetupWelcomeAgentService - Streaming SGR Integration', () => {
         id: testData.userId,
         firstName: 'Test',
         lastName: 'User',
-        email: 'test@example.com'
+        email: 'test@example.com',
       }),
     } as any;
 
     mockWorkspaceService = {
       findById: jest.fn().mockResolvedValue({
         id: testData.workspaceId,
-        displayName: 'Test Workspace'
+        displayName: 'Test Workspace',
       }),
     } as any;
 
@@ -151,47 +158,54 @@ describe('BusinessSetupWelcomeAgentService - Streaming SGR Integration', () => {
         {
           provide: AvitoWelcomeSGRService,
           useValue: {
-            processWelcomeMessageWithStreaming: jest.fn().mockImplementation(async function* () {
-              // Mock streaming SGR results
-              yield {
-                type: 'thinking',
-                step: {
-                  stepNumber: 1,
-                  currentState: 'Analyzing user message for credentials',
-                  plannedSteps: ['Extract credentials', 'Validate with Avito API'],
-                  selectedTool: 'extract_credentials',
-                  timestamp: new Date()
-                },
-                completed: false
-              };
-              
-              yield {
-                type: 'tool_execution',
-                step: {
-                  stepNumber: 1,
-                  currentState: 'Credentials extracted successfully',
-                  plannedSteps: ['Validate with Avito API'],
-                  selectedTool: 'extract_credentials',
-                  toolExecution: {
-                    status: 'completed'
+            processWelcomeMessageWithStreaming: jest
+              .fn()
+              .mockImplementation(async function* () {
+                // Mock streaming SGR results
+                yield {
+                  type: 'thinking',
+                  step: {
+                    stepNumber: 1,
+                    currentState: 'Analyzing user message for credentials',
+                    plannedSteps: [
+                      'Extract credentials',
+                      'Validate with Avito API',
+                    ],
+                    selectedTool: 'extract_credentials',
+                    timestamp: new Date(),
                   },
-                  timestamp: new Date()
-                },
-                completed: false
-              };
-              
-              yield {
-                type: 'final_response',
-                content: '✅ Credentials validated and stored successfully!',
-                completed: true
-              };
-            })
-          }
-        }
+                  completed: false,
+                };
+
+                yield {
+                  type: 'tool_execution',
+                  step: {
+                    stepNumber: 1,
+                    currentState: 'Credentials extracted successfully',
+                    plannedSteps: ['Validate with Avito API'],
+                    selectedTool: 'extract_credentials',
+                    toolExecution: {
+                      status: 'completed',
+                    },
+                    timestamp: new Date(),
+                  },
+                  completed: false,
+                };
+
+                yield {
+                  type: 'final_response',
+                  content: '✅ Credentials validated and stored successfully!',
+                  completed: true,
+                };
+              }),
+          },
+        },
       ],
     }).compile();
 
-    businessSetupService = module.get<BusinessSetupWelcomeAgentService>(BusinessSetupWelcomeAgentService);
+    businessSetupService = module.get<BusinessSetupWelcomeAgentService>(
+      BusinessSetupWelcomeAgentService,
+    );
   });
 
   afterEach(() => {
@@ -205,8 +219,8 @@ describe('BusinessSetupWelcomeAgentService - Streaming SGR Integration', () => {
         result: {
           access_token: testData.mockAccessToken,
           expires_in: 86400,
-          token_type: 'Bearer'
-        }
+          token_type: 'Bearer',
+        },
       });
 
       const userMessage = `
@@ -220,7 +234,7 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         workspaceId: testData.workspaceId,
         threadId: testData.threadId,
         message: userMessage,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       // Act: Process the message through the streaming SGR workflow
@@ -228,37 +242,39 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         payload.threadId,
         payload.message,
         payload.workspaceId,
-        payload.userId
+        payload.userId,
       );
 
       // Assert: Verify that multiple messages were sent to show streaming progress
       expect(mockAgentChatService.addMessage).toHaveBeenCalledTimes(3);
-      
+
       // Verify thinking message was sent
       expect(mockAgentChatService.addMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           threadId: testData.threadId,
           role: AgentChatMessageRole.ASSISTANT,
           content: expect.stringContaining('Шаг 1: Анализ'),
-        })
+        }),
       );
-      
+
       // Verify tool execution message was sent
       expect(mockAgentChatService.addMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           threadId: testData.threadId,
           role: AgentChatMessageRole.ASSISTANT,
-          content: expect.stringContaining('Инструмент extract_credentials выполнен успешно'),
-        })
+          content: expect.stringContaining(
+            'Инструмент extract_credentials выполнен успешно',
+          ),
+        }),
       );
-      
+
       // Verify final response message was sent
       expect(mockAgentChatService.addMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           threadId: testData.threadId,
           role: AgentChatMessageRole.ASSISTANT,
           content: expect.stringContaining('✅'),
-        })
+        }),
       );
 
       // Verify credentials were stored
@@ -266,14 +282,14 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.AVITO_CLIENT_ID,
-        value: testData.validClientId
+        value: testData.validClientId,
       });
 
       expect(mockUserVarsService.set).toHaveBeenCalledWith({
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.AVITO_CLIENT_SECRET,
-        value: testData.validClientSecret
+        value: testData.validClientSecret,
       });
 
       // Verify business setup state transition
@@ -281,32 +297,37 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.BUSINESS_SETUP_WELCOME_PENDING,
-        value: false
+        value: false,
       });
 
       expect(mockUserVarsService.set).toHaveBeenCalledWith({
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING,
-        value: true
+        value: true,
       });
     });
 
     it('should handle streaming SGR errors gracefully', async () => {
       // Arrange: Mock the SGR service to throw an error
-      const mockSGRService = businessSetupService['avitoWelcomeSGRService'] as any;
-      mockSGRService.processWelcomeMessageWithStreaming = jest.fn().mockImplementation(() => {
-        throw new Error('Streaming SGR failed');
-      });
+      const mockSGRService = businessSetupService[
+        'avitoWelcomeSGRService'
+      ] as any;
+
+      mockSGRService.processWelcomeMessageWithStreaming = jest
+        .fn()
+        .mockImplementation(() => {
+          throw new Error('Streaming SGR failed');
+        });
 
       const userMessage = "CLIENT_ID = 'invalid' CLIENT_SECRET = 'invalid'";
-      
+
       const payload = {
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         threadId: testData.threadId,
         message: userMessage,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       // Act: Process the message (should fallback to legacy processing)
@@ -314,7 +335,7 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         payload.threadId,
         payload.message,
         payload.workspaceId,
-        payload.userId
+        payload.userId,
       );
 
       // Assert: Verify fallback message was sent
@@ -322,8 +343,10 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         expect.objectContaining({
           threadId: testData.threadId,
           role: AgentChatMessageRole.ASSISTANT,
-          content: expect.stringContaining('❌ Произошла ошибка при обработке сообщения'),
-        })
+          content: expect.stringContaining(
+            '❌ Произошла ошибка при обработке сообщения',
+          ),
+        }),
       );
     });
   });

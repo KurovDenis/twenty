@@ -1,9 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BusinessSetupService } from './business-setup.service';
+import { Test, type TestingModule } from '@nestjs/testing';
+
 import { UserVarsService } from '../user/user-vars/services/user-vars.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
-import { BusinessSetupStatus } from './enums/business-setup-status.enum';
 import { OnboardingStatus } from '../onboarding/enums/onboarding-status.enum';
+
+import { BusinessSetupService } from './business-setup.service';
+
+import { BusinessSetupStatus } from './enums/business-setup-status.enum';
 
 describe('BusinessSetupService', () => {
   let service: BusinessSetupService;
@@ -44,7 +47,9 @@ describe('BusinessSetupService', () => {
       const user = { id: 'user-1' } as any;
       const workspace = { id: 'workspace-1' } as any;
 
-      mockOnboardingService.getOnboardingStatus.mockResolvedValue(OnboardingStatus.PROFILE_CREATION);
+      mockOnboardingService.getOnboardingStatus.mockResolvedValue(
+        OnboardingStatus.PROFILE_CREATION,
+      );
 
       const result = await service.getBusinessSetupStatus(user, workspace);
 
@@ -55,9 +60,11 @@ describe('BusinessSetupService', () => {
       const user = { id: 'user-1' } as any;
       const workspace = { id: 'workspace-1' } as any;
 
-      mockOnboardingService.getOnboardingStatus.mockResolvedValue(OnboardingStatus.COMPLETED);
+      mockOnboardingService.getOnboardingStatus.mockResolvedValue(
+        OnboardingStatus.COMPLETED,
+      );
       mockUserVarsService.getAll.mockResolvedValue(
-        new Map([['BUSINESS_SETUP_WELCOME_PENDING', true]])
+        new Map([['BUSINESS_SETUP_WELCOME_PENDING', true]]),
       );
 
       const result = await service.getBusinessSetupStatus(user, workspace);
@@ -69,9 +76,11 @@ describe('BusinessSetupService', () => {
       const user = { id: 'user-1' } as any;
       const workspace = { id: 'workspace-1' } as any;
 
-      mockOnboardingService.getOnboardingStatus.mockResolvedValue(OnboardingStatus.COMPLETED);
+      mockOnboardingService.getOnboardingStatus.mockResolvedValue(
+        OnboardingStatus.COMPLETED,
+      );
       mockUserVarsService.getAll.mockResolvedValue(
-        new Map([['BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING', true]])
+        new Map([['BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING', true]]),
       );
 
       const result = await service.getBusinessSetupStatus(user, workspace);
@@ -83,7 +92,9 @@ describe('BusinessSetupService', () => {
       const user = { id: 'user-1' } as any;
       const workspace = { id: 'workspace-1' } as any;
 
-      mockOnboardingService.getOnboardingStatus.mockResolvedValue(OnboardingStatus.COMPLETED);
+      mockOnboardingService.getOnboardingStatus.mockResolvedValue(
+        OnboardingStatus.COMPLETED,
+      );
       mockUserVarsService.getAll.mockResolvedValue(new Map());
 
       const result = await service.getBusinessSetupStatus(user, workspace);
@@ -99,7 +110,11 @@ describe('BusinessSetupService', () => {
 
       mockUserVarsService.set.mockResolvedValue(undefined);
 
-      await service.setBusinessSetupStatus(userId, workspaceId, BusinessSetupStatus.WELCOME);
+      await service.setBusinessSetupStatus(
+        userId,
+        workspaceId,
+        BusinessSetupStatus.WELCOME,
+      );
 
       expect(mockUserVarsService.set).toHaveBeenCalledWith({
         userId,
@@ -115,7 +130,11 @@ describe('BusinessSetupService', () => {
 
       mockUserVarsService.set.mockResolvedValue(undefined);
 
-      await service.setBusinessSetupStatus(userId, workspaceId, BusinessSetupStatus.BUSINESS_ANALYSIS);
+      await service.setBusinessSetupStatus(
+        userId,
+        workspaceId,
+        BusinessSetupStatus.BUSINESS_ANALYSIS,
+      );
 
       expect(mockUserVarsService.set).toHaveBeenCalledWith({
         userId,

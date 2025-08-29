@@ -1,9 +1,9 @@
 /**
  * Types for SGR (Schema-Guided Reasoning) Thinking Streams
- * 
+ *
  * These types support transparent AI reasoning by allowing real-time visibility
  * into the AI's thinking process during business setup credential processing.
- * 
+ *
  * Design Goals:
  * - Show step-by-step AI reasoning to users
  * - Provide progress indicators during tool execution
@@ -17,23 +17,23 @@
 export interface SGRThinkingStep {
   /** Step number in the reasoning sequence (1, 2, 3...) */
   stepNumber: number;
-  
+
   /** Current AI reasoning state description */
   currentState: string;
-  
+
   /** List of planned remaining steps */
   plannedSteps: string[];
-  
+
   /** Tool selected for execution in this step */
   selectedTool: string;
-  
+
   /** Tool execution status and results (optional, filled during execution) */
   toolExecution?: {
     status: 'in_progress' | 'completed' | 'failed';
     result?: any;
     error?: string;
   };
-  
+
   /** When this step was executed */
   timestamp: Date;
 }
@@ -45,15 +45,33 @@ export interface SGRThinkingStep {
 export interface SGRStreamingResult {
   /** Type of streaming update */
   type: 'thinking' | 'tool_execution' | 'final_response';
-  
+
   /** Step information (for thinking and tool_execution types) */
   step?: SGRThinkingStep;
-  
+
   /** Final response content (for final_response type) */
   content?: string;
-  
+
   /** Whether the entire SGR process is completed */
   completed: boolean;
+
+  /** Workflow state for tracking progress */
+  workflowState?: any;
+
+  /** Workflow context with user data */
+  workflowContext?: any;
+
+  /** Error information if process failed */
+  error?: any;
+
+  /** Timestamp for event */
+  timestamp?: string;
+
+  /** Duration of workflow processing */
+  workflowDuration?: number;
+
+  /** Whether the process is complete (alias of completed) */
+  isComplete?: boolean;
 }
 
 /**
@@ -95,7 +113,10 @@ export interface FinalResponseMessage {
 /**
  * Union type for all SGR-related chat messages
  */
-export type SGRChatMessage = ThinkingMessage | ToolExecutionMessage | FinalResponseMessage;
+export type SGRChatMessage =
+  | ThinkingMessage
+  | ToolExecutionMessage
+  | FinalResponseMessage;
 
 /**
  * Context passed to SGR streaming functions
@@ -127,13 +148,13 @@ export interface SGRExecutionResult {
 export interface SGRThinkingConfig {
   /** Whether to show detailed thinking steps */
   showThinkingSteps: boolean;
-  
+
   /** Whether to show tool execution details */
   showToolExecution: boolean;
-  
+
   /** Maximum time to wait for each step (ms) */
   stepTimeoutMs: number;
-  
+
   /** Whether to fall back to legacy processing on streaming failure */
   enableFallback: boolean;
 }

@@ -1,13 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus';
+import {
+  HealthIndicator,
+  HealthIndicatorResult,
+  HealthCheckError,
+} from '@nestjs/terminus';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+
+import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
+import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
+import { AiModelRegistryService } from 'src/engine/core-modules/ai/services/ai-model-registry.service';
 
 import { SupervisorSGRService } from '../services/supervisor-sgr.service';
 import { SupervisorToolDispatcherService } from '../services/supervisor-tool-dispatcher.service';
 import { AvitoWelcomeSGRService } from '../services/avito-welcome-sgr.service';
-import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
-import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
-import { AiModelRegistryService } from 'src/engine/core-modules/ai/services/ai-model-registry.service';
 import { BusinessSetupAgentService } from '../../services/business-setup-agent.service';
 import { BusinessSetupKeyValueTypeMap } from '../../business-setup.service';
 import { BUSINESS_SETUP_EVENTS } from '../../events/business-setup.events';
@@ -96,22 +101,27 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
   private setupEventMetricsTracking(): void {
     // Track event emissions
     const originalEmit = this.eventEmitter.emit.bind(this.eventEmitter);
+
     this.eventEmitter.emit = (event: string, ...args: any[]) => {
       this.eventMetrics.emitted++;
       this.eventMetrics.lastEvent = new Date();
+
       return originalEmit(event, ...args);
     };
 
     // Track specific business setup events
-    this.eventEmitter.on(BUSINESS_SETUP_EVENTS.SUPERVISOR_PROCESS_MESSAGE, () => {
-      this.eventMetrics.handled++;
-    });
+    this.eventEmitter.on(
+      BUSINESS_SETUP_EVENTS.SUPERVISOR_PROCESS_MESSAGE,
+      () => {
+        this.eventMetrics.handled++;
+      },
+    );
 
     this.eventEmitter.on(BUSINESS_SETUP_EVENTS.SUPERVISOR_AGENT_HANDOFF, () => {
       this.eventMetrics.handled++;
     });
 
-    this.eventEmitter.on(BUSINESS_SETUP_EVENTS.SUPERVISOR_STATUS_CHANGE, () => {
+    this.eventEmitter.on('supervisor.status-changed', () => {
       this.eventMetrics.handled++;
     });
   }
@@ -119,18 +129,20 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
     try {
       const healthReport = await this.performFullHealthCheck();
-      
+
       if (healthReport.status === 'healthy') {
         return this.getStatus(key, true, healthReport);
       } else {
-        throw new HealthCheckError('SGR Module Health Check Failed', 
-          this.getStatus(key, false, healthReport)
+        throw new HealthCheckError(
+          'SGR Module Health Check Failed',
+          this.getStatus(key, false, healthReport),
         );
       }
     } catch (error) {
       this.logger.error('Health check failed', error);
-      throw new HealthCheckError('SGR Module Health Check Error', 
-        this.getStatus(key, false, { error: error.message })
+      throw new HealthCheckError(
+        'SGR Module Health Check Error',
+        this.getStatus(key, false, { error: error.message }),
       );
     }
   }
@@ -157,32 +169,40 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
 
     // Check core SGR services
     await this.checkSGRServices(report);
-    
+
     // Check external dependencies
     await this.checkExternalDependencies(report);
-    
+
     // Check event system health
     this.checkEventSystemHealth(report);
-    
+
     // Determine overall status
     this.determineOverallHealth(report);
-    
+
     const checkTime = Date.now() - startTime;
-    this.logger.log(`Health check completed in ${checkTime}ms - Status: ${report.status}`);
-    
+
+    this.logger.log(
+      `Health check completed in ${checkTime}ms - Status: ${report.status}`,
+    );
+
     this.healthMetrics = report;
+
     return report;
   }
 
   private async checkSGRServices(report: SGRModuleHealthReport): Promise<void> {
     const services = [
       { name: 'SupervisorSGRService', instance: this.supervisorSGRService },
-      { name: 'SupervisorToolDispatcherService', instance: this.toolDispatcherService },
+      {
+        name: 'SupervisorToolDispatcherService',
+        instance: this.toolDispatcherService,
+      },
       { name: 'AvitoWelcomeService', instance: this.avitoWelcomeService },
     ];
 
     for (const service of services) {
       const startTime = Date.now();
+
       try {
         // Check if service is properly instantiated
         if (!service.instance) {
@@ -191,8 +211,9 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
 
         // Perform service-specific health checks
         await this.performServiceHealthCheck(service.name, service.instance);
-        
+
         const responseTime = Date.now() - startTime;
+
         report.services[service.name] = {
           status: 'up',
           lastCheck: new Date(),
@@ -204,6 +225,7 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
         };
       } catch (error) {
         const responseTime = Date.now() - startTime;
+
         report.services[service.name] = {
           status: 'down',
           lastCheck: new Date(),
@@ -219,27 +241,36 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
     }
   }
 
-  private async performServiceHealthCheck(serviceName: string, serviceInstance: any): Promise<void> {
+  private async performServiceHealthCheck(
+    serviceName: string,
+    serviceInstance: any,
+  ): Promise<void> {
     switch (serviceName) {
       case 'SupervisorToolDispatcherService':
         // Test basic status check functionality
-        await serviceInstance.checkBusinessSetupStatus('health-check', 'health-check');
+        await serviceInstance.checkBusinessSetupStatus(
+          'health-check',
+          'health-check',
+        );
         break;
-        
+
       case 'SupervisorSGRService':
         // Verify service is responsive (basic method availability check)
         if (typeof serviceInstance.processMessageWithStreaming !== 'function') {
           throw new Error('Core method not available');
         }
         break;
-        
+
       case 'AvitoWelcomeService':
         // Check if streaming method is available
-        if (typeof serviceInstance.processWelcomeMessageWithStreaming !== 'function') {
+        if (
+          typeof serviceInstance.processWelcomeMessageWithStreaming !==
+          'function'
+        ) {
           throw new Error('Streaming method not available');
         }
         break;
-        
+
       default:
         // Generic service health check
         if (!serviceInstance) {
@@ -248,28 +279,37 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
     }
   }
 
-  private async checkExternalDependencies(report: SGRModuleHealthReport): Promise<void> {
+  private async checkExternalDependencies(
+    report: SGRModuleHealthReport,
+  ): Promise<void> {
     const dependencies = [
       { name: 'UserVarsService', instance: this.userVarsService },
       { name: 'AgentChatService', instance: this.agentChatService },
       { name: 'AiModelRegistryService', instance: this.aiModelRegistryService },
-      { name: 'BusinessSetupAgentService', instance: this.businessSetupAgentService },
+      {
+        name: 'BusinessSetupAgentService',
+        instance: this.businessSetupAgentService,
+      },
       { name: 'EventEmitter', instance: this.eventEmitter },
     ];
 
     for (const dep of dependencies) {
       const startTime = Date.now();
+
       try {
         await this.checkDependencyHealth(dep.name, dep.instance);
-        
+
         const responseTime = Date.now() - startTime;
+
         report.dependencies[dep.name] = {
           status: responseTime > 1000 ? 'slow' : 'connected',
           lastCheck: new Date(),
         };
 
         if (responseTime > 1000) {
-          report.overall.warnings.push(`${dep.name} responding slowly (${responseTime}ms)`);
+          report.overall.warnings.push(
+            `${dep.name} responding slowly (${responseTime}ms)`,
+          );
         }
       } catch (error) {
         report.dependencies[dep.name] = {
@@ -282,7 +322,10 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
     }
   }
 
-  private async checkDependencyHealth(depName: string, depInstance: any): Promise<void> {
+  private async checkDependencyHealth(
+    depName: string,
+    depInstance: any,
+  ): Promise<void> {
     if (!depInstance) {
       throw new Error('Dependency not injected');
     }
@@ -293,8 +336,8 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
         try {
           await depInstance.get({
             userId: 'health-check',
-            workspaceId: 'health-check', 
-            key: 'health-check'
+            workspaceId: 'health-check',
+            key: 'health-check',
           });
         } catch (error) {
           // This is expected for non-existent health check keys
@@ -303,34 +346,35 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
           }
         }
         break;
-        
+
       case 'AgentChatService':
         // Test service availability
         if (typeof depInstance.getMessages !== 'function') {
           throw new Error('Required methods not available');
         }
         break;
-        
+
       case 'AiModelRegistryService':
         // Test service availability
         if (typeof depInstance.getEffectiveModelConfig !== 'function') {
           throw new Error('AI model registry not available');
         }
         break;
-        
+
       case 'BusinessSetupAgentService':
         // Test service availability
         if (typeof depInstance.getAgentForStep !== 'function') {
           throw new Error('Agent service methods not available');
         }
         break;
-        
+
       case 'EventEmitter':
         // Test event emission capability
         const testEventName = `health-check-${Date.now()}`;
+
         depInstance.emit(testEventName, { test: true });
         break;
-        
+
       default:
         // Generic dependency check
         if (!depInstance) {
@@ -341,43 +385,50 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
 
   private checkEventSystemHealth(report: SGRModuleHealthReport): void {
     const now = Date.now();
-    const oneHourAgo = now - (60 * 60 * 1000);
+    const oneHourAgo = now - 60 * 60 * 1000;
 
     // Check if events are being processed
-    if (this.eventMetrics.lastEvent && this.eventMetrics.lastEvent.getTime() < oneHourAgo) {
+    if (
+      this.eventMetrics.lastEvent &&
+      this.eventMetrics.lastEvent.getTime() < oneHourAgo
+    ) {
       report.overall.warnings.push('No events processed in the last hour');
     }
 
     // Check event handling ratio
-    const handlingRatio = this.eventMetrics.emitted > 0 
-      ? this.eventMetrics.handled / this.eventMetrics.emitted 
-      : 1;
+    const handlingRatio =
+      this.eventMetrics.emitted > 0
+        ? this.eventMetrics.handled / this.eventMetrics.emitted
+        : 1;
 
     if (handlingRatio < 0.8) {
       report.overall.warnings.push(
-        `Low event handling ratio: ${(handlingRatio * 100).toFixed(1)}%`
+        `Low event handling ratio: ${(handlingRatio * 100).toFixed(1)}%`,
       );
     }
 
     // Check error rate
-    const errorRate = this.eventMetrics.emitted > 0 
-      ? this.eventMetrics.errors / this.eventMetrics.emitted 
-      : 0;
+    const errorRate =
+      this.eventMetrics.emitted > 0
+        ? this.eventMetrics.errors / this.eventMetrics.emitted
+        : 0;
 
     if (errorRate > 0.1) {
       report.overall.criticalIssues.push(
-        `High event error rate: ${(errorRate * 100).toFixed(1)}%`
+        `High event error rate: ${(errorRate * 100).toFixed(1)}%`,
       );
     }
   }
 
   private determineOverallHealth(report: SGRModuleHealthReport): void {
-    const hasDownServices = Object.values(report.services)
-      .some(service => service.status === 'down');
-    
-    const hasDisconnectedDeps = Object.values(report.dependencies)
-      .some(dep => dep.status === 'disconnected');
-    
+    const hasDownServices = Object.values(report.services).some(
+      (service) => service.status === 'down',
+    );
+
+    const hasDisconnectedDeps = Object.values(report.dependencies).some(
+      (dep) => dep.status === 'disconnected',
+    );
+
     const hasCriticalIssues = report.overall.criticalIssues.length > 0;
 
     if (hasDownServices || hasDisconnectedDeps || hasCriticalIssues) {
@@ -431,14 +482,18 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
       for (let i = 0; i < services.length; i++) {
         if (!services[i]) {
           issues.push(`Service at index ${i} is not properly registered`);
-          recommendations.push('Check BusinessSetupModule provider registration order');
+          recommendations.push(
+            'Check BusinessSetupModule provider registration order',
+          );
         }
       }
 
       // Check for circular dependency resolution
       if (this.supervisorSGRService && this.toolDispatcherService) {
         // If both services are available, the circular dependency was resolved
-        recommendations.push('Circular dependency successfully resolved through event-driven architecture');
+        recommendations.push(
+          'Circular dependency successfully resolved through event-driven architecture',
+        );
       }
 
       // Check event system
@@ -454,6 +509,7 @@ export class SGRModuleHealthIndicator extends HealthIndicator {
       };
     } catch (error) {
       issues.push(`Dependency validation failed: ${error.message}`);
+
       return { isValid: false, issues, recommendations };
     }
   }

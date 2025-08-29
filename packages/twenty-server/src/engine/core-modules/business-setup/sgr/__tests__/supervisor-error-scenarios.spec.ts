@@ -1,29 +1,34 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
-import { CircularDependencyException } from '@nestjs/core/errors/exceptions/circular-dependency.exception';
+import { Test, type TestingModule } from '@nestjs/testing';
 
-import { SupervisorSGRService } from '../services/supervisor-sgr.service';
-import { SupervisorToolDispatcherService } from '../services/supervisor-tool-dispatcher.service';
-import { AvitoWelcomeSGRService } from '../services/avito-welcome-sgr.service';
+import { AiModelRegistryService } from 'src/engine/core-modules/ai/services/ai-model-registry.service';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
-import { AiModelRegistryService } from 'src/engine/core-modules/ai/services/ai-model-registry.service';
-import { BusinessSetupAgentService } from '../../services/business-setup-agent.service';
-import { BusinessSetupKeyValueTypeMap } from '../../business-setup.service';
+
+import { type BusinessSetupKeyValueTypeMap } from '../../business-setup.service';
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
-import { BUSINESS_SETUP_EVENTS, SupervisorProcessMessageEvent } from '../../events/business-setup.events';
-import { 
-  SupervisorException, 
+import {
+  BUSINESS_SETUP_EVENTS,
+  type SupervisorProcessMessageEvent,
+} from '../../events/business-setup.events';
+import { BusinessSetupAgentService } from '../../services/business-setup-agent.service';
+import { AvitoWelcomeSGRService } from '../services/avito-welcome-sgr.service';
+import { SupervisorSGRService } from '../services/supervisor-sgr.service';
+import { SupervisorToolDispatcherService } from '../services/supervisor-tool-dispatcher.service';
+import {
   SupervisorErrorType,
-  SupervisorStepResult,
-  SupervisorSGRStreamingResult 
+  SupervisorException,
+  type SupervisorSGRStreamingResult,
+  type SupervisorStepResult,
 } from '../types/supervisor-types';
 
 describe('Supervisor Error Scenarios', () => {
   let module: TestingModule;
   let supervisorService: SupervisorSGRService;
   let toolDispatcher: SupervisorToolDispatcherService;
-  let userVarsService: jest.Mocked<UserVarsService<BusinessSetupKeyValueTypeMap>>;
+  let userVarsService: jest.Mocked<
+    UserVarsService<BusinessSetupKeyValueTypeMap>
+  >;
   let agentChatService: jest.Mocked<AgentChatService>;
   let aiModelRegistryService: jest.Mocked<AiModelRegistryService>;
   let businessSetupAgentService: jest.Mocked<BusinessSetupAgentService>;
@@ -81,7 +86,9 @@ describe('Supervisor Error Scenarios', () => {
     }).compile();
 
     supervisorService = module.get<SupervisorSGRService>(SupervisorSGRService);
-    toolDispatcher = module.get<SupervisorToolDispatcherService>(SupervisorToolDispatcherService);
+    toolDispatcher = module.get<SupervisorToolDispatcherService>(
+      SupervisorToolDispatcherService,
+    );
     userVarsService = module.get(UserVarsService);
     agentChatService = module.get(AgentChatService);
     aiModelRegistryService = module.get(AiModelRegistryService);
@@ -112,7 +119,10 @@ describe('Supervisor Error Scenarios', () => {
           },
           {
             provide: AiModelRegistryService,
-            useValue: { getEffectiveModelConfig: jest.fn(), getModel: jest.fn() },
+            useValue: {
+              getEffectiveModelConfig: jest.fn(),
+              getModel: jest.fn(),
+            },
           },
           {
             provide: BusinessSetupAgentService,
@@ -123,16 +133,19 @@ describe('Supervisor Error Scenarios', () => {
 
       // Should throw dependency injection error
       await expect(async () => {
-        await testModule.compile();
-        testModule.get<SupervisorToolDispatcherService>(SupervisorToolDispatcherService);
+        const compiledModule = await testModule.compile();
+
+        compiledModule.get<SupervisorToolDispatcherService>(
+          SupervisorToolDispatcherService,
+        );
       }).rejects.toThrow();
 
-      await testModule.close();
+      // No need to close the module as it failed to compile
     });
 
     it('should detect circular dependency scenarios', async () => {
       // This test validates that our event-driven approach prevents circular dependencies
-      
+
       // Try to create a problematic circular dependency scenario
       const problemModule = Test.createTestingModule({
         imports: [EventEmitterModule.forRoot()],
@@ -150,7 +163,10 @@ describe('Supervisor Error Scenarios', () => {
           },
           {
             provide: AiModelRegistryService,
-            useValue: { getEffectiveModelConfig: jest.fn(), getModel: jest.fn() },
+            useValue: {
+              getEffectiveModelConfig: jest.fn(),
+              getModel: jest.fn(),
+            },
           },
           {
             provide: BusinessSetupAgentService,
@@ -161,17 +177,23 @@ describe('Supervisor Error Scenarios', () => {
 
       // Should not throw circular dependency error due to our event-driven design
       await expect(problemModule.compile()).resolves.toBeDefined();
-      
+
       const compiledModule = await problemModule.compile();
+
       await compiledModule.close();
     });
   });
 
   describe('Service Method Error Handling', () => {
     it('should handle UserVarsService database connection failures', async () => {
-      userVarsService.get.mockRejectedValue(new Error('Database connection lost'));
+      userVarsService.get.mockRejectedValue(
+        new Error('Database connection lost'),
+      );
 
-      const result = await toolDispatcher.checkBusinessSetupStatus(mockUserId, mockWorkspaceId);
+      const result = await toolDispatcher.checkBusinessSetupStatus(
+        mockUserId,
+        mockWorkspaceId,
+      );
 
       // Should fallback to default status when database fails
       expect(result.status).toBe(BusinessSetupStatus.WELCOME);
@@ -181,10 +203,12 @@ describe('Supervisor Error Scenarios', () => {
     it('should handle AgentChatService API failures during routing', async () => {
       businessSetupAgentService.getAgentForStep.mockResolvedValue({
         id: 'test-agent',
-        name: 'Test Agent'
+        name: 'Test Agent',
       } as any);
 
-      agentChatService.addMessage.mockRejectedValue(new Error('Chat service unavailable'));
+      agentChatService.addMessage.mockRejectedValue(
+        new Error('Chat service unavailable'),
+      );
 
       await expect(
         toolDispatcher.routeToSpecializedAgent(
@@ -193,37 +217,37 @@ describe('Supervisor Error Scenarios', () => {
           mockUserId,
           mockWorkspaceId,
           mockThreadId,
-          'Error test'
-        )
+          'Error test',
+        ),
       ).rejects.toThrow('Chat service unavailable');
     });
 
     it('should handle AI model registry failures', async () => {
-      aiModelRegistryService.getEffectiveModelConfig.mockRejectedValue(
-        new Error('AI service unavailable')
-      );
+      (
+        aiModelRegistryService.getEffectiveModelConfig as jest.Mock
+      ).mockRejectedValue(new Error('AI service unavailable'));
 
       // This would typically be called within the supervisor service
       // Testing the error propagation
       await expect(
-        aiModelRegistryService.getEffectiveModelConfig('test-workspace', 'test-model')
+        aiModelRegistryService.getEffectiveModelConfig('test-model'),
       ).rejects.toThrow('AI service unavailable');
     });
 
     it('should handle agent service failures during tool dispatch', async () => {
       businessSetupAgentService.getAgentForStep.mockRejectedValue(
-        new Error('Agent not found for status')
+        new Error('Agent not found for status'),
       );
 
       const tool: SupervisorStepResult['function'] = {
         tool: 'route_to_specialized_agent',
-        target_status: BusinessSetupStatus.BUSINESS_ANALYSIS,
+        status: BusinessSetupStatus.BUSINESS_ANALYSIS,
         message: 'Test message',
-        reason: 'Testing agent failure'
+        reason: 'Testing agent failure',
       };
 
       await expect(
-        toolDispatcher.dispatch(tool, mockUserId, mockWorkspaceId)
+        toolDispatcher.dispatch(tool, mockUserId, mockWorkspaceId),
       ).rejects.toThrow('Agent not found for status');
     });
   });
@@ -231,13 +255,14 @@ describe('Supervisor Error Scenarios', () => {
   describe('Event System Failure Recovery', () => {
     it('should handle event emission failures gracefully', async () => {
       const eventSpy = jest.spyOn(eventEmitter, 'emit');
+
       eventSpy.mockImplementation(() => {
         throw new Error('Event system failure');
       });
 
       businessSetupAgentService.getAgentForStep.mockResolvedValue({
         id: 'test-agent',
-        name: 'Test Agent'
+        name: 'Test Agent',
       } as any);
 
       // Should handle event emission failures and still complete routing
@@ -248,8 +273,8 @@ describe('Supervisor Error Scenarios', () => {
           mockUserId,
           mockWorkspaceId,
           mockThreadId,
-          'Event failure test'
-        )
+          'Event failure test',
+        ),
       ).rejects.toThrow('Event system failure');
     });
 
@@ -259,7 +284,7 @@ describe('Supervisor Error Scenarios', () => {
         workspaceId: mockWorkspaceId,
         threadId: mockThreadId,
         message: 'Test message causing error',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       // Simulate error in event listener
@@ -267,11 +292,17 @@ describe('Supervisor Error Scenarios', () => {
         throw new Error('Event listener crashed');
       });
 
-      eventEmitter.on(BUSINESS_SETUP_EVENTS.SUPERVISOR_PROCESS_MESSAGE, errorListener);
+      eventEmitter.on(
+        BUSINESS_SETUP_EVENTS.SUPERVISOR_PROCESS_MESSAGE,
+        errorListener,
+      );
 
       // Should not crash the entire system
       expect(() => {
-        eventEmitter.emit(BUSINESS_SETUP_EVENTS.SUPERVISOR_PROCESS_MESSAGE, mockEvent);
+        eventEmitter.emit(
+          BUSINESS_SETUP_EVENTS.SUPERVISOR_PROCESS_MESSAGE,
+          mockEvent,
+        );
       }).toThrow('Event listener crashed');
     });
   });
@@ -279,32 +310,37 @@ describe('Supervisor Error Scenarios', () => {
   describe('SupervisorException Error Handling', () => {
     it('should create and handle supervisor exceptions properly', () => {
       const error = new SupervisorException(
-        'Test supervisor error',
         SupervisorErrorType.INVALID_TOOL,
-        { tool: 'invalid_tool', reason: 'Testing' }
+        'Test supervisor error',
+        { tool: 'invalid_tool', reason: 'Testing' },
       );
 
       expect(error).toBeInstanceOf(SupervisorException);
       expect(error.message).toBe('Test supervisor error');
       expect(error.errorType).toBe(SupervisorErrorType.INVALID_TOOL);
-      expect(error.context).toEqual({ tool: 'invalid_tool', reason: 'Testing' });
+      expect(error.context).toEqual({
+        tool: 'invalid_tool',
+        reason: 'Testing',
+      });
     });
 
     it('should handle unknown tool type gracefully', async () => {
       const invalidTool: any = {
         tool: 'completely_unknown_tool',
-        reason: 'Testing unknown tool handling'
+        reason: 'Testing unknown tool handling',
       };
 
       await expect(
-        toolDispatcher.dispatch(invalidTool, mockUserId, mockWorkspaceId)
+        toolDispatcher.dispatch(invalidTool, mockUserId, mockWorkspaceId),
       ).rejects.toThrow(SupervisorException);
 
       try {
         await toolDispatcher.dispatch(invalidTool, mockUserId, mockWorkspaceId);
       } catch (error) {
         expect(error).toBeInstanceOf(SupervisorException);
-        expect((error as SupervisorException).errorType).toBe(SupervisorErrorType.INVALID_TOOL);
+        expect((error as SupervisorException).errorType).toBe(
+          SupervisorErrorType.INVALID_TOOL,
+        );
       }
     });
 
@@ -316,11 +352,11 @@ describe('Supervisor Error Scenarios', () => {
         from_status: BusinessSetupStatus.WELCOME,
         to_status: BusinessSetupStatus.BUSINESS_ANALYSIS,
         reason: 'Testing status change failure',
-        trigger_event: 'test_event'
+        trigger_event: 'test_event',
       };
 
       await expect(
-        toolDispatcher.dispatch(tool, mockUserId, mockWorkspaceId)
+        toolDispatcher.dispatch(tool, mockUserId, mockWorkspaceId),
       ).rejects.toThrow('Database write failed');
     });
   });
@@ -328,35 +364,48 @@ describe('Supervisor Error Scenarios', () => {
   describe('Streaming Error Recovery', () => {
     it('should handle streaming interruption gracefully', async () => {
       // Mock a streaming generator that fails midway
-      const failingGenerator = async function* (): AsyncGenerator<SupervisorSGRStreamingResult> {
-        yield {
-          type: 'thinking',
-          step: {
-            stepNumber: 1,
-            thinking: 'Starting process...',
-            reasoning: 'Initial step'
-          }
-        };
-        
-        throw new Error('Streaming connection lost');
-      };
+      const failingGenerator =
+        async function* (): AsyncGenerator<SupervisorSGRStreamingResult> {
+          yield {
+            type: 'thinking',
+            step: {
+              stepNumber: 1,
+              thinking: 'Starting process...',
+              reasoning: 'Initial step',
+              currentState: 'Starting',
+              plannedSteps: ['Step 1'],
+              selectedTool: 'analysis',
+              timestamp: new Date(),
+            },
+            completed: false,
+          };
 
-      avitoWelcomeService.processWelcomeMessageWithStreaming.mockReturnValue(failingGenerator());
+          throw new Error('Streaming connection lost');
+        };
+
+      avitoWelcomeService.processWelcomeMessageWithStreaming.mockReturnValue(
+        failingGenerator() as AsyncGenerator<any>,
+      );
 
       businessSetupAgentService.getAgentForStep.mockResolvedValue({
         id: 'welcome-agent',
-        name: 'Welcome Agent'
+        name: 'Welcome Agent',
       } as any);
 
       const tool: SupervisorStepResult['function'] = {
         tool: 'route_to_specialized_agent',
-        target_status: BusinessSetupStatus.WELCOME,
+        status: BusinessSetupStatus.WELCOME,
         message: 'Test streaming failure',
-        reason: 'Testing streaming error'
+        reason: 'Testing streaming error',
       };
 
       // Should handle streaming failure gracefully
-      const result = await toolDispatcher.dispatch(tool, mockUserId, mockWorkspaceId);
+      const result = await toolDispatcher.dispatch(
+        tool,
+        mockUserId,
+        mockWorkspaceId,
+      );
+
       expect(result.success).toBe(true); // Should still succeed despite streaming error
     });
 
@@ -368,25 +417,32 @@ describe('Supervisor Error Scenarios', () => {
         yield undefined;
         yield {
           type: 'final_response',
-          content: 'Valid response after malformed data'
+          content: 'Valid response after malformed data',
         };
       };
 
-      avitoWelcomeService.processWelcomeMessageWithStreaming.mockReturnValue(malformedGenerator());
+      avitoWelcomeService.processWelcomeMessageWithStreaming.mockReturnValue(
+        malformedGenerator(),
+      );
 
       businessSetupAgentService.getAgentForStep.mockResolvedValue({
         id: 'welcome-agent',
-        name: 'Welcome Agent'
+        name: 'Welcome Agent',
       } as any);
 
       const tool: SupervisorStepResult['function'] = {
         tool: 'route_to_specialized_agent',
-        target_status: BusinessSetupStatus.WELCOME,
+        status: BusinessSetupStatus.WELCOME,
         message: 'Test malformed data',
-        reason: 'Testing malformed streaming data'
+        reason: 'Testing malformed streaming data',
       };
 
-      const result = await toolDispatcher.dispatch(tool, mockUserId, mockWorkspaceId);
+      const result = await toolDispatcher.dispatch(
+        tool,
+        mockUserId,
+        mockWorkspaceId,
+      );
+
       expect(result.success).toBe(true);
     });
   });
@@ -408,7 +464,10 @@ describe('Supervisor Error Scenarios', () => {
           },
           {
             provide: AiModelRegistryService,
-            useValue: { getEffectiveModelConfig: jest.fn(), getModel: jest.fn() },
+            useValue: {
+              getEffectiveModelConfig: jest.fn(),
+              getModel: jest.fn(),
+            },
           },
           {
             provide: BusinessSetupAgentService,
@@ -417,13 +476,17 @@ describe('Supervisor Error Scenarios', () => {
         ],
       }).compile();
 
+      // The testModule is already compiled, so we can directly use get() on it
       // Simulate heavy usage
-      const dispatcher = testModule.get<SupervisorToolDispatcherService>(SupervisorToolDispatcherService);
-      const supervisor = testModule.get<SupervisorSGRService>(SupervisorSGRService);
+      const dispatcher = testModule.get<SupervisorToolDispatcherService>(
+        SupervisorToolDispatcherService,
+      );
+      const supervisor =
+        testModule.get<SupervisorSGRService>(SupervisorSGRService);
 
       // Create multiple operations
-      const promises = Array.from({ length: 10 }, (_, i) => 
-        dispatcher.checkBusinessSetupStatus(`user-${i}`, `workspace-${i}`)
+      const promises = Array.from({ length: 10 }, (_, i) =>
+        dispatcher.checkBusinessSetupStatus(`user-${i}`, `workspace-${i}`),
       );
 
       await Promise.allSettled(promises);
@@ -435,7 +498,8 @@ describe('Supervisor Error Scenarios', () => {
     it('should handle concurrent operations without resource conflicts', async () => {
       userVarsService.get.mockImplementation(async () => {
         // Simulate database delay
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
         return true;
       });
 
@@ -443,7 +507,7 @@ describe('Supervisor Error Scenarios', () => {
       const operations = Array.from({ length: 20 }, async (_, i) => {
         return toolDispatcher.checkBusinessSetupStatus(
           `concurrent-user-${i}`,
-          `concurrent-workspace-${i}`
+          `concurrent-workspace-${i}`,
         );
       });
 
@@ -463,9 +527,12 @@ describe('Supervisor Error Scenarios', () => {
     it('should handle external API timeouts', async () => {
       // Simulate timeout error
       businessSetupAgentService.getAgentForStep.mockImplementation(async () => {
-        await new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout')), 100)
+        await new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout')), 100),
         );
+
+        // This return should never be reached due to the rejection above
+        return { id: 'agent-id', name: 'Agent' } as any;
       });
 
       await expect(
@@ -475,8 +542,8 @@ describe('Supervisor Error Scenarios', () => {
           mockUserId,
           mockWorkspaceId,
           mockThreadId,
-          'Timeout test'
-        )
+          'Timeout test',
+        ),
       ).rejects.toThrow('Request timeout');
     });
 
@@ -485,7 +552,11 @@ describe('Supervisor Error Scenarios', () => {
       userVarsService.set.mockRejectedValue(new Error('Network unreachable'));
 
       // Should fallback gracefully when network is unavailable
-      const result = await toolDispatcher.checkBusinessSetupStatus(mockUserId, mockWorkspaceId);
+      const result = await toolDispatcher.checkBusinessSetupStatus(
+        mockUserId,
+        mockWorkspaceId,
+      );
+
       expect(result.status).toBe(BusinessSetupStatus.WELCOME); // Default fallback
     });
   });
@@ -504,20 +575,26 @@ describe('Supervisor Error Scenarios', () => {
           mockUserId,
           mockWorkspaceId,
           'Test transaction failure',
-          'test_event'
-        )
+          'test_event',
+        ),
       ).rejects.toThrow('Transaction rollback');
     });
 
     it('should handle stale data scenarios', async () => {
       // Simulate stale data - status changed between check and action
       userVarsService.get
-        .mockResolvedValueOnce(true)  // Initial check shows WELCOME pending
+        .mockResolvedValueOnce(true) // Initial check shows WELCOME pending
         .mockResolvedValueOnce(false) // Later check shows different state
         .mockResolvedValue(false);
 
-      const status1 = await toolDispatcher.checkBusinessSetupStatus(mockUserId, mockWorkspaceId);
-      const status2 = await toolDispatcher.checkBusinessSetupStatus(mockUserId, mockWorkspaceId);
+      const status1 = await toolDispatcher.checkBusinessSetupStatus(
+        mockUserId,
+        mockWorkspaceId,
+      );
+      const status2 = await toolDispatcher.checkBusinessSetupStatus(
+        mockUserId,
+        mockWorkspaceId,
+      );
 
       // Should handle state changes gracefully
       expect(status1.status).toBe(BusinessSetupStatus.WELCOME);

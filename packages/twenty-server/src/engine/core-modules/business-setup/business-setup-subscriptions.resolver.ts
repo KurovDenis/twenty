@@ -1,5 +1,12 @@
-import { Inject, Logger, UseFilters, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Inject,
+  Logger,
+  UseFilters,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
+
 import { RedisPubSub } from 'graphql-redis-subscriptions';
 import { isDefined } from 'twenty-shared/utils';
 
@@ -23,7 +30,7 @@ import {
 
 /**
  * BusinessSetupSubscriptionsResolver
- * 
+ *
  * Provides GraphQL subscriptions for business setup events including:
  * - Onboarding status changes
  * - AI agent welcome chat events
@@ -49,21 +56,25 @@ export class BusinessSetupSubscriptionsResolver {
       context: { req: { user: User } },
     ) => {
       const user = context.req?.user;
+
       if (!user) {
         return false;
       }
-      
+
       // Security: Only allow events for the authenticated user's workspace
-      const isWorkspaceMatching = (payload.payload as any)?.workspaceId === variables.input.workspaceId;
-      
+      const isWorkspaceMatching =
+        (payload.payload as any)?.workspaceId === variables.input.workspaceId;
+
       // Optional user filtering
-      const isUserMatching = !isDefined(variables.input.userId) || 
-                            (payload.payload as any)?.userId === variables.input.userId;
-      
+      const isUserMatching =
+        !isDefined(variables.input.userId) ||
+        (payload.payload as any)?.userId === variables.input.userId;
+
       // Optional event type filtering
-      const isEventTypeMatching = !isDefined(variables.input.eventTypes) ||
-                                 variables.input.eventTypes.includes(payload.type);
-      
+      const isEventTypeMatching =
+        !isDefined(variables.input.eventTypes) ||
+        variables.input.eventTypes.includes(payload.type);
+
       // Log filtered events for debugging
       // Note: Logger not available in filter context, using console.log
       if (!isWorkspaceMatching || !isUserMatching || !isEventTypeMatching) {
@@ -71,7 +82,7 @@ export class BusinessSetupSubscriptionsResolver {
           `Filtered event: workspace=${isWorkspaceMatching}, user=${isUserMatching}, type=${isEventTypeMatching}`,
         );
       }
-      
+
       return isWorkspaceMatching && isUserMatching && isEventTypeMatching;
     },
   })
@@ -79,8 +90,13 @@ export class BusinessSetupSubscriptionsResolver {
     @Args('input') input: BusinessSetupEventInput,
     @AuthUser() user: User,
   ) {
-    this.logger.log(`Starting business setup events subscription for workspace: ${input.workspaceId}`);
-    return this.pubSub.asyncIterator(SUBSCRIPTION_CHANNELS.BUSINESS_SETUP_EVENTS);
+    this.logger.log(
+      `Starting business setup events subscription for workspace: ${input.workspaceId}`,
+    );
+
+    return this.pubSub.asyncIterator(
+      SUBSCRIPTION_CHANNELS.BUSINESS_SETUP_EVENTS,
+    );
   }
 
   /**
@@ -94,26 +110,30 @@ export class BusinessSetupSubscriptionsResolver {
       context: { req: { user: User } },
     ) => {
       const user = context.req?.user;
+
       if (!user) {
         return false;
       }
-      
+
       // Only onboarding events
-      const isOnboardingEvent = payload.type === BusinessSetupEventType.ONBOARDING_STATUS_CHANGED;
-      
+      const isOnboardingEvent =
+        payload.type === BusinessSetupEventType.ONBOARDING_STATUS_CHANGED;
+
       // Security: Only allow events for the authenticated user's workspace
-      const isWorkspaceMatching = (payload.payload as any)?.workspaceId === variables.input.workspaceId;
-      
+      const isWorkspaceMatching =
+        (payload.payload as any)?.workspaceId === variables.input.workspaceId;
+
       // Optional user filtering
-      const isUserMatching = !isDefined(variables.input.userId) || 
-                            (payload.payload as any)?.userId === variables.input.userId;
-      
+      const isUserMatching =
+        !isDefined(variables.input.userId) ||
+        (payload.payload as any)?.userId === variables.input.userId;
+
       return isOnboardingEvent && isWorkspaceMatching && isUserMatching;
     },
     resolve: (payload: SubscriptionEventPayload) => {
       // Transform the payload to match the response type
       const eventPayload = payload.payload as any;
-      
+
       // Type guard to ensure we have the right payload type
       if (payload.type === BusinessSetupEventType.ONBOARDING_STATUS_CHANGED) {
         return {
@@ -124,7 +144,7 @@ export class BusinessSetupSubscriptionsResolver {
           timestamp: eventPayload?.timestamp || new Date(),
         };
       }
-      
+
       // Fallback for unexpected payload types
       return {
         userId: eventPayload?.userId || '',
@@ -139,7 +159,10 @@ export class BusinessSetupSubscriptionsResolver {
     @Args('input') input: OnboardingEventInput,
     @AuthUser() user: User,
   ) {
-    this.logger.log(`Starting onboarding events subscription for workspace: ${input.workspaceId}`);
+    this.logger.log(
+      `Starting onboarding events subscription for workspace: ${input.workspaceId}`,
+    );
+
     return this.pubSub.asyncIterator([
       SUBSCRIPTION_CHANNELS.BUSINESS_SETUP_EVENTS,
       SUBSCRIPTION_CHANNELS.ONBOARDING_EVENTS,
@@ -157,39 +180,52 @@ export class BusinessSetupSubscriptionsResolver {
       context: { req: { user: User } },
     ) => {
       const user = context.req?.user;
+
       if (!user) {
         return false;
       }
-      
+
       // Only AI agent events
       const isAIAgentEvent = payload.type.startsWith('AI_AGENT_');
-      
+
       // Security: Only allow events for the authenticated user's workspace
-      const isWorkspaceMatching = (payload.payload as any)?.workspaceId === variables.input.workspaceId;
-      
+      const isWorkspaceMatching =
+        (payload.payload as any)?.workspaceId === variables.input.workspaceId;
+
       // Optional user filtering
-      const isUserMatching = !isDefined(variables.input.userId) || 
-                            (payload.payload as any)?.userId === variables.input.userId;
-      
+      const isUserMatching =
+        !isDefined(variables.input.userId) ||
+        (payload.payload as any)?.userId === variables.input.userId;
+
       // Optional thread filtering
-      const isThreadMatching = !isDefined(variables.input.threadId) ||
-                              (payload.payload as any)?.threadId === variables.input.threadId;
-      
-      return isAIAgentEvent && isWorkspaceMatching && isUserMatching && isThreadMatching;
+      const isThreadMatching =
+        !isDefined(variables.input.threadId) ||
+        (payload.payload as any)?.threadId === variables.input.threadId;
+
+      return (
+        isAIAgentEvent &&
+        isWorkspaceMatching &&
+        isUserMatching &&
+        isThreadMatching
+      );
     },
     resolve: (payload: SubscriptionEventPayload) => {
       // Transform the payload to match the response type
       const eventPayload = payload.payload as any;
       let status = 'UNKNOWN';
       let error: string | undefined;
-      
-      if (payload.type === BusinessSetupEventType.AI_AGENT_WELCOME_CHAT_CREATED) {
+
+      if (
+        payload.type === BusinessSetupEventType.AI_AGENT_WELCOME_CHAT_CREATED
+      ) {
         status = 'CHAT_CREATED';
-      } else if (payload.type === BusinessSetupEventType.AI_AGENT_WELCOME_CHAT_FAILED) {
+      } else if (
+        payload.type === BusinessSetupEventType.AI_AGENT_WELCOME_CHAT_FAILED
+      ) {
         status = 'CHAT_FAILED';
         error = eventPayload?.error;
       }
-      
+
       return {
         eventType: payload.type,
         threadId: eventPayload?.threadId || null,
@@ -204,7 +240,10 @@ export class BusinessSetupSubscriptionsResolver {
     @Args('input') input: AIAgentEventInput,
     @AuthUser() user: User,
   ) {
-    this.logger.log(`Starting AI agent events subscription for workspace: ${input.workspaceId}`);
+    this.logger.log(
+      `Starting AI agent events subscription for workspace: ${input.workspaceId}`,
+    );
+
     return this.pubSub.asyncIterator([
       SUBSCRIPTION_CHANNELS.BUSINESS_SETUP_EVENTS,
       SUBSCRIPTION_CHANNELS.AI_AGENT_EVENTS,
@@ -226,6 +265,7 @@ export class BusinessSetupSubscriptionsResolver {
   })
   onHealthCheck(@AuthUser() user: User) {
     this.logger.log(`Health check subscription started for user: ${user.id}`);
+
     return this.pubSub.asyncIterator('healthCheck');
   }
 }

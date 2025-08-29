@@ -1,11 +1,16 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
+
 import { AiModelRegistryService } from 'src/engine/core-modules/ai/services/ai-model-registry.service';
 import { HttpTool } from 'src/engine/core-modules/tool/tools/http-tool/http-tool';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { AgentChatMessageRole } from 'src/engine/metadata-modules/agent/agent-chat-message.entity';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
-import { BusinessSetupKeyValueTypeMap, BusinessSetupStepKeys } from '../../business-setup.service';
+
+import {
+  type BusinessSetupKeyValueTypeMap,
+  BusinessSetupStepKeys,
+} from '../../business-setup.service';
 import { BusinessSetupWelcomeAgentService } from '../../services/business-setup-welcome-agent.service';
 import { AvitoWelcomeSGRService } from '../services/avito-welcome-sgr.service';
 import { AvitoWelcomeToolDispatcherService } from '../services/avito-welcome-tool-dispatcher.service';
@@ -17,19 +22,23 @@ jest.mock('ai', () => ({
 
 /**
  * Integration test for the complete Avito Welcome Agent SGR workflow
- * 
+ *
  * This test validates the end-to-end flow from user message input
  * through credential validation to final business setup transition.
  */
 describe('Avito Welcome Agent SGR Integration', () => {
   let businessSetupService: BusinessSetupWelcomeAgentService;
   let sgrService: AvitoWelcomeSGRService;
-  let mockUserVarsService: jest.Mocked<UserVarsService<BusinessSetupKeyValueTypeMap>>;
+  let mockUserVarsService: jest.Mocked<
+    UserVarsService<BusinessSetupKeyValueTypeMap>
+  >;
   let mockAgentChatService: jest.Mocked<AgentChatService>;
   let mockAiModelRegistryService: jest.Mocked<AiModelRegistryService>;
   let mockEventEmitter: jest.Mocked<EventEmitter2>;
   let mockHttpTool: jest.Mocked<HttpTool>;
-  let mockGenerateObject: jest.MockedFunction<typeof import('ai').generateObject>;
+  let mockGenerateObject: jest.MockedFunction<
+    typeof import('ai').generateObject
+  >;
 
   const testData = {
     userId: 'user-12345',
@@ -42,8 +51,10 @@ describe('Avito Welcome Agent SGR Integration', () => {
 
   beforeEach(async () => {
     // Get the mocked generateObject function
-    mockGenerateObject = require('ai').generateObject as jest.MockedFunction<typeof import('ai').generateObject>;
-    
+    mockGenerateObject = require('ai').generateObject as jest.MockedFunction<
+      typeof import('ai').generateObject
+    >;
+
     // Configure generateObject mock implementation - simplified to avoid type issues
     mockGenerateObject.mockResolvedValue({
       object: {
@@ -54,8 +65,8 @@ describe('Avito Welcome Agent SGR Integration', () => {
           tool: 'validate_avito_token',
           client_id: testData.validClientId,
           client_secret: testData.validClientSecret,
-          api_url: 'https://api.avito.ru/token'
-        }
+          api_url: 'https://api.avito.ru/token',
+        },
       },
       finishReason: 'stop',
       usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
@@ -66,9 +77,9 @@ describe('Avito Welcome Agent SGR Integration', () => {
       rawResponse: { headers: {} },
       logprobs: undefined,
       providerMetadata: undefined,
-      toJsonResponse: () => ({ type: 'object', object: {} })
+      toJsonResponse: () => ({ type: 'object', object: {} }),
     } as any);
-    
+
     // Mock services
     mockUserVarsService = {
       set: jest.fn().mockResolvedValue(undefined),
@@ -156,7 +167,9 @@ describe('Avito Welcome Agent SGR Integration', () => {
       ],
     }).compile();
 
-    businessSetupService = module.get<BusinessSetupWelcomeAgentService>(BusinessSetupWelcomeAgentService);
+    businessSetupService = module.get<BusinessSetupWelcomeAgentService>(
+      BusinessSetupWelcomeAgentService,
+    );
     sgrService = module.get<AvitoWelcomeSGRService>(AvitoWelcomeSGRService);
   });
 
@@ -171,8 +184,8 @@ describe('Avito Welcome Agent SGR Integration', () => {
         result: {
           access_token: testData.mockAccessToken,
           expires_in: 86400,
-          token_type: 'Bearer'
-        }
+          token_type: 'Bearer',
+        },
       });
 
       const userMessage = `
@@ -186,7 +199,7 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         testData.threadId,
         userMessage,
         testData.workspaceId,
-        testData.userId
+        testData.userId,
       );
 
       // Assert: Verify credentials were validated with Avito API
@@ -194,9 +207,9 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         url: 'https://api.avito.ru/token',
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: expect.stringContaining(`client_id=${testData.validClientId}`)
+        body: expect.stringContaining(`client_id=${testData.validClientId}`),
       });
 
       // Verify credentials were stored
@@ -204,21 +217,21 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.AVITO_CLIENT_ID,
-        value: testData.validClientId
+        value: testData.validClientId,
       });
 
       expect(mockUserVarsService.set).toHaveBeenCalledWith({
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.AVITO_CLIENT_SECRET,
-        value: testData.validClientSecret
+        value: testData.validClientSecret,
       });
 
       expect(mockUserVarsService.set).toHaveBeenCalledWith({
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.AVITO_ACCESS_TOKEN,
-        value: testData.mockAccessToken
+        value: testData.mockAccessToken,
       });
 
       // Verify business setup state transition
@@ -226,14 +239,14 @@ CLIENT_SECRET = '${testData.validClientSecret}'
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.BUSINESS_SETUP_WELCOME_PENDING,
-        value: false
+        value: false,
       });
 
       expect(mockUserVarsService.set).toHaveBeenCalledWith({
         userId: testData.userId,
         workspaceId: testData.workspaceId,
         key: BusinessSetupStepKeys.BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING,
-        value: true
+        value: true,
       });
 
       // Verify success message was sent to user
@@ -242,7 +255,7 @@ CLIENT_SECRET = '${testData.validClientSecret}'
           threadId: testData.threadId,
           role: AgentChatMessageRole.ASSISTANT,
           content: expect.stringContaining('✅'),
-        })
+        }),
       );
 
       // Verify events were emitted
@@ -252,8 +265,8 @@ CLIENT_SECRET = '${testData.validClientSecret}'
           userId: testData.userId,
           workspaceId: testData.workspaceId,
           success: true,
-          next_stage: 'business_analysis'
-        })
+          next_stage: 'business_analysis',
+        }),
       );
 
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
@@ -262,22 +275,23 @@ CLIENT_SECRET = '${testData.validClientSecret}'
           userId: testData.userId,
           workspaceId: testData.workspaceId,
           fromStep: 'WELCOME',
-          toStep: 'BUSINESS_ANALYSIS'
-        })
+          toStep: 'BUSINESS_ANALYSIS',
+        }),
       );
     });
   });
 
   describe('Complete Welcome Flow - Credential Request Scenario', () => {
     it('should request credentials when none are found in message', async () => {
-      const userMessage = "Привет! Я хочу подключиться к Avito, но не знаю как.";
+      const userMessage =
+        'Привет! Я хочу подключиться к Avito, но не знаю как.';
 
       // Act: Process the message
       await businessSetupService.processUserMessage(
         testData.threadId,
         userMessage,
         testData.workspaceId,
-        testData.userId
+        testData.userId,
       );
 
       // Assert: Verify helpful instructions were sent
@@ -286,22 +300,22 @@ CLIENT_SECRET = '${testData.validClientSecret}'
           threadId: testData.threadId,
           role: AgentChatMessageRole.ASSISTANT,
           content: expect.stringMatching(/CLIENT_ID.*CLIENT_SECRET/i),
-        })
+        }),
       );
 
       // Verify no credentials were stored
       expect(mockUserVarsService.set).not.toHaveBeenCalledWith(
         expect.objectContaining({
-          key: BusinessSetupStepKeys.AVITO_CLIENT_ID
-        })
+          key: BusinessSetupStepKeys.AVITO_CLIENT_ID,
+        }),
       );
 
       // Verify no state transition occurred
       expect(mockUserVarsService.set).not.toHaveBeenCalledWith(
         expect.objectContaining({
           key: BusinessSetupStepKeys.BUSINESS_SETUP_WELCOME_PENDING,
-          value: false
-        })
+          value: false,
+        }),
       );
     });
   });
@@ -310,7 +324,7 @@ CLIENT_SECRET = '${testData.validClientSecret}'
     it('should handle Avito API validation failure gracefully', async () => {
       // Arrange: Setup failed Avito API response
       mockHttpTool.execute.mockResolvedValue({
-        error: 'HTTP 401: Unauthorized - Invalid credentials'
+        error: 'HTTP 401: Unauthorized - Invalid credentials',
       });
 
       const userMessage = `
@@ -323,7 +337,7 @@ CLIENT_SECRET = 'invalid_secret'
         testData.threadId,
         userMessage,
         testData.workspaceId,
-        testData.userId
+        testData.userId,
       );
 
       // Assert: Verify error message was sent
@@ -332,14 +346,14 @@ CLIENT_SECRET = 'invalid_secret'
           threadId: testData.threadId,
           role: AgentChatMessageRole.ASSISTANT,
           content: expect.stringContaining('❌'),
-        })
+        }),
       );
 
       // Verify credentials were NOT stored
       expect(mockUserVarsService.set).not.toHaveBeenCalledWith(
         expect.objectContaining({
-          key: BusinessSetupStepKeys.AVITO_CLIENT_ID
-        })
+          key: BusinessSetupStepKeys.AVITO_CLIENT_ID,
+        }),
       );
 
       // Verify failure event was emitted
@@ -348,8 +362,8 @@ CLIENT_SECRET = 'invalid_secret'
         expect.objectContaining({
           userId: testData.userId,
           workspaceId: testData.workspaceId,
-          error: expect.any(String)
-        })
+          error: expect.any(String),
+        }),
       );
     });
   });
@@ -362,33 +376,36 @@ CLIENT_SECRET = 'invalid_secret'
         result: {
           access_token: testData.mockAccessToken,
           expires_in: 86400,
-          token_type: 'Bearer'
-        }
+          token_type: 'Bearer',
+        },
       });
 
       await businessSetupService.processUserMessage(
         testData.threadId,
         userMessage,
         testData.workspaceId,
-        testData.userId
+        testData.userId,
       );
 
       // Verify that the AI model was called with appropriate context for structured reasoning
-      expect(mockAiModelRegistryService.getModel).toHaveBeenCalledWith('google/gemini-2.5-flash');
-      
+      expect(mockAiModelRegistryService.getModel).toHaveBeenCalledWith(
+        'google/gemini-2.5-flash',
+      );
+
       // Verify structured reasoning occurred (mocked generateObject was called)
       expect(mockGenerateObject).toHaveBeenCalled();
       expect(mockGenerateObject.mock.calls.length).toBeGreaterThan(0);
 
       // Verify the reasoning included proper system prompts for SGR
       const firstCall = mockGenerateObject.mock.calls[0][0];
+
       expect(firstCall.messages).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             role: 'system',
-            content: expect.stringContaining('Schema-Guided Reasoning')
-          })
-        ])
+            content: expect.stringContaining('Schema-Guided Reasoning'),
+          }),
+        ]),
       );
     });
   });
@@ -396,7 +413,8 @@ CLIENT_SECRET = 'invalid_secret'
   describe('Fallback Mechanism', () => {
     it('should fallback to legacy processing if SGR fails', async () => {
       // Arrange: Make SGR service throw an error
-      const mockSGRService = jest.spyOn(sgrService, 'processWelcomeMessage')
+      const mockSGRService = jest
+        .spyOn(sgrService, 'processWelcomeMessage')
         .mockRejectedValue(new Error('SGR processing failed'));
 
       const userMessage = `CLIENT_ID = '${testData.validClientId}' CLIENT_SECRET = '${testData.validClientSecret}'`;
@@ -406,7 +424,7 @@ CLIENT_SECRET = 'invalid_secret'
         testData.threadId,
         userMessage,
         testData.workspaceId,
-        testData.userId
+        testData.userId,
       );
 
       // Assert: Verify SGR was attempted
@@ -417,7 +435,7 @@ CLIENT_SECRET = 'invalid_secret'
         expect.objectContaining({
           threadId: testData.threadId,
           role: AgentChatMessageRole.ASSISTANT,
-        })
+        }),
       );
 
       mockSGRService.mockRestore();

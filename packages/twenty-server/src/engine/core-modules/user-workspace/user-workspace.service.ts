@@ -12,8 +12,8 @@ import { FileFolder } from 'src/engine/core-modules/file/interfaces/file-folder.
 import { type AppToken } from 'src/engine/core-modules/app-token/app-token.entity';
 import { ApprovedAccessDomainService } from 'src/engine/core-modules/approved-access-domain/services/approved-access-domain.service';
 import {
-    AuthException,
-    AuthExceptionCode,
+  AuthException,
+  AuthExceptionCode,
 } from 'src/engine/core-modules/auth/auth.exception';
 import { type AvailableWorkspace } from 'src/engine/core-modules/auth/dto/available-workspaces.output';
 import { LoginTokenService } from 'src/engine/core-modules/auth/token/services/login-token.service';
@@ -28,9 +28,9 @@ import { AuthProviderEnum } from 'src/engine/core-modules/workspace/types/worksp
 import { type Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 import { workspaceValidator } from 'src/engine/core-modules/workspace/workspace.validate';
 import {
-    PermissionsException,
-    PermissionsExceptionCode,
-    PermissionsExceptionMessage,
+  PermissionsException,
+  PermissionsExceptionCode,
+  PermissionsExceptionMessage,
 } from 'src/engine/metadata-modules/permissions/permissions.exception';
 import { UserRoleService } from 'src/engine/metadata-modules/user-role/user-role.service';
 import { TwentyORMGlobalManager } from 'src/engine/twenty-orm/twenty-orm-global.manager';
@@ -88,8 +88,10 @@ export class UserWorkspaceService extends TypeOrmQueryService<UserWorkspace> {
   }
 
   private async checkUserWorkspaceLimit(userId: string) {
-    const maxWorkspacesPerUser = this.twentyConfigService.get('MAX_WORKSPACES_PER_USER');
-    
+    const maxWorkspacesPerUser = this.twentyConfigService.get(
+      'MAX_WORKSPACES_PER_USER',
+    );
+
     // Count existing active user workspaces
     const activeWorkspacesCount = await this.userWorkspaceRepository.count({
       where: {
