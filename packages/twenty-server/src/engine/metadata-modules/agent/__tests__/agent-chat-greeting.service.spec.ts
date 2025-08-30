@@ -24,6 +24,11 @@ describe('AgentChatService - Greeting System', () => {
   let businessSetupAgentService: BusinessSetupAgentService;
   let eventEmitter: EventEmitter2;
 
+  // Shared test constants
+  const SUPERVISOR_AGENT_ID = 'supervisor-agent-123';
+  const mockUserWorkspaceId = 'user-workspace-123';
+  const mockThreadId = 'thread-456';
+
   // Mock repositories and services
   const mockThreadRepository = {
     create: jest.fn(),
@@ -49,6 +54,8 @@ describe('AgentChatService - Greeting System', () => {
 
   const mockBusinessSetupAgentService = {
     getAgentForStep: jest.fn(),
+    getSupervisorAgent: jest.fn(),
+    isSupervisorAgent: jest.fn(),
   };
 
   const mockEventEmitter = {
@@ -103,22 +110,17 @@ describe('AgentChatService - Greeting System', () => {
     jest.clearAllMocks();
   });
 
-  describe('SGR Avito Agent Greeting System', () => {
-    const SGR_AVITO_AGENT_ID = '2f851163-c7ea-4eae-b960-13f019b256e3';
-    const mockUserWorkspaceId = 'user-workspace-123';
-    const mockThreadId = 'thread-456';
-
-    it('should create thread with SGR Avito agent and send greeting for WELCOME status', async () => {
+  describe('Supervisor Agent System', () => {
+    it('should create thread with supervisor agent and send welcome message', async () => {
       // Arrange
-      const mockSGRAvitoAgent = {
-        id: SGR_AVITO_AGENT_ID,
-        name: 'sgr-avito-agent',
-        label: 'SGR Avito Integration Assistant',
+      const mockSupervisorAgent = {
+        id: SUPERVISOR_AGENT_ID,
+        name: 'business-setup-supervisor',
       } as AgentEntity;
 
       const mockThread = {
         id: mockThreadId,
-        agentId: SGR_AVITO_AGENT_ID,
+        agentId: SUPERVISOR_AGENT_ID,
         userWorkspaceId: mockUserWorkspaceId,
       } as AgentChatThreadEntity;
 
@@ -126,11 +128,11 @@ describe('AgentChatService - Greeting System', () => {
         id: 'message-789',
         threadId: mockThreadId,
         role: 'assistant' as AgentChatMessageRole,
-        content: expect.stringContaining('SGR Avito Integration Assistant'),
+        content: expect.stringContaining('Business Setup Supervisor'),
       } as AgentChatMessageEntity;
 
-      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
-        mockSGRAvitoAgent,
+      mockBusinessSetupAgentService.getSupervisorAgent.mockResolvedValue(
+        mockSupervisorAgent,
       );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
@@ -138,21 +140,19 @@ describe('AgentChatService - Greeting System', () => {
       mockMessageRepository.save.mockResolvedValue(mockGreetingMessage);
 
       // Act
-      const result = await service.createThreadWithBusinessSetupContext(
-        'fallback-agent-id',
+      const result = await service.createThreadWithSupervisorAgent(
         mockUserWorkspaceId,
-        BusinessSetupStatus.WELCOME,
       );
 
       // Assert
-      expect(result.agentId).toBe(SGR_AVITO_AGENT_ID);
+      expect(result.agentId).toBe(SUPERVISOR_AGENT_ID);
       expect(
-        mockBusinessSetupAgentService.getAgentForStep,
-      ).toHaveBeenCalledWith(BusinessSetupStatus.WELCOME, mockUserWorkspaceId);
+        mockBusinessSetupAgentService.getSupervisorAgent,
+      ).toHaveBeenCalledWith(mockUserWorkspaceId);
 
       // Verify thread creation
       expect(mockThreadRepository.create).toHaveBeenCalledWith({
-        agentId: SGR_AVITO_AGENT_ID,
+        agentId: SUPERVISOR_AGENT_ID,
         userWorkspaceId: mockUserWorkspaceId,
       });
       expect(mockThreadRepository.save).toHaveBeenCalledWith(mockThread);
@@ -161,7 +161,7 @@ describe('AgentChatService - Greeting System', () => {
       expect(mockMessageRepository.create).toHaveBeenCalledWith({
         threadId: mockThreadId,
         role: 'assistant',
-        content: expect.stringContaining('SGR Avito Integration Assistant'),
+        content: expect.stringContaining('Business Setup Supervisor'),
       });
       expect(mockMessageRepository.save).toHaveBeenCalledWith(
         mockGreetingMessage,
@@ -172,8 +172,8 @@ describe('AgentChatService - Greeting System', () => {
         'ai-agent.welcome.chat-created',
         expect.objectContaining({
           threadId: mockThreadId,
-          agentId: SGR_AVITO_AGENT_ID,
-          businessSetupStep: BusinessSetupStatus.WELCOME,
+          agentId: SUPERVISOR_AGENT_ID,
+          businessSetupStep: 'SUPERVISOR',
           userWorkspaceId: mockUserWorkspaceId,
         }),
       );
@@ -183,106 +183,68 @@ describe('AgentChatService - Greeting System', () => {
         expect.objectContaining({
           threadId: mockThreadId,
           messageId: mockGreetingMessage.id,
-          greetingMessage: expect.stringContaining(
-            'SGR Avito Integration Assistant',
-          ),
-          businessSetupStep: BusinessSetupStatus.WELCOME,
+          greetingMessage: expect.stringContaining('Business Setup Supervisor'),
+          businessSetupStep: 'SUPERVISOR',
         }),
       );
     });
 
-    it('should handle greeting message failure gracefully and emit error event', async () => {
+    it('should handle greeting message failure gracefully and still return thread', async () => {
       // Arrange
-      const mockSGRAvitoAgent = {
-        id: SGR_AVITO_AGENT_ID,
-        name: 'sgr-avito-agent',
+      const mockSupervisorAgent = {
+        id: SUPERVISOR_AGENT_ID,
+        name: 'business-setup-supervisor',
       } as AgentEntity;
 
       const mockThread = {
         id: mockThreadId,
-        agentId: SGR_AVITO_AGENT_ID,
+        agentId: SUPERVISOR_AGENT_ID,
         userWorkspaceId: mockUserWorkspaceId,
       } as AgentChatThreadEntity;
 
-      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
-        mockSGRAvitoAgent,
+      mockBusinessSetupAgentService.getSupervisorAgent.mockResolvedValue(
+        mockSupervisorAgent,
       );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
 
       // Mock greeting message creation failure
       const greetingError = new Error('Failed to create greeting message');
-
       mockMessageRepository.save.mockRejectedValue(greetingError);
 
+      // Mock console.error to avoid console output during tests
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
       // Act
-      const result = await service.createThreadWithBusinessSetupContext(
-        'fallback-agent-id',
+      const result = await service.createThreadWithSupervisorAgent(
         mockUserWorkspaceId,
-        BusinessSetupStatus.WELCOME,
       );
 
       // Assert
       expect(result).toBe(mockThread); // Thread should still be created
-
-      // Verify error event was emitted
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'ai-agent.welcome.chat-failed',
-        expect.objectContaining({
-          threadId: mockThreadId,
-          agentId: SGR_AVITO_AGENT_ID,
-          businessSetupStep: BusinessSetupStatus.WELCOME,
-          error: 'Failed to create greeting message',
-          attempts: 1,
-        }),
-      );
-    });
-
-    it('should not send greeting message for non-business-setup agents', async () => {
-      // Arrange
-      const regularAgentId = 'regular-agent-123';
-      const mockThread = {
-        id: mockThreadId,
-        agentId: regularAgentId,
-        userWorkspaceId: mockUserWorkspaceId,
-      } as AgentChatThreadEntity;
-
-      mockThreadRepository.create.mockReturnValue(mockThread);
-      mockThreadRepository.save.mockResolvedValue(mockThread);
-
-      // Act
-      const result = await service.createThreadWithBusinessSetupContext(
-        regularAgentId,
-        mockUserWorkspaceId,
-        undefined, // No business setup step
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to send supervisor welcome message:',
+        greetingError,
       );
 
-      // Assert
-      expect(result).toBe(mockThread);
-
-      // Verify no greeting message was created
-      expect(mockMessageRepository.create).not.toHaveBeenCalled();
-      expect(mockMessageRepository.save).not.toHaveBeenCalled();
-
-      // Verify no events were emitted
-      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
 
-    it('should create appropriate greeting message content for WELCOME status', async () => {
+    it('should create appropriate supervisor welcome message content', async () => {
       // Arrange
-      const mockSGRAvitoAgent = {
-        id: SGR_AVITO_AGENT_ID,
-        name: 'sgr-avito-agent',
+      const mockSupervisorAgent = {
+        id: SUPERVISOR_AGENT_ID,
+        name: 'business-setup-supervisor',
       } as AgentEntity;
 
       const mockThread = {
         id: mockThreadId,
-        agentId: SGR_AVITO_AGENT_ID,
+        agentId: SUPERVISOR_AGENT_ID,
         userWorkspaceId: mockUserWorkspaceId,
       } as AgentChatThreadEntity;
 
-      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
-        mockSGRAvitoAgent,
+      mockBusinessSetupAgentService.getSupervisorAgent.mockResolvedValue(
+        mockSupervisorAgent,
       );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
@@ -292,28 +254,54 @@ describe('AgentChatService - Greeting System', () => {
       );
 
       // Act
-      await service.createThreadWithBusinessSetupContext(
-        'fallback-agent-id',
+      await service.createThreadWithSupervisorAgent(
         mockUserWorkspaceId,
-        BusinessSetupStatus.WELCOME,
       );
 
       // Assert
       expect(mockMessageRepository.create).toHaveBeenCalledWith({
         threadId: mockThreadId,
         role: 'assistant',
-        content: expect.stringContaining(
-          '🤖 **Привет! Я SGR Avito Integration Assistant**',
-        ),
+        content: expect.stringContaining('Business Setup Supervisor'),
       });
 
-      // Verify greeting message contains expected elements
+      // Verify supervisor welcome message contains expected elements
       const greetingCall = mockMessageRepository.create.mock.calls[0][0];
+      expect(greetingCall.content).toContain('Business Setup Assistant');
+      expect(greetingCall.content).toContain('intelligent routing agent');
+      expect(greetingCall.content).toContain('WELCOME');
+      expect(greetingCall.content).toContain('🎯');
+    });
+  });
 
-      expect(greetingCall.content).toContain('CLIENT_ID');
-      expect(greetingCall.content).toContain('CLIENT_SECRET');
-      expect(greetingCall.content).toContain('Schema-Guided Reasoning');
-      expect(greetingCall.content).toContain('🚀');
+  describe('Standard Thread Creation', () => {
+    it('should create thread for non-business-setup agents using createThread', async () => {
+      // Arrange
+      const regularAgentId = 'regular-agent-123';
+      const mockThread = {
+        id: 'thread-456',
+        agentId: regularAgentId,
+        userWorkspaceId: 'user-workspace-123',
+      } as AgentChatThreadEntity;
+
+      mockThreadRepository.create.mockReturnValue(mockThread);
+      mockThreadRepository.save.mockResolvedValue(mockThread);
+
+      // Act
+      const result = await service.createThread(
+        regularAgentId,
+        'user-workspace-123',
+      );
+
+      // Assert
+      expect(result).toBe(mockThread);
+
+      // Verify no greeting message was created for regular threads
+      expect(mockMessageRepository.create).not.toHaveBeenCalled();
+      expect(mockMessageRepository.save).not.toHaveBeenCalled();
+
+      // Verify no events were emitted for regular threads
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('should fallback to original agent when business setup agent fails', async () => {
@@ -326,30 +314,249 @@ describe('AgentChatService - Greeting System', () => {
       } as AgentChatThreadEntity;
 
       // Mock business setup agent service failure
-      mockBusinessSetupAgentService.getAgentForStep.mockRejectedValue(
-        new Error('SGR Agent not found'),
+      mockBusinessSetupAgentService.getSupervisorAgent.mockRejectedValue(
+        new Error('Supervisor Agent not found'),
       );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
 
-      // Spy on console.warn to verify fallback behavior
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      // Spy on console.error to verify error handling
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       // Act
-      const result = await service.createThreadWithBusinessSetupContext(
-        fallbackAgentId,
-        mockUserWorkspaceId,
-        BusinessSetupStatus.WELCOME,
-      );
+      await expect(
+        service.createThreadWithSupervisorAgent(mockUserWorkspaceId),
+      ).rejects.toThrow('Supervisor Agent not found');
 
       // Assert
-      expect(result.agentId).toBe(fallbackAgentId);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Failed to get business setup agent for step WELCOME:',
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to create thread with supervisor agent:',
         expect.any(Error),
       );
 
-      consoleWarnSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('Supervisor Agent System', () => {
+    const SUPERVISOR_AGENT_ID = 'supervisor-agent-123';
+    const mockUserWorkspaceId = 'user-workspace-123';
+    const mockThreadId = 'thread-456';
+
+    it('should create thread with supervisor agent and send welcome message', async () => {
+      // Arrange
+      const mockSupervisorAgent = {
+        id: SUPERVISOR_AGENT_ID,
+        name: 'business-setup-supervisor',
+        label: 'Business Setup Supervisor',
+      } as AgentEntity;
+
+      const mockThread = {
+        id: mockThreadId,
+        agentId: SUPERVISOR_AGENT_ID,
+        userWorkspaceId: mockUserWorkspaceId,
+      } as AgentChatThreadEntity;
+
+      const mockGreetingMessage = {
+        id: 'message-789',
+        threadId: mockThreadId,
+        role: 'assistant' as AgentChatMessageRole,
+        content: expect.stringContaining('Business Setup Supervisor'),
+      } as AgentChatMessageEntity;
+
+      mockBusinessSetupAgentService.getSupervisorAgent.mockResolvedValue(
+        mockSupervisorAgent,
+      );
+      mockThreadRepository.create.mockReturnValue(mockThread);
+      mockThreadRepository.save.mockResolvedValue(mockThread);
+      mockMessageRepository.create.mockReturnValue(mockGreetingMessage);
+      mockMessageRepository.save.mockResolvedValue(mockGreetingMessage);
+
+      // Act
+      const result = await service.createThreadWithSupervisorAgent(
+        mockUserWorkspaceId,
+      );
+
+      // Assert
+      expect(result.agentId).toBe(SUPERVISOR_AGENT_ID);
+      expect(
+        mockBusinessSetupAgentService.getSupervisorAgent,
+      ).toHaveBeenCalledWith(mockUserWorkspaceId);
+
+      // Verify thread creation
+      expect(mockThreadRepository.create).toHaveBeenCalledWith({
+        agentId: SUPERVISOR_AGENT_ID,
+        userWorkspaceId: mockUserWorkspaceId,
+      });
+      expect(mockThreadRepository.save).toHaveBeenCalledWith(mockThread);
+
+      // Verify greeting message creation
+      expect(mockMessageRepository.create).toHaveBeenCalledWith({
+        threadId: mockThreadId,
+        role: 'assistant',
+        content: expect.stringContaining('Business Setup Supervisor'),
+      });
+      expect(mockMessageRepository.save).toHaveBeenCalledWith(
+        mockGreetingMessage,
+      );
+
+      // Verify events were emitted
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'ai-agent.welcome.chat-created',
+        expect.objectContaining({
+          threadId: mockThreadId,
+          agentId: SUPERVISOR_AGENT_ID,
+          businessSetupStep: 'SUPERVISOR',
+          userWorkspaceId: mockUserWorkspaceId,
+        }),
+      );
+
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'ai-agent.welcome.greeting-sent',
+        expect.objectContaining({
+          threadId: mockThreadId,
+          messageId: mockGreetingMessage.id,
+          greetingMessage: expect.stringContaining('Business Setup Supervisor'),
+          businessSetupStep: 'SUPERVISOR',
+        }),
+      );
+    });
+
+    it('should handle greeting message failure gracefully and still return thread', async () => {
+      // Arrange
+      const mockSupervisorAgent = {
+        id: SUPERVISOR_AGENT_ID,
+        name: 'business-setup-supervisor',
+      } as AgentEntity;
+
+      const mockThread = {
+        id: mockThreadId,
+        agentId: SUPERVISOR_AGENT_ID,
+        userWorkspaceId: mockUserWorkspaceId,
+      } as AgentChatThreadEntity;
+
+      mockBusinessSetupAgentService.getSupervisorAgent.mockResolvedValue(
+        mockSupervisorAgent,
+      );
+      mockThreadRepository.create.mockReturnValue(mockThread);
+      mockThreadRepository.save.mockResolvedValue(mockThread);
+
+      // Mock greeting message creation failure
+      const greetingError = new Error('Failed to create greeting message');
+      mockMessageRepository.save.mockRejectedValue(greetingError);
+
+      // Mock console.error to avoid console output during tests
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      // Act
+      const result = await service.createThreadWithSupervisorAgent(
+        mockUserWorkspaceId,
+      );
+
+      // Assert
+      expect(result).toBe(mockThread); // Thread should still be created
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to send supervisor welcome message:',
+        greetingError,
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should throw error when supervisor agent creation fails', async () => {
+      // Arrange
+      mockBusinessSetupAgentService.getSupervisorAgent.mockRejectedValue(
+        new Error('Supervisor Agent not found'),
+      );
+
+      // Mock console.error to avoid console output during tests
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      // Act & Assert
+      await expect(
+        service.createThreadWithSupervisorAgent(mockUserWorkspaceId),
+      ).rejects.toThrow('Supervisor Agent not found');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to create thread with supervisor agent:',
+        expect.any(Error),
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should create appropriate supervisor welcome message content', async () => {
+      // Arrange
+      const mockSupervisorAgent = {
+        id: SUPERVISOR_AGENT_ID,
+        name: 'business-setup-supervisor',
+      } as AgentEntity;
+
+      const mockThread = {
+        id: mockThreadId,
+        agentId: SUPERVISOR_AGENT_ID,
+        userWorkspaceId: mockUserWorkspaceId,
+      } as AgentChatThreadEntity;
+
+      mockBusinessSetupAgentService.getSupervisorAgent.mockResolvedValue(
+        mockSupervisorAgent,
+      );
+      mockThreadRepository.create.mockReturnValue(mockThread);
+      mockThreadRepository.save.mockResolvedValue(mockThread);
+      mockMessageRepository.create.mockImplementation((message) => message);
+      mockMessageRepository.save.mockImplementation((message) =>
+        Promise.resolve(message),
+      );
+
+      // Act
+      await service.createThreadWithSupervisorAgent(
+        mockUserWorkspaceId,
+      );
+
+      // Assert
+      expect(mockMessageRepository.create).toHaveBeenCalledWith({
+        threadId: mockThreadId,
+        role: 'assistant',
+        content: expect.stringContaining('Business Setup Supervisor'),
+      });
+
+      // Verify supervisor welcome message contains expected elements
+      const greetingCall = mockMessageRepository.create.mock.calls[0][0];
+      expect(greetingCall.content).toContain('Business Setup Assistant');
+      expect(greetingCall.content).toContain('intelligent routing agent');
+      expect(greetingCall.content).toContain('WELCOME');
+      expect(greetingCall.content).toContain('🎯');
+    });
+  });
+
+  describe('Standard Thread Creation', () => {
+    it('should create thread for non-business-setup agents using createThread', async () => {
+      // Arrange
+      const regularAgentId = 'regular-agent-123';
+      const mockThread = {
+        id: 'thread-456',
+        agentId: regularAgentId,
+        userWorkspaceId: 'user-workspace-123',
+      } as AgentChatThreadEntity;
+
+      mockThreadRepository.create.mockReturnValue(mockThread);
+      mockThreadRepository.save.mockResolvedValue(mockThread);
+
+      // Act
+      const result = await service.createThread(
+        regularAgentId,
+        'user-workspace-123',
+      );
+
+      // Assert
+      expect(result).toBe(mockThread);
+
+      // Verify no greeting message was created for regular threads
+      expect(mockMessageRepository.create).not.toHaveBeenCalled();
+      expect(mockMessageRepository.save).not.toHaveBeenCalled();
+
+      // Verify no events were emitted for regular threads
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 

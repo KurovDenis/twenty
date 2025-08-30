@@ -66,7 +66,7 @@ export const SupervisorStepSchema = z.object({
       reason: z
         .string()
         .min(20)
-        .max(200)
+        .max(500)
         .describe('Clear reason for routing to this agent'),
       message: z
         .string()
@@ -89,7 +89,7 @@ export const SupervisorStepSchema = z.object({
       reason: z
         .string()
         .min(10)
-        .max(200)
+        .max(400)
         .describe('Why this query can be handled directly'),
     }),
 

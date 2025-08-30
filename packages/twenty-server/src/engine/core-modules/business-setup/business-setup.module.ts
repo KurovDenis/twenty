@@ -19,13 +19,13 @@ import { BusinessSetupSubscriptionsResolver } from './business-setup-subscriptio
 import { BusinessSetupResolver } from './business-setup.resolver';
 import { BusinessSetupService } from './business-setup.service';
 
-import { BusinessSetupChatContinuationService } from './chat-continuation/business-setup-chat-continuation.service';
 import { BusinessSetupTransitionService } from './chat-continuation/business-setup-transition.service';
 import { BusinessSetupChatResolver } from './resolvers/business-setup-chat.resolver';
 import { BusinessSetupAgentService } from './services/business-setup-agent.service';
 import { BusinessSetupWelcomeAgentService } from './services/business-setup-welcome-agent.service';
 import { EventEmitterBridgeService } from './services/event-emitter-bridge.service';
 // SGR (Schema-Guided Reasoning) services
+import { UserWorkspaceModule } from '../user-workspace/user-workspace.module';
 import { AvitoWelcomeSGRService } from './sgr/services/avito-welcome-sgr.service';
 import { AvitoWelcomeToolDispatcherService } from './sgr/services/avito-welcome-tool-dispatcher.service';
 import { SupervisorSGRService } from './sgr/services/supervisor-sgr.service';
@@ -38,6 +38,7 @@ import { SupervisorToolDispatcherService } from './sgr/services/supervisor-tool-
   imports: [
     TypeOrmModule.forFeature([AgentEntity], 'core'),
     UserVarsModule,
+    UserWorkspaceModule,
     OnboardingModule,
     TokenModule,
     WorkspaceCacheStorageModule,
@@ -55,7 +56,6 @@ import { SupervisorToolDispatcherService } from './sgr/services/supervisor-tool-
     BusinessSetupSubscriptionsResolver, // Add GraphQL subscriptions resolver
     BusinessSetupWelcomeAgentService, // Добавляем новый сервис
     BusinessSetupAgentService, // Add new agent service
-    BusinessSetupChatContinuationService, // Добавляем сервис продолжения чата
     BusinessSetupTransitionService, // Добавляем сервис переходов
     BusinessSetupChatResolver, // Добавляем новый resolver
     EventEmitterBridgeService, // Add event bridge service
@@ -79,7 +79,6 @@ import { SupervisorToolDispatcherService } from './sgr/services/supervisor-tool-
     BusinessSetupService,
     BusinessSetupWelcomeAgentService,
     BusinessSetupAgentService, // Export new agent service
-    BusinessSetupChatContinuationService,
     BusinessSetupTransitionService,
     EventEmitterBridgeService, // Export event bridge service
 

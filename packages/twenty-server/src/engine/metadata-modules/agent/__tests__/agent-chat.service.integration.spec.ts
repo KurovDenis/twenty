@@ -1,16 +1,16 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { type Repository } from 'typeorm';
 
-import { FileEntity } from 'src/engine/core-modules/file/entities/file.entity';
 import { BusinessSetupAgentService } from 'src/engine/core-modules/business-setup/services/business-setup-agent.service';
-import { BusinessSetupStatus } from 'src/engine/core-modules/business-setup/enums/business-setup-status.enum';
-import { type AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
+import { FileEntity } from 'src/engine/core-modules/file/entities/file.entity';
 import { AgentChatMessageEntity } from 'src/engine/metadata-modules/agent/agent-chat-message.entity';
 import { AgentChatThreadEntity } from 'src/engine/metadata-modules/agent/agent-chat-thread.entity';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentTitleGenerationService } from 'src/engine/metadata-modules/agent/agent-title-generation.service';
+import { type AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 
 describe('AgentChatService Integration Tests', () => {
   let service: AgentChatService;
@@ -41,6 +41,12 @@ describe('AgentChatService Integration Tests', () => {
 
   const mockBusinessSetupAgentService = {
     getAgentForStep: jest.fn(),
+    getSupervisorAgent: jest.fn(),
+    isSupervisorAgent: jest.fn(),
+  };
+
+  const mockEventEmitter = {
+    emit: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -66,6 +72,10 @@ describe('AgentChatService Integration Tests', () => {
         {
           provide: BusinessSetupAgentService,
           useValue: mockBusinessSetupAgentService,
+        },
+        {
+          provide: EventEmitter2,
+          useValue: mockEventEmitter,
         },
       ],
     }).compile();
@@ -105,149 +115,58 @@ describe('AgentChatService Integration Tests', () => {
     });
   });
 
-  describe('createThreadWithBusinessSetupContext', () => {
-    it('should use provided agent when no business setup step specified', async () => {
-      const mockThread = {
-        id: 'thread-id',
-        agentId: 'agent-id',
-        userWorkspaceId: 'workspace-id',
-      } as AgentChatThreadEntity;
-
-      mockThreadRepository.create.mockReturnValue(mockThread);
-      mockThreadRepository.save.mockResolvedValue(mockThread);
-
-      const result = await service.createThreadWithBusinessSetupContext(
-        'agent-id',
-        'workspace-id',
-      );
-
-      expect(result).toBe(mockThread);
-      expect(mockThreadRepository.create).toHaveBeenCalledWith({
-        agentId: 'agent-id',
-        userWorkspaceId: 'workspace-id',
-      });
-      expect(
-        mockBusinessSetupAgentService.getAgentForStep,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('should use business setup agent when step is provided', async () => {
-      const mockBusinessSetupAgent = {
-        id: 'welcome-agent-id',
-        name: 'welcome-agent',
+  describe('createThreadWithSupervisorAgent', () => {
+    it('should create thread with supervisor agent', async () => {
+      const mockSupervisorAgent = {
+        id: 'supervisor-agent-id',
+        name: 'supervisor-agent',
         modelId: 'google/gemini-2.5-flash',
       } as AgentEntity;
 
       const mockThread = {
         id: 'thread-id',
-        agentId: 'welcome-agent-id',
+        agentId: 'supervisor-agent-id',
         userWorkspaceId: 'workspace-id',
       } as AgentChatThreadEntity;
 
-      mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
-        mockBusinessSetupAgent,
+      mockBusinessSetupAgentService.getSupervisorAgent.mockResolvedValue(
+        mockSupervisorAgent,
       );
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
 
-      const result = await service.createThreadWithBusinessSetupContext(
-        'default-agent-id',
+      const result = await service.createThreadWithSupervisorAgent(
         'workspace-id',
-        BusinessSetupStatus.WELCOME,
       );
 
-      expect(result.agentId).toBe('welcome-agent-id');
+      expect(result.agentId).toBe('supervisor-agent-id');
       expect(
-        mockBusinessSetupAgentService.getAgentForStep,
-      ).toHaveBeenCalledWith(BusinessSetupStatus.WELCOME, 'workspace-id');
+        mockBusinessSetupAgentService.getSupervisorAgent,
+      ).toHaveBeenCalledWith('workspace-id');
       expect(mockThreadRepository.create).toHaveBeenCalledWith({
-        agentId: 'welcome-agent-id',
+        agentId: 'supervisor-agent-id',
         userWorkspaceId: 'workspace-id',
       });
     });
 
-    it('should fallback to original agent when business setup agent fails', async () => {
-      const mockThread = {
-        id: 'thread-id',
-        agentId: 'default-agent-id',
-        userWorkspaceId: 'workspace-id',
-      } as AgentChatThreadEntity;
-
-      mockBusinessSetupAgentService.getAgentForStep.mockRejectedValue(
+    it('should handle supervisor agent failure gracefully', async () => {
+      mockBusinessSetupAgentService.getSupervisorAgent.mockRejectedValue(
         new Error('Agent creation failed'),
       );
-      mockThreadRepository.create.mockReturnValue(mockThread);
-      mockThreadRepository.save.mockResolvedValue(mockThread);
 
-      // Mock console.warn to avoid console output during tests
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      // Mock console.error to avoid console output during tests
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      const result = await service.createThreadWithBusinessSetupContext(
-        'default-agent-id',
-        'workspace-id',
-        BusinessSetupStatus.WELCOME,
-      );
+      await expect(
+        service.createThreadWithSupervisorAgent('workspace-id'),
+      ).rejects.toThrow('Agent creation failed');
 
-      expect(result.agentId).toBe('default-agent-id');
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Failed to get business setup agent for step WELCOME:',
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to create thread with supervisor agent:',
         expect.any(Error),
       );
-      expect(mockThreadRepository.create).toHaveBeenCalledWith({
-        agentId: 'default-agent-id',
-        userWorkspaceId: 'workspace-id',
-      });
 
-      consoleWarnSpy.mockRestore();
-    });
-
-    it('should handle different business setup steps correctly', async () => {
-      const testCases = [
-        {
-          step: BusinessSetupStatus.WELCOME,
-          expectedAgentId: 'welcome-agent-id',
-        },
-        {
-          step: BusinessSetupStatus.BUSINESS_ANALYSIS,
-          expectedAgentId: 'analysis-agent-id',
-        },
-        {
-          step: BusinessSetupStatus.SALES_FUNNEL_DESIGN,
-          expectedAgentId: 'funnel-agent-id',
-        },
-      ];
-
-      for (const testCase of testCases) {
-        const mockAgent = {
-          id: testCase.expectedAgentId,
-          name: 'test-agent',
-        } as AgentEntity;
-
-        const mockThread = {
-          id: 'thread-id',
-          agentId: testCase.expectedAgentId,
-          userWorkspaceId: 'workspace-id',
-        } as AgentChatThreadEntity;
-
-        mockBusinessSetupAgentService.getAgentForStep.mockResolvedValue(
-          mockAgent,
-        );
-        mockThreadRepository.create.mockReturnValue(mockThread);
-        mockThreadRepository.save.mockResolvedValue(mockThread);
-
-        const result = await service.createThreadWithBusinessSetupContext(
-          'default-agent-id',
-          'workspace-id',
-          testCase.step,
-        );
-
-        expect(result.agentId).toBe(testCase.expectedAgentId);
-        expect(
-          mockBusinessSetupAgentService.getAgentForStep,
-        ).toHaveBeenCalledWith(testCase.step, 'workspace-id');
-
-        jest.clearAllMocks();
-      }
+      consoleErrorSpy.mockRestore();
     });
   });
 

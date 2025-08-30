@@ -2,12 +2,11 @@ import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
-import { BusinessSetupStatus } from 'src/engine/core-modules/business-setup/enums/business-setup-status.enum';
 import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
 import { AuthUserWorkspaceId } from 'src/engine/decorators/auth/auth-user-workspace-id.decorator';
 import {
-  FeatureFlagGuard,
-  RequireFeatureFlag,
+    FeatureFlagGuard,
+    RequireFeatureFlag,
 } from 'src/engine/guards/feature-flag.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
@@ -57,16 +56,15 @@ export class AgentChatResolver {
     @Args('input') input: CreateAgentChatThreadInput,
     @AuthUserWorkspaceId() userWorkspaceId: string,
   ) {
-    // If businessSetupStep is provided, use enhanced logic
+    // CRITICAL FIX: Always use supervisor agents for business setup
+    // This ensures proper routing through the supervisor system
     if (input.businessSetupStep) {
-      return this.agentChatService.createThreadWithBusinessSetupContext(
-        input.agentId,
+      return this.agentChatService.createThreadWithSupervisorAgent(
         userWorkspaceId,
-        input.businessSetupStep as BusinessSetupStatus,
       );
     }
 
-    // Otherwise use standard logic
+    // Otherwise use standard logic for non-business-setup threads
     return this.agentChatService.createThread(input.agentId, userWorkspaceId);
   }
 }

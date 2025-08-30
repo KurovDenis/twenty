@@ -18,6 +18,7 @@ import {
   type SGRStepResult,
   SGR_SYSTEM_PROMPTS,
   type WelcomeExecutionContext,
+  WelcomeToolUnion,
   isCompletionTool,
 } from '../schemas/avito-welcome-sgr.schema';
 import {
@@ -116,7 +117,7 @@ export class AvitoWelcomeSGRService {
         userId,
         workspaceId,
         threadId,
-        maxSteps: 5, // Ограничиваем для welcome stage
+        maxSteps: 10, // Ограничиваем для welcome stage
       });
 
       await this.handleWelcomeResult(result, userId, workspaceId, threadId);
@@ -152,7 +153,7 @@ export class AvitoWelcomeSGRService {
       workspaceId,
       threadId,
       userMessage,
-      maxSteps: 5,
+      maxSteps: 10,
     };
 
     const task = `
@@ -173,7 +174,7 @@ export class AvitoWelcomeSGRService {
           userId,
           workspaceId,
           threadId,
-          maxSteps: context.maxSteps || 5,
+          maxSteps: context.maxSteps || 10,
         },
         context,
       );
@@ -431,16 +432,17 @@ export class AvitoWelcomeSGRService {
           completed: false,
         };
 
-        // Add tool execution to conversation context
+        // Add tool execution to conversation context with detailed results
+        const toolExecutionContext = this.buildToolExecutionContext(
+          stepResult.function,
+          toolResult,
+          stepNumber,
+        );
+
         conversationLog.push(
           {
             role: 'user' as const,
-            content:
-              stepResult.plan_remaining_steps[0] || 'Выполняю следующий шаг...',
-          },
-          {
-            role: 'user' as const,
-            content: `Статус выполнения: ${toolResult.success ? 'успешно' : 'ошибка'}`,
+            content: toolExecutionContext,
           },
         );
 
@@ -1251,5 +1253,41 @@ export class AvitoWelcomeSGRService {
       completed: false,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Build detailed context about tool execution results for AI reasoning
+   */
+  private buildToolExecutionContext(
+    tool: WelcomeToolUnion,
+    result: any,
+    stepNumber: number,
+  ): string {
+    const timestamp = new Date().toISOString();
+    
+    switch (tool.tool) {
+      case 'extract_credentials':
+        return `Шаг ${stepNumber} (${timestamp}): ИЗВЛЕЧЕНИЕ УЧЕТНЫХ ДАННЫХ - ${result.success ? 'ВЫПОЛНЕНО' : 'ОШИБКА'}
+${result.success ? '✅ CLIENT_ID и CLIENT_SECRET успешно извлечены из сообщения пользователя' : '❌ Не удалось извлечь учетные данные'}
+Следующий шаг: ${result.success ? 'validate_avito_token' : 'request_credentials'}`;
+        
+      case 'validate_avito_token':
+        return `Шаг ${stepNumber} (${timestamp}): ПРОВЕРКА УЧЕТНЫХ ДАННЫХ - ${result.success ? 'ВЫПОЛНЕНО' : 'ОШИБКА'}
+${result.success ? '✅ Учетные данные проверены через Avito API, токен доступа получен' : '❌ Проверка не прошла, учетные данные неверны'}
+Следующий шаг: ${result.success ? 'store_credentials' : 'request_credentials'}`;
+        
+      case 'store_credentials':
+        return `Шаг ${stepNumber} (${timestamp}): СОХРАНЕНИЕ УЧЕТНЫХ ДАННЫХ - ${result.success ? 'ВЫПОЛНЕНО' : 'ОШИБКА'}
+${result.success ? '✅ Учетные данные сохранены в системе' : '❌ Ошибка при сохранении'}
+Следующий шаг: ${result.success ? 'report_welcome_completion' : 'validate_avito_token'}`;
+        
+      case 'request_credentials':
+        return `Шаг ${stepNumber} (${timestamp}): ЗАПРОС УЧЕТНЫХ ДАННЫХ - ВЫПОЛНЕНО
+✅ Пользователю отправлены инструкции по предоставлению учетных данных
+Следующий шаг: Ожидание ответа пользователя`;
+        
+      default:
+        return `Шаг ${stepNumber} (${timestamp}): ${tool.tool} - ${result.success ? 'ВЫПОЛНЕНО' : 'ОШИБКА'}`;
+    }
   }
 }

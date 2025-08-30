@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
-import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
-import { OnboardingService } from 'src/engine/core-modules/onboarding/onboarding.service';
 import { OnboardingStatus } from 'src/engine/core-modules/onboarding/enums/onboarding-status.enum';
+import { OnboardingService } from 'src/engine/core-modules/onboarding/onboarding.service';
+import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { type User } from 'src/engine/core-modules/user/user.entity';
 import { type Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 
@@ -11,8 +11,8 @@ import { BusinessSetupStatus } from './enums/business-setup-status.enum';
 import {
   BUSINESS_SETUP_EVENTS,
   BusinessSetupRouteMessageEvent,
-  SupervisorThinkingStepEvent,
   SupervisorRoutingCompletedEvent,
+  SupervisorThinkingStepEvent,
 } from './events/business-setup.events';
 
 export enum BusinessSetupStepKeys {
@@ -290,7 +290,7 @@ export class BusinessSetupService {
 
     // For now, just log the thinking step
     this.logger.debug(
-      `Step ${payload.stepNumber} state: ${payload.currentState.substring(0, 100)}...`,
+      `Step ${payload.stepNumber} state: ${payload.currentState ? payload.currentState.substring(0, 100) + '...' : 'No state provided'}`,
     );
   }
 
@@ -374,7 +374,7 @@ export class BusinessSetupService {
       {
         reason: payload.handoffReason,
         contextPreserved: payload.contextPreserved,
-        userMessage: payload.userMessage.substring(0, 100) + '...',
+        userMessage: payload.userMessage ? payload.userMessage.substring(0, 100) + '...' : 'No message provided',
       },
     );
 

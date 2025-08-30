@@ -7,10 +7,6 @@ import { aiChatErrorRecovery, AIChatErrorType } from '@/ai/services/aiChatErrorR
 import { useBusinessSetupStatus } from './useBusinessSetupStatus';
 import { BusinessSetupStatus } from './useSetNextBusinessSetupStatus';
 import {
-  BUSINESS_SETUP_AGENTS,
-  SGR_AVITO_AGENT_ID,
-  shouldForceAgent,
-  shouldAutoGreet,
   getGreetingMessage,
   getAgentConfigForStatus
 } from '../config/businessSetupAgents.config';
@@ -28,83 +24,12 @@ export const useBusinessSetupAgentChat = () => {
   const agentConfig = getAgentConfigForStatus(businessSetupStatus);
   const agentId = agentConfig?.agentId || currentWorkspace?.defaultAgent?.id || 'fallback-agent';
   
-  // Create specialized agent chat thread hook with business setup context
+  // Create agent chat thread hook with business setup context
+  // The backend will automatically use supervisor routing for business setup
   const { createAgentChatThread } = useCreateNewAIChatThread({ 
     agentId,
     businessSetupStep: businessSetupStatus || undefined 
   });
-  
-  // Create SGR Avito agent thread hook for WELCOME stage
-  const { createAgentChatThread: createSGRThread } = useCreateNewAIChatThread({ 
-    agentId: SGR_AVITO_AGENT_ID,
-    businessSetupStep: 'WELCOME'
-  });
-
-  /**
-   * Create specialized SGR Avito Agent for WELCOME stage with error recovery
-   */
-  const createSGRAvitoAgentWithGreeting = useCallback(async () => {
-    console.log('Creating SGR Avito Agent for WELCOME stage with auto-greeting');
-    
-    let lastError: Error | null = null;
-    const maxRetries = 3;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`SGR Avito Agent creation attempt ${attempt}/${maxRetries}`);
-        
-        // Use error recovery service for robust SGR agent creation
-        await aiChatErrorRecovery.executeRecovery(
-          async () => {
-            console.log('Executing SGR Avito Agent creation with error recovery');
-            return await createSGRThread();
-          },
-          {
-            agentId: SGR_AVITO_AGENT_ID,
-            businessSetupStatus: 'WELCOME',
-            maxRetries: 1 // Let our outer loop handle retries
-          }
-        );
-        
-        console.log('SGR Avito Agent thread created successfully');
-        setLastError(null);
-        return; // Success!
-        
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(`SGR Avito Agent creation attempt ${attempt} failed:`, lastError.message);
-        
-        if (attempt < maxRetries) {
-          // Wait before retry (exponential backoff)
-          const delay = Math.pow(2, attempt) * 1000;
-          console.log(`Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-    
-    // All retries failed
-    const finalError = lastError || new Error('Unknown error occurred');
-    const chatError = await aiChatErrorRecovery.handleChatCreationError(
-      finalError,
-      {
-        agentId: SGR_AVITO_AGENT_ID,
-        businessSetupStatus: 'WELCOME'
-      }
-    );
-    
-    const userMessage = aiChatErrorRecovery.getUserFriendlyMessage(chatError);
-    setLastError(`Failed to create SGR Avito Agent after ${maxRetries} attempts: ${userMessage}`);
-    
-    console.error('Failed to create SGR Avito Agent after all retries:', chatError);
-    
-    // For WELCOME stage, SGR Avito Agent is REQUIRED - no fallback allowed
-    if (businessSetupStatus === 'WELCOME') {
-      throw new Error(`SGR Avito Agent is required for WELCOME stage: ${userMessage}`);
-    }
-    
-    throw finalError;
-  }, [createSGRThread, businessSetupStatus]);
 
   const createBusinessSetupChat = useCallback(async () => {
     if (isCreatingChat) {
@@ -118,33 +43,30 @@ export const useBusinessSetupAgentChat = () => {
     try {
       const currentStep = businessSetupStatus || 'WELCOME';
       
-      console.log('Creating business setup chat with SGR agent for step:', currentStep);
-      console.log('This will create specialized welcome-agent with Avito SGR support');
+      console.log('Creating business setup chat with supervisor agent for step:', currentStep);
+      console.log('This will create supervisor agent that routes to appropriate specialized agents');
       
-      if (currentStep === 'WELCOME') {
-        // FORCE SGR Avito Agent for WELCOME stage with error recovery
-        await createSGRAvitoAgentWithGreeting();
-      } else {
-        // For other stages, use regular business setup agent with error recovery
-        await aiChatErrorRecovery.executeRecovery(
-          async () => {
-            return await createAgentChatThread();
-          },
-          {
-            agentId,
-            businessSetupStatus: currentStep,
-            maxRetries: 2
-          }
-        );
-      }
+      // ALWAYS use supervisor agent for business setup - no matter the stage
+      // The supervisor will intelligently route to appropriate specialized agents
+      await aiChatErrorRecovery.executeRecovery(
+        async () => {
+          // Use supervisor agent creation with business setup context
+          return await createAgentChatThread();
+        },
+        {
+          agentId: 'supervisor-agent', // This will be handled by the backend routing
+          businessSetupStatus: currentStep,
+          maxRetries: 3
+        }
+      );
       
-      console.log('Business setup chat thread created successfully');
+      console.log('Business setup supervisor thread created successfully');
       
     } catch (error) {
       const chatError = await aiChatErrorRecovery.handleChatCreationError(
         error instanceof Error ? error : new Error(String(error)),
         {
-          agentId,
+          agentId: 'supervisor-agent',
           businessSetupStatus: businessSetupStatus || undefined
         }
       );
@@ -154,7 +76,13 @@ export const useBusinessSetupAgentChat = () => {
       
       console.error('Failed to create business setup chat thread:', chatError);
       
-      // Check if we can fallback to standard AI page
+      // For business setup, don't fallback - show error
+      if (businessSetupStatus === 'WELCOME') {
+        console.error('Cannot fallback for WELCOME stage - supervisor agent required');
+        throw error;
+      }
+      
+      // For other stages, can fallback to standard AI
       const canFallback = aiChatErrorRecovery.canFallbackToStandardChat(businessSetupStatus);
       
       if (canFallback && chatError.type !== AIChatErrorType.BUSINESS_SETUP_CONFLICT) {
@@ -162,14 +90,12 @@ export const useBusinessSetupAgentChat = () => {
         setLastError(`${userMessage} Opening standard chat instead.`);
         openAskAIPage();
       } else {
-        // For WELCOME stage or critical errors, show error but don't fallback
-        console.error('Cannot fallback for WELCOME stage or critical error');
         throw error;
       }
     } finally {
       setIsCreatingChat(false);
     }
-  }, [businessSetupStatus, isCreatingChat, createSGRAvitoAgentWithGreeting, createAgentChatThread, openAskAIPage, agentId]);
+  }, [businessSetupStatus, isCreatingChat, createAgentChatThread, openAskAIPage]);
 
   // NOTE: This function is kept for reference only and help text
   // It should NOT be used for automatic messages in the chat

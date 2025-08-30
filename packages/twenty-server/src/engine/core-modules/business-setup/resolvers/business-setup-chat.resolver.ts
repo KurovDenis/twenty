@@ -7,10 +7,8 @@ import { AuthUser } from 'src/engine/decorators/auth/auth-user.decorator';
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
 import { JwtAuthGuard } from 'src/engine/guards/jwt-auth.guard';
 
-import { BusinessSetupChatContinuationService } from '../chat-continuation/business-setup-chat-continuation.service';
 import { BusinessSetupTransitionService } from '../chat-continuation/business-setup-transition.service';
 import {
-  ChatContinuationInput,
   BusinessSetupTransitionInput,
 } from '../chat-continuation/dtos/chat-continuation.input';
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
@@ -19,24 +17,11 @@ import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 @UseGuards(JwtAuthGuard)
 export class BusinessSetupChatResolver {
   constructor(
-    private readonly chatContinuationService: BusinessSetupChatContinuationService,
     private readonly transitionService: BusinessSetupTransitionService,
   ) {}
 
-  @Mutation(() => Boolean)
-  async continueWelcomeChat(
-    @AuthUser() user: User,
-    @AuthWorkspace() workspace: Workspace,
-    @Args('input') input: ChatContinuationInput,
-  ): Promise<boolean> {
-    const result = await this.chatContinuationService.continueWelcomeChat(
-      user.id,
-      workspace.id,
-      input,
-    );
-
-    return result.success;
-  }
+  // REMOVED: continueWelcomeChat mutation - now handled by supervisor system
+  // All message processing goes through SupervisorSGRService routing
 
   @Mutation(() => Boolean)
   async transitionToNextStep(

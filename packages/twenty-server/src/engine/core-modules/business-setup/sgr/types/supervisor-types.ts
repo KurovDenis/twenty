@@ -1,11 +1,11 @@
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 import {
-  SupervisorStepResult,
-  BusinessSetupProgress,
+    BusinessSetupProgress,
+    SupervisorStepResult,
 } from '../schemas/supervisor-sgr.schema';
 
 // Export important types for use in test files
-export { SupervisorStepResult, BusinessSetupProgress };
+export { BusinessSetupProgress, SupervisorStepResult };
 
 /**
  * Supervisor Agent Configuration
@@ -168,6 +168,7 @@ export interface ISupervisorToolDispatcher {
     tool: SupervisorStepResult['function'],
     userId: string,
     workspaceId: string,
+    threadId: string,
   ): Promise<SupervisorToolExecutionResult>;
 
   checkBusinessSetupStatus(

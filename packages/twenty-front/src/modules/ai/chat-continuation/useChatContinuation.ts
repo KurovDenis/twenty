@@ -1,12 +1,9 @@
 import { gql, useApolloClient } from '@apollo/client';
 import { useCallback, useState } from 'react';
 
-// GraphQL мутации для продолжения чата
-const CONTINUE_WELCOME_CHAT = gql`
-  mutation ContinueWelcomeChat($input: ChatContinuationInput!) {
-    continueWelcomeChat(input: $input)
-  }
-`;
+// NOTE: CONTINUE_WELCOME_CHAT mutation removed as all message processing
+// now goes through SupervisorSGRService routing automatically when users
+// send messages to supervisor agent threads
 
 const TRANSITION_TO_NEXT_STEP = gql`
   mutation TransitionToNextStep($input: BusinessSetupTransitionInput!) {
@@ -37,37 +34,13 @@ export const useChatContinuation = (threadId: string | null) => {
   const apolloClient = useApolloClient();
 
   const continueChat = useCallback(async (input: ChatContinuationInput) => {
-    if (!threadId) {
-      setError('No active chat thread');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data } = await apolloClient.mutate({
-        mutation: CONTINUE_WELCOME_CHAT,
-        variables: {
-          input: {
-            ...input,
-            threadId: threadId,
-          }
-        }
-      });
-
-      if (data?.continueWelcomeChat) {
-        setLastResponse('Chat continued successfully');
-        // TODO: Обновить UI с ответом AI
-      } else {
-        setError('Failed to continue chat');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [threadId, apolloClient]);
+    // LEGACY FUNCTION - No longer used
+    // All message processing now goes through SupervisorSGRService automatically
+    // when users send messages to supervisor agent threads via the chat UI
+    
+    console.warn('continueChat called but is deprecated. Messages should be sent through chat UI.');
+    setError('This function is deprecated. Please use the chat interface directly.');
+  }, []);
 
   const transitionToNextStep = useCallback(async (input: BusinessSetupTransitionInput) => {
     setIsLoading(true);

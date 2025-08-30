@@ -60,6 +60,7 @@ Your responsibilities:
 2. Route requests to appropriate specialized agents based on current status
 3. Manage progression through business setup stages
 4. Provide transparent reasoning for all routing decisions
+5. Handle automatic status checks with intelligent routing and personalized responses
 
 Available Business Setup Stages:
 - WELCOME: Initial setup and Avito API credential collection
@@ -71,13 +72,34 @@ Available Business Setup Stages:
 - TESTING_OPTIMIZATION: System testing and optimization
 - COMPLETED: Business setup complete
 
+AVAILABLE TOOLS (use EXACT names only):
+1. "check_business_setup_status" - Check user's current business setup status
+   Required: userId, workspaceId
+2. "route_to_specialized_agent" - Route user to appropriate specialized agent
+   Required: status, reason, message
+3. "process_directly" - Handle simple queries directly without routing
+   Required: response, reason
+4. "status_change" - Trigger progression to next business setup stage
+   Required: from_status, to_status, reason
+5. "complete_routing" - Signal completion of routing decision
+   Required: success, final_message
+
 CRITICAL ROUTING RULES:
 - WELCOME status: ALWAYS route to SGR Avito Agent (sgr-avito-agent)
 - Never process WELCOME requests yourself - always delegate to SGR agent
+- For status check requests: ALWAYS check status first, then route appropriately with personalized guidance
 - Monitor for stage completion signals and trigger status transitions
 - Provide clear reasoning for every routing decision
+- When routing, include context about current status and next steps
 
-Use the available tools to check status, route requests, and manage transitions.
+AUTOMATIC STATUS CHECK HANDLING:
+When user asks about status or needs routing guidance:
+1. Use check_business_setup_status tool to get current status
+2. Analyze the status and determine appropriate next action
+3. Route to specialized agent with personalized message based on current status
+4. Provide clear explanation of why you're routing to specific agent
+
+IMPORTANT: Use ONLY the exact tool names listed above. Do not invent or modify tool names.
 Always maintain a helpful and informative tone while making routing decisions.`,
 
   TASK_INSTRUCTIONS: `Analyze the current request and business setup context.
@@ -90,6 +112,15 @@ Your task:
    - Trigger status change if progression is needed
 3. Provide clear reasoning for your decision
 4. Complete routing when action is determined
+
+AVAILABLE TOOLS (use EXACT names):
+- "check_business_setup_status" - Check user's current business setup status
+- "route_to_specialized_agent" - Route user to appropriate specialized agent
+- "process_directly" - Handle simple queries directly without routing
+- "status_change" - Trigger progression to next business setup stage
+- "complete_routing" - Signal completion of routing decision
+
+IMPORTANT: Use ONLY these exact tool names. Do not invent or modify tool names.
 
 Be methodical and transparent in your reasoning process.`,
 };
@@ -382,6 +413,7 @@ Be helpful, efficient, and always explain your routing decisions clearly.
           stepResult.function,
           params.userId,
           params.workspaceId,
+          params.threadId,
         );
 
         // STREAM: Tool execution result
@@ -513,6 +545,23 @@ Be helpful, efficient, and always explain your routing decisions clearly.
         );
       }
 
+      // Create enhanced task instructions with actual user and workspace IDs
+      const enhancedTaskInstructions = `${SUPERVISOR_SYSTEM_PROMPTS.TASK_INSTRUCTIONS}
+
+IMPORTANT CONTEXT:
+- Current userId: ${context.userId}
+- Current workspaceId: ${context.workspaceId}
+- Current threadId: ${context.threadId}
+
+When using tools that require userId and workspaceId (like check_business_setup_status), use these EXACT values above. Do not use placeholders or generate your own IDs.
+
+TOOL USAGE EXAMPLES:
+- To check status: {"tool": "check_business_setup_status", "userId": "${context.userId}", "workspaceId": "${context.workspaceId}"}
+- To route user: {"tool": "route_to_specialized_agent", "status": "BUSINESS_ANALYSIS", "reason": "...", "message": "..."}
+- To complete: {"tool": "complete_routing", "success": true, "final_message": "..."}
+
+WARNING: Do NOT use tool names like "route_request_to_agent" or any other variations. Use ONLY the exact tool names from the schema.`;
+
       // Generate structured output using the supervisor schema with timeout
       const result = await Promise.race([
         generateObject({
@@ -521,7 +570,7 @@ Be helpful, efficient, and always explain your routing decisions clearly.
             ...context.conversationLog,
             {
               role: 'user' as const,
-              content: SUPERVISOR_SYSTEM_PROMPTS.TASK_INSTRUCTIONS,
+              content: enhancedTaskInstructions,
             },
           ],
           schema: SupervisorStepSchema,
@@ -559,9 +608,9 @@ Be helpful, efficient, and always explain your routing decisions clearly.
       this.logger.log(
         `STREAMING supervisor reasoning step ${context.stepNumber} result:`,
         {
-          current_state: stepResult.current_state.substring(0, 100) + '...',
-          planned_steps: stepResult.plan_remaining_steps.length,
-          selected_tool: stepResult.function.tool,
+          current_state: stepResult.current_state ? stepResult.current_state.substring(0, 100) + '...' : 'No state provided',
+          planned_steps: stepResult.plan_remaining_steps?.length || 0,
+          selected_tool: stepResult.function?.tool || 'No tool selected',
           task_completed: stepResult.task_completed,
         },
       );

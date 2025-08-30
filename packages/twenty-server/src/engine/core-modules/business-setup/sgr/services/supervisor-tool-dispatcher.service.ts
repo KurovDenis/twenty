@@ -1,39 +1,40 @@
-import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // Core imports
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
-import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 import { AgentChatMessageRole } from 'src/engine/metadata-modules/agent/agent-chat-message.entity';
+import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 
 // Business setup imports
 import {
-  BusinessSetupKeyValueTypeMap,
-  BusinessSetupStepKeys,
+    BusinessSetupKeyValueTypeMap,
+    BusinessSetupStepKeys,
 } from '../../business-setup.service';
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
-import { BusinessSetupAgentService } from '../../services/business-setup-agent.service';
 import { BUSINESS_SETUP_EVENTS } from '../../events/business-setup.events';
+import { BusinessSetupAgentService } from '../../services/business-setup-agent.service';
 
 // SGR imports
 
 // Supervisor-specific imports
 import {
-  SupervisorStepResult,
-  CheckBusinessSetupStatusTool,
-  RouteToSpecializedAgentTool,
-  ProcessDirectlyTool,
-  StatusChangeTool,
-  CompleteRoutingTool,
-  BusinessSetupProgress,
+    BusinessSetupProgress,
+    CheckBusinessSetupStatusTool,
+    CompleteRoutingTool,
+    ProcessDirectlyTool,
+    RouteToSpecializedAgentTool,
+    StatusChangeTool,
+    SupervisorStepResult,
 } from '../schemas/supervisor-sgr.schema';
 import {
-  SupervisorToolExecutionResult,
-  ISupervisorToolDispatcher,
-  SupervisorException,
-  SupervisorErrorType,
+    ISupervisorToolDispatcher,
+    SupervisorErrorType,
+    SupervisorException,
+    SupervisorToolExecutionResult,
 } from '../types/supervisor-types';
 
+import { UserWorkspaceService } from 'src/engine/core-modules/user-workspace/user-workspace.service';
 import { AvitoWelcomeSGRService } from './avito-welcome-sgr.service';
 
 /**
@@ -50,6 +51,7 @@ export class SupervisorToolDispatcherService
 
   constructor(
     private readonly userVarsService: UserVarsService<BusinessSetupKeyValueTypeMap>,
+    private readonly userWorkspaceService: UserWorkspaceService,
     private readonly agentChatService: AgentChatService,
     @Inject(forwardRef(() => BusinessSetupAgentService))
     private readonly businessSetupAgentService: BusinessSetupAgentService,
@@ -64,6 +66,7 @@ export class SupervisorToolDispatcherService
     tool: SupervisorStepResult['function'],
     userId: string,
     workspaceId: string,
+    threadId: string,
   ): Promise<SupervisorToolExecutionResult> {
     this.logger.log(`Dispatching supervisor tool: ${tool.tool}`);
 
@@ -81,13 +84,14 @@ export class SupervisorToolDispatcherService
             tool,
             userId,
             workspaceId,
+            threadId,
           );
 
         case 'process_directly':
           return await this.executeProcessDirectly(tool);
 
         case 'status_change':
-          return await this.executeStatusChange(tool, userId, workspaceId);
+          return await this.executeStatusChange(tool, userId, workspaceId, threadId);
 
         case 'complete_routing':
           return await this.executeCompleteRouting(tool);
@@ -225,10 +229,16 @@ export class SupervisorToolDispatcherService
     this.logger.log(`Routing to specialized agent for status: ${status}`);
 
     try {
+      // Resolve userWorkspaceId from userId and workspaceId
+      const userWorkspace = await this.userWorkspaceService.getUserWorkspaceForUserOrThrow({
+        userId,
+        workspaceId,
+      });
+
       // Get the appropriate agent for this status
       const agent = await this.businessSetupAgentService.getAgentForStep(
         status,
-        workspaceId,
+        userWorkspace.id,
       );
 
       // Special handling for WELCOME status - route to SGR Avito Agent
@@ -441,15 +451,14 @@ export class SupervisorToolDispatcherService
     tool: RouteToSpecializedAgentTool,
     userId: string,
     workspaceId: string,
+    threadId: string,
   ): Promise<SupervisorToolExecutionResult> {
-    // Note: threadId is not available in tool params, would need to be passed from context
-    // For now, we'll create a placeholder implementation
     return await this.routeToSpecializedAgent(
       tool.status,
       tool.message,
       userId,
       workspaceId,
-      '', // threadId would need to be passed from context
+      threadId,
       tool.reason,
     );
   }
@@ -464,6 +473,7 @@ export class SupervisorToolDispatcherService
     tool: StatusChangeTool,
     userId: string,
     workspaceId: string,
+    threadId: string,
   ): Promise<SupervisorToolExecutionResult> {
     return await this.statusChange(
       tool.from_status,

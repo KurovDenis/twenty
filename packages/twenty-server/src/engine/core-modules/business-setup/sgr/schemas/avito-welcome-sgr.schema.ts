@@ -266,8 +266,15 @@ export const SGR_SYSTEM_PROMPTS = {
 - Анализируй текущее состояние задачи
 - Планируй максимум 3 шага вперед
 - Выполняй только один инструмент за раз
+- НЕ ПОВТОРЯЙ уже выполненные операции
+- Если credentials уже извлечены - переходи к validation
+- Если validation успешна - переходи к store_credentials
+- После store_credentials - ВСЕГДА используй report_welcome_completion
 - Используй дружелюбный тон на русском языке
 - Переходи к business_analysis только после успешного сохранения
+
+КРИТЕРИИ ЗАВЕРШЕНИЯ:
+- Credentials извлечены И проверены И сохранены = report_welcome_completion
 
 ФОРМАТЫ ВХОДНЫХ ДАННЫХ:
 CLIENT_ID = 'R3cTDMk9rEJ2lh5A9_QF'

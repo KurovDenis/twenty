@@ -1,11 +1,12 @@
-import { t } from '@lingui/core/macro';
+import { getAgentConfigForStatus } from '@/business-setup/config/businessSetupAgents.config';
+import { BUSINESS_SETUP_STATUS } from '@/business-setup/hooks/useSetNextBusinessSetupStatus';
+import { useLingui } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { IconLoader, IconSparkles } from 'twenty-ui/display';
+import { IconLoader, IconSettings, IconSparkles } from 'twenty-ui/display';
 import { FloatingIconButton } from 'twenty-ui/input';
 import { useIsMobile } from 'twenty-ui/utilities';
-import { getAgentConfigForStatus } from '@/business-setup/config/businessSetupAgents.config';
 import { useFloatingAIChatButton } from '../../hooks/useFloatingAIChatButton';
 import { useWelcomeMessage } from '../../hooks/useWelcomeMessage';
 import { AIErrorBoundary } from '../ErrorBoundary';
@@ -45,6 +46,7 @@ export const FloatingAIChatButton = () => {
 
 const FloatingAIChatButtonContent = () => {
   const isMobile = useIsMobile();
+  const { t } = useLingui();
   const { 
     isVisible, 
     handleClick, 
@@ -78,13 +80,16 @@ const FloatingAIChatButtonContent = () => {
    * Get tooltip text based on current state
    */
   const getTooltipText = useCallback(() => {
+    if (businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME) {
+      return 'Требуется настройка бизнеса';
+    }
+    
     if (isCreatingThread) {
       return t`Creating chat...`;
     }
     
     if (businessSetupStatus) {
       const statusMap = {
-        'WELCOME': t`Setup Avito Integration`,
         'BUSINESS_ANALYSIS': t`Analyze Business`,
         'SALES_FUNNEL_DESIGN': t`Design Sales Funnel`,
         'AGENT_SETUP': t`Setup AI Agents`,
@@ -106,32 +111,39 @@ const FloatingAIChatButtonContent = () => {
     if (isCreatingThread) {
       return IconLoader;
     }
+    if (businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME) {
+      return IconSettings;
+    }
     return IconSparkles;
-  }, [isCreatingThread]);
+  }, [isCreatingThread, businessSetupStatus]);
   
   /**
    * Get button variant based on business setup status
    */
   const getButtonVariant = useCallback(() => {
-    if (businessSetupStatus === 'WELCOME') {
+    if (businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME) {
       return 'primary'; // Highlight for WELCOME stage
     }
     return 'secondary';
   }, [businessSetupStatus]);
 
-  // Показываем всплывающее сообщение при получении welcome сообщения
+  // Check if user needs business setup
+  const needsBusinessSetup = businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME;
+
+  // Show popup for welcome message only (not for business setup)
   useEffect(() => {
-    if (welcomeMessage && !showPopup) {
+    // Only show popup for welcome messages, not for business setup warnings
+    if (welcomeMessage && !showPopup && !needsBusinessSetup) {
       setShowPopup(true);
       
-      // Автоматически скрываем через 10 секунд
+      // Auto-hide after 10 seconds for regular welcome messages
       const timer = setTimeout(() => {
         setShowPopup(false);
       }, 10000);
 
       return () => clearTimeout(timer);
     }
-  }, [welcomeMessage, showPopup, setShowPopup]);
+  }, [welcomeMessage, showPopup, setShowPopup, needsBusinessSetup]);
 
   return (
     <StyledFloatingAIChatButtonContainer
@@ -149,9 +161,9 @@ const FloatingAIChatButtonContent = () => {
         <div
           style={{
             transform: isCreatingThread ? 'none' : undefined,
-            filter: businessSetupStatus === 'WELCOME' ? 'hue-rotate(200deg) brightness(1.2)' : undefined,
+            filter: needsBusinessSetup ? 'hue-rotate(30deg) brightness(1.1)' : undefined,
           }}
-          className={isCreatingThread ? 'spin' : undefined}
+          className={isCreatingThread ? 'spin' : needsBusinessSetup ? 'pulse' : undefined}
         >
           <FloatingIconButton
             Icon={getButtonIcon()}
@@ -180,7 +192,7 @@ const FloatingAIChatButtonContent = () => {
       </StyledFloatingAIChatButton>
 
       {/* Business Setup Status Indicator */}
-      {businessSetupStatus === 'WELCOME' && (
+      {needsBusinessSetup && (
         <div 
           style={{
             position: 'absolute',
@@ -188,7 +200,7 @@ const FloatingAIChatButtonContent = () => {
             right: '-8px',
             width: '16px',
             height: '16px',
-            backgroundColor: '#ff5722',
+            backgroundColor: '#ff9800',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
@@ -198,7 +210,7 @@ const FloatingAIChatButtonContent = () => {
             fontWeight: 'bold',
             animation: 'pulse 2s infinite'
           }}
-          title="Setup Required"
+          title="Business Setup Required"
         >
           !
         </div>
@@ -266,7 +278,7 @@ const FloatingAIChatButtonContent = () => {
               ×
             </button>
           </div>
-          {businessSetupStatus === 'WELCOME' && (
+          {businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME && (
             <div style={{
               marginTop: '8px',
               fontSize: '12px',
@@ -278,13 +290,13 @@ const FloatingAIChatButtonContent = () => {
         </div>
       )}
 
-      {/* Welcome Message Popup */}
-      {showPopup && welcomeMessage && (
+      {/* Welcome Message Popup Only (Business Setup Popup Removed) */}
+      {showPopup && welcomeMessage && !needsBusinessSetup && (
         <StyledWelcomePopup>
           <StyledPopupHeader>
             <span>
               {agentConfig?.sgrEnabled ? '🤖 SGR Assistant' : '💬 AI Assistant'}
-              {businessSetupStatus === 'WELCOME' && ' - Avito Integration'}
+              {businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME && ' - Avito Integration'}
             </span>
             <button 
               onClick={() => setShowPopup(false)}
@@ -303,7 +315,9 @@ const FloatingAIChatButtonContent = () => {
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {welcomeMessage}
             </ReactMarkdown>
-            {businessSetupStatus === 'WELCOME' && (
+            {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+            {/* @ts-ignore - WELCOME is valid but not in generated types yet */}
+            {(businessSetupStatus as string) === 'WELCOME' && (
               <div 
                 style={{
                   marginTop: '12px',
