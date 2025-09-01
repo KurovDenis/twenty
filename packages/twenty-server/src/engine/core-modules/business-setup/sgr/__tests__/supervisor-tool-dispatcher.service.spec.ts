@@ -104,7 +104,12 @@ describe('SupervisorToolDispatcherService', () => {
         .mockResolvedValueOnce(false) // BUSINESS_SETUP_BUSINESS_ANALYSIS_PENDING
         .mockResolvedValueOnce(false); // other statuses...
 
-      const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
+      const result = await service.dispatch(
+        tool,
+        mockUserId,
+        mockWorkspaceId,
+        mockThreadId,
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveProperty('status');
@@ -149,7 +154,12 @@ describe('SupervisorToolDispatcherService', () => {
         mockGenerator,
       );
 
-      const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
+      const result = await service.dispatch(
+        tool,
+        mockUserId,
+        mockWorkspaceId,
+        mockThreadId,
+      );
 
       expect(result.success).toBe(true);
       expect(
@@ -172,7 +182,12 @@ describe('SupervisorToolDispatcherService', () => {
         reason: 'Simple informational request',
       };
 
-      const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
+      const result = await service.dispatch(
+        tool,
+        mockUserId,
+        mockWorkspaceId,
+        mockThreadId,
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveProperty('response', 'Direct response to user');
@@ -187,7 +202,12 @@ describe('SupervisorToolDispatcherService', () => {
         trigger_event: 'welcome_completed',
       };
 
-      const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
+      const result = await service.dispatch(
+        tool,
+        mockUserId,
+        mockWorkspaceId,
+        mockThreadId,
+      );
 
       expect(result.success).toBe(true);
       expect(mockUserVarsService.set).toHaveBeenCalledWith({
@@ -206,7 +226,12 @@ describe('SupervisorToolDispatcherService', () => {
         routed_to: 'business-analysis-agent',
       };
 
-      const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
+      const result = await service.dispatch(
+        tool,
+        mockUserId,
+        mockWorkspaceId,
+        mockThreadId,
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveProperty('completed', true);
@@ -220,7 +245,7 @@ describe('SupervisorToolDispatcherService', () => {
       };
 
       await expect(
-        service.dispatch(tool, mockUserId, mockWorkspaceId),
+        service.dispatch(tool, mockUserId, mockWorkspaceId, mockThreadId),
       ).rejects.toThrow(SupervisorException);
     });
   });
@@ -337,7 +362,12 @@ describe('SupervisorToolDispatcherService', () => {
 
       mockUserVarsService.get.mockRejectedValue(new Error('Generic error'));
 
-      const result = await service.dispatch(tool, mockUserId, mockWorkspaceId);
+      const result = await service.dispatch(
+        tool,
+        mockUserId,
+        mockWorkspaceId,
+        mockThreadId,
+      );
 
       // Should handle error gracefully and return default status
       expect(result.success).toBe(true);
@@ -350,7 +380,7 @@ describe('SupervisorToolDispatcherService', () => {
       };
 
       await expect(
-        service.dispatch(tool, mockUserId, mockWorkspaceId),
+        service.dispatch(tool, mockUserId, mockWorkspaceId, mockThreadId),
       ).rejects.toBeInstanceOf(SupervisorException);
     });
   });

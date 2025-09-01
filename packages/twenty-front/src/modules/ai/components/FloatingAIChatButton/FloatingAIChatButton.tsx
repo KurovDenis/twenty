@@ -1,5 +1,3 @@
-import { getAgentConfigForStatus } from '@/business-setup/config/businessSetupAgents.config';
-import { BUSINESS_SETUP_STATUS } from '@/business-setup/hooks/useSetNextBusinessSetupStatus';
 import { useLingui } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -7,7 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { IconLoader, IconSettings, IconSparkles } from 'twenty-ui/display';
 import { FloatingIconButton } from 'twenty-ui/input';
 import { useIsMobile } from 'twenty-ui/utilities';
-import { useFloatingAIChatButton } from '../../hooks/useFloatingAIChatButton';
+import { useSupervisorGuidance } from '../../hooks/useSupervisorGuidance';
 import { useWelcomeMessage } from '../../hooks/useWelcomeMessage';
 import { AIErrorBoundary } from '../ErrorBoundary';
 import {
@@ -48,20 +46,27 @@ const FloatingAIChatButtonContent = () => {
   const isMobile = useIsMobile();
   const { t } = useLingui();
   const { 
-    isVisible, 
-    handleClick, 
-    isCreatingThread, 
-    businessSetupStatus, 
-    activeThreadId,
-    lastError,
-    clearError 
-  } = useFloatingAIChatButton();
+    guidance, 
+    isLoading: isSupervisorLoading, 
+    error: supervisorError, 
+    executeAction, 
+    clearError: clearSupervisorError,
+    isVisible 
+  } = useSupervisorGuidance();
   const { welcomeMessage, showPopup, setShowPopup, continueChat } = useWelcomeMessage();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [isExecutingAction, setIsExecutingAction] = useState(false);
   
-  // Get agent configuration for current business setup status
-  const agentConfig = getAgentConfigForStatus(businessSetupStatus);
+  // All UI decisions now come from Supervisor Agent guidance
+  const isCreatingThread = isSupervisorLoading || isExecutingAction;
+  const lastError = supervisorError;
+  const clearError = clearSupervisorError;
+  
+  // Early return if not visible according to Supervisor
+  if (!isVisible) {
+    return null;
+  }
   
   // Show error message when lastError changes
   useEffect(() => {
@@ -77,63 +82,68 @@ const FloatingAIChatButtonContent = () => {
   }, [lastError, clearError]);
   
   /**
-   * Get tooltip text based on current state
+   * Get tooltip text from Supervisor guidance
    */
   const getTooltipText = useCallback(() => {
-    if (businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME) {
-      return 'Требуется настройка бизнеса';
-    }
-    
     if (isCreatingThread) {
-      return t`Creating chat...`;
+      return guidance?.loadingText || t`Creating chat...`;
     }
     
-    if (businessSetupStatus) {
-      const statusMap = {
-        'BUSINESS_ANALYSIS': t`Analyze Business`,
-        'SALES_FUNNEL_DESIGN': t`Design Sales Funnel`,
-        'AGENT_SETUP': t`Setup AI Agents`,
-        'WORKFLOW_CREATION': t`Create Workflows`,
-        'TEAM_ASSIGNMENT': t`Assign Team`,
-        'TESTING_OPTIMIZATION': t`Test & Optimize`,
-        'COMPLETED': t`Ask AI (Press @)`
-      };
-      return statusMap[businessSetupStatus] || t`Ask AI (Press @)`;
-    }
-    
-    return t`Ask AI (Press @)`;
-  }, [isCreatingThread, businessSetupStatus]);
+    // Use Supervisor guidance instead of direct status checking
+    return guidance?.tooltipText || t`Ask AI (Press @)`;
+  }, [isCreatingThread, guidance?.tooltipText, guidance?.loadingText, t]);
   
   /**
-   * Get button icon based on current state
+   * Get button icon from Supervisor guidance
    */
   const getButtonIcon = useCallback(() => {
     if (isCreatingThread) {
       return IconLoader;
     }
-    if (businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME) {
-      return IconSettings;
+    
+    // Use Supervisor guidance for icon selection
+    switch (guidance?.buttonIcon) {
+      case 'IconSettings':
+        return IconSettings;
+      case 'IconSparkles':
+        return IconSparkles;
+      default:
+        return IconSparkles;
     }
-    return IconSparkles;
-  }, [isCreatingThread, businessSetupStatus]);
+  }, [isCreatingThread, guidance?.buttonIcon]);
   
   /**
-   * Get button variant based on business setup status
+   * Get button variant from Supervisor guidance
    */
   const getButtonVariant = useCallback(() => {
-    if (businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME) {
-      return 'primary'; // Highlight for WELCOME stage
+    // Use Supervisor guidance for button styling
+    return guidance?.buttonVariant || 'secondary';
+  }, [guidance?.buttonVariant]);
+
+  // Check if user needs action based on Supervisor guidance
+  const needsUserAction = guidance?.requiresUserAction || false;
+
+  // Handle click action through Supervisor Agent
+  const handleClick = useCallback(async () => {
+    if (isExecutingAction) return;
+    
+    setIsExecutingAction(true);
+    try {
+      await executeAction('chat_button_clicked', {
+        actionType: guidance?.actionType || 'standard',
+        providerInfo: guidance?.providerInfo,
+      });
+    } catch (error) {
+      console.error('Failed to execute chat button action:', error);
+    } finally {
+      setIsExecutingAction(false);
     }
-    return 'secondary';
-  }, [businessSetupStatus]);
-
-  // Check if user needs business setup
-  const needsBusinessSetup = businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME;
-
+  }, [isExecutingAction, executeAction, guidance]);
+  
   // Show popup for welcome message only (not for business setup)
   useEffect(() => {
     // Only show popup for welcome messages, not for business setup warnings
-    if (welcomeMessage && !showPopup && !needsBusinessSetup) {
+    if (welcomeMessage && !showPopup && !needsUserAction) {
       setShowPopup(true);
       
       // Auto-hide after 10 seconds for regular welcome messages
@@ -143,7 +153,7 @@ const FloatingAIChatButtonContent = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [welcomeMessage, showPopup, setShowPopup, needsBusinessSetup]);
+  }, [welcomeMessage, showPopup, setShowPopup, needsUserAction]);
 
   return (
     <StyledFloatingAIChatButtonContainer
@@ -161,9 +171,9 @@ const FloatingAIChatButtonContent = () => {
         <div
           style={{
             transform: isCreatingThread ? 'none' : undefined,
-            filter: needsBusinessSetup ? 'hue-rotate(30deg) brightness(1.1)' : undefined,
+            filter: needsUserAction ? 'hue-rotate(30deg) brightness(1.1)' : undefined,
           }}
-          className={isCreatingThread ? 'spin' : needsBusinessSetup ? 'pulse' : undefined}
+          className={isCreatingThread ? 'spin' : needsUserAction ? 'pulse' : undefined}
         >
           <FloatingIconButton
             Icon={getButtonIcon()}
@@ -183,16 +193,16 @@ const FloatingAIChatButtonContent = () => {
           }}
         >
           {getTooltipText()}
-          {agentConfig && (
+          {guidance?.providerInfo && (
             <div style={{ fontSize: '0.75em', opacity: 0.8, marginTop: '2px' }}>
-              {agentConfig.sgrEnabled ? '🤖 SGR Agent' : '💬 AI Assistant'}
+              🤖 {guidance.providerInfo.displayName}
             </div>
           )}
         </StyledTooltip>
       </StyledFloatingAIChatButton>
 
-      {/* Business Setup Status Indicator */}
-      {needsBusinessSetup && (
+      {/* Action Required Indicator */}
+      {needsUserAction && (
         <div 
           style={{
             position: 'absolute',
@@ -210,7 +220,7 @@ const FloatingAIChatButtonContent = () => {
             fontWeight: 'bold',
             animation: 'pulse 2s infinite'
           }}
-          title="Business Setup Required"
+          title={guidance?.tooltipText || 'Action Required'}
         >
           !
         </div>
@@ -278,25 +288,24 @@ const FloatingAIChatButtonContent = () => {
               ×
             </button>
           </div>
-          {businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME && (
+          {guidance?.providerInfo && (
             <div style={{
               marginTop: '8px',
               fontSize: '12px',
               opacity: 0.8
             }}>
-              💡 SGR Avito Agent is required for the welcome setup process.
+              💡 {guidance.providerInfo.displayName} integration required for setup.
             </div>
           )}
         </div>
       )}
 
       {/* Welcome Message Popup Only (Business Setup Popup Removed) */}
-      {showPopup && welcomeMessage && !needsBusinessSetup && (
+      {showPopup && welcomeMessage && !needsUserAction && (
         <StyledWelcomePopup>
           <StyledPopupHeader>
             <span>
-              {agentConfig?.sgrEnabled ? '🤖 SGR Assistant' : '💬 AI Assistant'}
-              {businessSetupStatus === BUSINESS_SETUP_STATUS.WELCOME && ' - Avito Integration'}
+              {guidance?.providerInfo ? `🤖 ${guidance.providerInfo.displayName}` : '💬 AI Assistant'}
             </span>
             <button 
               onClick={() => setShowPopup(false)}
@@ -315,9 +324,7 @@ const FloatingAIChatButtonContent = () => {
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {welcomeMessage}
             </ReactMarkdown>
-            {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-            {/* @ts-ignore - WELCOME is valid but not in generated types yet */}
-            {(businessSetupStatus as string) === 'WELCOME' && (
+            {guidance?.providerInfo && (
               <div 
                 style={{
                   marginTop: '12px',
@@ -328,7 +335,7 @@ const FloatingAIChatButtonContent = () => {
                   color: '#1976d2'
                 }}
               >
-                💡 This is a specialized SGR (Schema-Guided Reasoning) agent for Avito API integration.
+                💡 This is a specialized assistant for {guidance.providerInfo.displayName} integration.
               </div>
             )}
           </StyledPopupContent>

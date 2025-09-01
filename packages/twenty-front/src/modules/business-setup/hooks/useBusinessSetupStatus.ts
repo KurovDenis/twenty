@@ -1,4 +1,5 @@
-import { useIsLogged } from '@/auth/hooks/useIsLogged';
+import { currentUserState } from '@/auth/states/currentUserState';
+import { useRecoilValue } from 'recoil';
 import {
     BUSINESS_SETUP_STATUS,
     type BusinessSetupStatus,
@@ -8,7 +9,7 @@ export const useBusinessSetupStatus = ():
   | BusinessSetupStatus
   | null
   | undefined => {
-  const isLoggedIn = useIsLogged();
-  // Временно возвращаем WELCOME для тестирования
-  return isLoggedIn ? BUSINESS_SETUP_STATUS.WELCOME : undefined;
+  const currentUser = useRecoilValue(currentUserState);
+  // Return businessSetupStatus from currentUser or default to WELCOME for new users
+  return currentUser?.businessSetupStatus ?? (currentUser ? BUSINESS_SETUP_STATUS.WELCOME : undefined);
 };

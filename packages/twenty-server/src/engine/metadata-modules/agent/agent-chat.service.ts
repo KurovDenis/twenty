@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -21,6 +21,8 @@ import { AgentTitleGenerationService } from './agent-title-generation.service';
 
 @Injectable()
 export class AgentChatService {
+  private readonly logger = new Logger(AgentChatService.name);
+
   constructor(
     @InjectRepository(AgentChatThreadEntity, 'core')
     private readonly threadRepository: Repository<AgentChatThreadEntity>,
@@ -79,12 +81,15 @@ export class AgentChatService {
           timestamp: new Date(),
         });
       } catch (error) {
-        console.error(`Failed to send supervisor welcome message:`, error);
+        this.logger.error(`Failed to send supervisor welcome message:`, error);
       }
 
       return savedThread;
     } catch (error) {
-      console.error('Failed to create thread with supervisor agent:', error);
+      this.logger.error(
+        'Failed to create thread with supervisor agent:',
+        error,
+      );
       throw error;
     }
   }
@@ -212,7 +217,10 @@ export class AgentChatService {
 
       // ✅ CHECK: Ensure userWorkspace relation is loaded
       if (!thread.userWorkspace) {
-        console.error('UserWorkspace relation not found for thread:', threadId);
+        this.logger.error(
+          'UserWorkspace relation not found for thread:',
+          threadId,
+        );
 
         return;
       }
@@ -252,7 +260,7 @@ export class AgentChatService {
         }
       }
     } catch (error) {
-      console.error('Failed to check business setup thread:', error);
+      this.logger.error('Failed to check business setup thread:', error);
     }
   }
 
@@ -267,7 +275,7 @@ export class AgentChatService {
       // that are used by the BusinessSetupWelcomeAgentService
 
       // Business setup agents are identified by specific names or patterns
-      const businessSetupAgentNames = [
+      const _businessSetupAgentNames = [
         'Welcome Greeting Bot',
         'Avito Agent',
         'welcome-agent',
@@ -295,18 +303,21 @@ export class AgentChatService {
             if (agent.id === agentId) {
               return true;
             }
-          } catch (error) {
+          } catch (_error) {
             // Agent for this step doesn't exist, continue
             continue;
           }
         }
       } catch (error) {
-        console.error('Failed to check business setup agents:', error);
+        this.logger.error('Failed to check business setup agents:', error);
       }
 
       return false;
     } catch (error) {
-      console.error('Failed to check if agent is business setup agent:', error);
+      this.logger.error(
+        'Failed to check if agent is business setup agent:',
+        error,
+      );
 
       return false;
     }
@@ -316,7 +327,7 @@ export class AgentChatService {
     threadId: string,
     businessSetupStep: BusinessSetupStatus,
   ) {
-    console.log(
+    this.logger.log(
       'Sending welcome message for business setup step:',
       businessSetupStep,
     );
@@ -431,7 +442,7 @@ export class AgentChatService {
       welcomeMessages[businessSetupStep] ||
       welcomeMessages[BusinessSetupStatus.WELCOME];
 
-    console.log(
+    this.logger.log(
       'Sending welcome content:',
       welcomeContent.substring(0, 100) + '...',
     );
@@ -459,7 +470,7 @@ export class AgentChatService {
    * Send supervisor welcome message with automatic status check
    */
   private async sendSupervisorWelcomeMessage(threadId: string) {
-    console.log('Sending supervisor welcome message for thread:', threadId);
+    this.logger.log('Sending supervisor welcome message for thread:', threadId);
 
     const supervisorWelcomeContent = `🎯 **Welcome to Business Setup Assistant!**
 
@@ -491,7 +502,7 @@ I'm your **Business Setup Supervisor** - an intelligent routing agent that will 
 
 *I'm here to make your business setup journey smooth and efficient.* 🚀`;
 
-    console.log(
+    this.logger.log(
       'Sending supervisor welcome content:',
       supervisorWelcomeContent.substring(0, 100) + '...',
     );
@@ -516,14 +527,14 @@ I'm your **Business Setup Supervisor** - an intelligent routing agent that will 
 
     // 🚀 AUTO STATUS CHECK: Send automatic system message to determine user status
     // This triggers the supervisor SGR workflow to check status and route appropriately
-    console.log('Triggering automatic status check for thread:', threadId);
-    
+    this.logger.log('Triggering automatic status check for thread:', threadId);
+
     // Wait a moment for welcome message to be processed
     setTimeout(async () => {
       try {
         await this.triggerAutomaticStatusCheck(threadId);
       } catch (error) {
-        console.error('Failed to trigger automatic status check:', error);
+        this.logger.error('Failed to trigger automatic status check:', error);
       }
     }, 1000); // 1 second delay
   }
@@ -533,7 +544,7 @@ I'm your **Business Setup Supervisor** - an intelligent routing agent that will 
    * This activates the supervisor SGR workflow to determine user status and route appropriately
    */
   private async triggerAutomaticStatusCheck(threadId: string): Promise<void> {
-    console.log('Executing automatic status check for thread:', threadId);
+    this.logger.log('Executing automatic status check for thread:', threadId);
 
     // Get the thread to extract user and workspace info
     const thread = await this.threadRepository.findOne({
@@ -542,7 +553,10 @@ I'm your **Business Setup Supervisor** - an intelligent routing agent that will 
     });
 
     if (!thread || !thread.userWorkspace) {
-      console.error('Thread or userWorkspace not found for automatic status check');
+      this.logger.error(
+        'Thread or userWorkspace not found for automatic status check',
+      );
+
       return;
     }
 
@@ -550,12 +564,15 @@ I'm your **Business Setup Supervisor** - an intelligent routing agent that will 
     const automaticStatusMessage = this.messageRepository.create({
       threadId,
       role: 'user' as AgentChatMessageRole,
-      content: '🔍 Определи мой текущий статус в бизнес-настройке и перенаправь меня к соответствующему агенту для следующего шага. Мне нужно узнать, где я нахожусь в процессе настройки.',
+      content:
+        '🔍 Определи мой текущий статус в бизнес-настройке и перенаправь меня к соответствующему агенту для следующего шага. Мне нужно узнать, где я нахожусь в процессе настройки.',
     });
 
     await this.messageRepository.save(automaticStatusMessage);
 
-    console.log('Auto status check message saved, triggering supervisor routing...');
+    this.logger.log(
+      'Auto status check message saved, triggering supervisor routing...',
+    );
 
     // Trigger supervisor routing for the automatic status check
     this.eventEmitter.emit('business-setup.route-message', {
@@ -566,6 +583,6 @@ I'm your **Business Setup Supervisor** - an intelligent routing agent that will 
       timestamp: new Date(),
     });
 
-    console.log('Automatic status check routing triggered successfully');
+    this.logger.log('Automatic status check routing triggered successfully');
   }
 }

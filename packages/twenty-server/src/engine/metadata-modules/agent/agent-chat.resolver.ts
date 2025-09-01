@@ -5,8 +5,8 @@ import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/
 import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
 import { AuthUserWorkspaceId } from 'src/engine/decorators/auth/auth-user-workspace-id.decorator';
 import {
-    FeatureFlagGuard,
-    RequireFeatureFlag,
+  FeatureFlagGuard,
+  RequireFeatureFlag,
 } from 'src/engine/guards/feature-flag.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';

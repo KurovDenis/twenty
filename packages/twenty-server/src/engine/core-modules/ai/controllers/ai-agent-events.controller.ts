@@ -6,6 +6,7 @@
 
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 
+import { AIAgentEventsService } from 'src/engine/core-modules/ai/services/ai-agent-events.service';
 import { User } from 'src/engine/core-modules/user/user.entity';
 import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
 import { AuthUser } from 'src/engine/decorators/auth/auth-user.decorator';
@@ -13,11 +14,9 @@ import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorat
 import { JwtAuthGuard } from 'src/engine/guards/jwt-auth.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 
-import { AIAgentEventsService } from '../services/ai-agent-events.service';
-
 export interface AIAgentEventResponse {
   type: string;
-  payload: any;
+  payload: Record<string, unknown>;
   timestamp: string;
 }
 

@@ -12,9 +12,7 @@ import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.s
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 
-import {
-  BusinessSetupKeyValueTypeMap,
-} from '../business-setup.service';
+import { BusinessSetupKeyValueTypeMap } from '../business-setup.service';
 import { OnboardingStatusChangedEvent } from '../events/business-setup.events';
 import { SGRStreamingResult } from '../sgr/types/sgr-thinking-stream.types';
 
@@ -71,9 +69,11 @@ export class BusinessSetupWelcomeAgentService {
         // NO LONGER AUTO-CREATE WELCOME CHAT
         // Instead, just set the business setup status to WELCOME
         // The user will see the floating button warning and can manually start
-        
-        this.logger.log('Business setup WELCOME status set - user will see floating button prompt');
-        
+
+        this.logger.log(
+          'Business setup WELCOME status set - user will see floating button prompt',
+        );
+
         // Emit event that onboarding is complete but no auto-chat creation
         this.eventEmitter.emit('business-setup.welcome.ready', {
           userId: payload.userId,
@@ -82,12 +82,8 @@ export class BusinessSetupWelcomeAgentService {
           autoChat: false, // No automatic chat creation
           timestamp: new Date(),
         });
-        
       } catch (error) {
-        this.logger.error(
-          'Failed to handle onboarding completion:',
-          error,
-        );
+        this.logger.error('Failed to handle onboarding completion:', error);
       }
     }
   }
@@ -102,14 +98,14 @@ export class BusinessSetupWelcomeAgentService {
     userId: string,
   ): Promise<void> {
     this.logger.warn(
-      'processUserMessage called but all processing now goes through SupervisorSGRService. '
-      + 'This method is kept only for backward compatibility with existing tests.'
+      'processUserMessage called but all processing now goes through SupervisorSGRService. ' +
+        'This method is kept only for backward compatibility with existing tests.',
     );
 
     // For backward compatibility, we'll just log the call
     // In production, messages are automatically routed through the supervisor
     this.logger.log(
-      `Message processing request for thread ${threadId} - now handled by supervisor`
+      `Message processing request for thread ${threadId} - now handled by supervisor`,
     );
   }
 
@@ -123,7 +119,7 @@ export class BusinessSetupWelcomeAgentService {
   /**
    * Handle individual SGR streaming steps and send appropriate messages to chat
    * This provides real-time visibility into AI thinking and tool execution
-   * 
+   *
    * NOTE: This method is kept for backward compatibility with existing tests
    * but is no longer used in production as all processing goes through supervisor
    */
@@ -346,9 +342,10 @@ ${step.plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
       );
 
       // Create thread with supervisor agent for proper routing
-      const thread = await this.agentChatService.createThreadWithSupervisorAgent(
-        workspaceId
-      );
+      const thread =
+        await this.agentChatService.createThreadWithSupervisorAgent(
+          workspaceId,
+        );
 
       // Emit successful chat creation event
       this.eventEmitter.emit('ai-agent.welcome.chat-created', {

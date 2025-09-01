@@ -208,6 +208,7 @@ export class AvitoWelcomeToolDispatcherService {
         this.logger.warn(
           `Tool validation failed: ${command.tool} not valid for state ${workflowState}`,
         );
+
         return {
           success: false,
           error: validationResult.error,

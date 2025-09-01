@@ -292,13 +292,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
  */
 export function HandleInvariantErrors() {
   return function (
-    target: any,
+    target: Record<string, unknown>,
     propertyName: string,
     descriptor: PropertyDescriptor,
   ) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       try {
         return await method.apply(this, args);
       } catch (error) {
@@ -333,9 +333,9 @@ export class InvariantErrorService {
    * @param context - Additional context for logging
    */
   assert(
-    condition: any,
+    condition: unknown,
     message?: string | number,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ): asserts condition {
     if (!condition) {
       if (context) {
@@ -380,7 +380,7 @@ export class InvariantErrorService {
    */
   validateMany(
     validations: Array<{
-      condition: any;
+      condition: unknown;
       message: string | number;
       field?: string;
     }>,

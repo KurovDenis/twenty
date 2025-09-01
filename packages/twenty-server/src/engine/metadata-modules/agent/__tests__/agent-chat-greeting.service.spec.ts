@@ -7,22 +7,21 @@ import { type Repository } from 'typeorm';
 import { BusinessSetupStatus } from 'src/engine/core-modules/business-setup/enums/business-setup-status.enum';
 import { BusinessSetupAgentService } from 'src/engine/core-modules/business-setup/services/business-setup-agent.service';
 import { FileEntity } from 'src/engine/core-modules/file/entities/file.entity';
-
 import {
   AgentChatMessageEntity,
   type AgentChatMessageRole,
-} from '../agent-chat-message.entity';
-import { AgentChatThreadEntity } from '../agent-chat-thread.entity';
-import { AgentChatService } from '../agent-chat.service';
-import { AgentTitleGenerationService } from '../agent-title-generation.service';
-import { type AgentEntity } from '../agent.entity';
+} from 'src/engine/metadata-modules/agent/agent-chat-message.entity';
+import { AgentChatThreadEntity } from 'src/engine/metadata-modules/agent/agent-chat-thread.entity';
+import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
+import { AgentTitleGenerationService } from 'src/engine/metadata-modules/agent/agent-title-generation.service';
+import { type AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 
 describe('AgentChatService - Greeting System', () => {
   let service: AgentChatService;
-  let threadRepository: Repository<AgentChatThreadEntity>;
-  let messageRepository: Repository<AgentChatMessageEntity>;
-  let businessSetupAgentService: BusinessSetupAgentService;
-  let eventEmitter: EventEmitter2;
+  let _threadRepository: Repository<AgentChatThreadEntity>;
+  let _messageRepository: Repository<AgentChatMessageEntity>;
+  let _businessSetupAgentService: BusinessSetupAgentService;
+  let _eventEmitter: EventEmitter2;
 
   // Shared test constants
   const SUPERVISOR_AGENT_ID = 'supervisor-agent-123';
@@ -94,16 +93,16 @@ describe('AgentChatService - Greeting System', () => {
     }).compile();
 
     service = module.get<AgentChatService>(AgentChatService);
-    threadRepository = module.get<Repository<AgentChatThreadEntity>>(
+    _threadRepository = module.get<Repository<AgentChatThreadEntity>>(
       getRepositoryToken(AgentChatThreadEntity, 'core'),
     );
-    messageRepository = module.get<Repository<AgentChatMessageEntity>>(
+    _messageRepository = module.get<Repository<AgentChatMessageEntity>>(
       getRepositoryToken(AgentChatMessageEntity, 'core'),
     );
-    businessSetupAgentService = module.get<BusinessSetupAgentService>(
+    _businessSetupAgentService = module.get<BusinessSetupAgentService>(
       BusinessSetupAgentService,
     );
-    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
+    _eventEmitter = module.get<EventEmitter2>(EventEmitter2);
   });
 
   afterEach(() => {
@@ -140,9 +139,8 @@ describe('AgentChatService - Greeting System', () => {
       mockMessageRepository.save.mockResolvedValue(mockGreetingMessage);
 
       // Act
-      const result = await service.createThreadWithSupervisorAgent(
-        mockUserWorkspaceId,
-      );
+      const result =
+        await service.createThreadWithSupervisorAgent(mockUserWorkspaceId);
 
       // Assert
       expect(result.agentId).toBe(SUPERVISOR_AGENT_ID);
@@ -210,15 +208,15 @@ describe('AgentChatService - Greeting System', () => {
 
       // Mock greeting message creation failure
       const greetingError = new Error('Failed to create greeting message');
+
       mockMessageRepository.save.mockRejectedValue(greetingError);
 
       // Mock console.error to avoid console output during tests
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       // Act
-      const result = await service.createThreadWithSupervisorAgent(
-        mockUserWorkspaceId,
-      );
+      const result =
+        await service.createThreadWithSupervisorAgent(mockUserWorkspaceId);
 
       // Assert
       expect(result).toBe(mockThread); // Thread should still be created
@@ -254,9 +252,7 @@ describe('AgentChatService - Greeting System', () => {
       );
 
       // Act
-      await service.createThreadWithSupervisorAgent(
-        mockUserWorkspaceId,
-      );
+      await service.createThreadWithSupervisorAgent(mockUserWorkspaceId);
 
       // Assert
       expect(mockMessageRepository.create).toHaveBeenCalledWith({
@@ -267,6 +263,7 @@ describe('AgentChatService - Greeting System', () => {
 
       // Verify supervisor welcome message contains expected elements
       const greetingCall = mockMessageRepository.create.mock.calls[0][0];
+
       expect(greetingCall.content).toContain('Business Setup Assistant');
       expect(greetingCall.content).toContain('intelligent routing agent');
       expect(greetingCall.content).toContain('WELCOME');
@@ -373,9 +370,8 @@ describe('AgentChatService - Greeting System', () => {
       mockMessageRepository.save.mockResolvedValue(mockGreetingMessage);
 
       // Act
-      const result = await service.createThreadWithSupervisorAgent(
-        mockUserWorkspaceId,
-      );
+      const result =
+        await service.createThreadWithSupervisorAgent(mockUserWorkspaceId);
 
       // Assert
       expect(result.agentId).toBe(SUPERVISOR_AGENT_ID);
@@ -443,15 +439,15 @@ describe('AgentChatService - Greeting System', () => {
 
       // Mock greeting message creation failure
       const greetingError = new Error('Failed to create greeting message');
+
       mockMessageRepository.save.mockRejectedValue(greetingError);
 
       // Mock console.error to avoid console output during tests
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       // Act
-      const result = await service.createThreadWithSupervisorAgent(
-        mockUserWorkspaceId,
-      );
+      const result =
+        await service.createThreadWithSupervisorAgent(mockUserWorkspaceId);
 
       // Assert
       expect(result).toBe(mockThread); // Thread should still be created
@@ -509,9 +505,7 @@ describe('AgentChatService - Greeting System', () => {
       );
 
       // Act
-      await service.createThreadWithSupervisorAgent(
-        mockUserWorkspaceId,
-      );
+      await service.createThreadWithSupervisorAgent(mockUserWorkspaceId);
 
       // Assert
       expect(mockMessageRepository.create).toHaveBeenCalledWith({
@@ -522,6 +516,7 @@ describe('AgentChatService - Greeting System', () => {
 
       // Verify supervisor welcome message contains expected elements
       const greetingCall = mockMessageRepository.create.mock.calls[0][0];
+
       expect(greetingCall.content).toContain('Business Setup Assistant');
       expect(greetingCall.content).toContain('intelligent routing agent');
       expect(greetingCall.content).toContain('WELCOME');

@@ -1,7 +1,7 @@
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 import {
-    BusinessSetupProgress,
-    SupervisorStepResult,
+  BusinessSetupProgress,
+  SupervisorStepResult,
 } from '../schemas/supervisor-sgr.schema';
 
 // Export important types for use in test files

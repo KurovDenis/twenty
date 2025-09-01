@@ -135,9 +135,8 @@ describe('AgentChatService Integration Tests', () => {
       mockThreadRepository.create.mockReturnValue(mockThread);
       mockThreadRepository.save.mockResolvedValue(mockThread);
 
-      const result = await service.createThreadWithSupervisorAgent(
-        'workspace-id',
-      );
+      const result =
+        await service.createThreadWithSupervisorAgent('workspace-id');
 
       expect(result.agentId).toBe('supervisor-agent-id');
       expect(

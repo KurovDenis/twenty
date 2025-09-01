@@ -8,9 +8,7 @@ import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorat
 import { JwtAuthGuard } from 'src/engine/guards/jwt-auth.guard';
 
 import { BusinessSetupTransitionService } from '../chat-continuation/business-setup-transition.service';
-import {
-  BusinessSetupTransitionInput,
-} from '../chat-continuation/dtos/chat-continuation.input';
+import { BusinessSetupTransitionInput } from '../chat-continuation/dtos/chat-continuation.input';
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 
 @Resolver()

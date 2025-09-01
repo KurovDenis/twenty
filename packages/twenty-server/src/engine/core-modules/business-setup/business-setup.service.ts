@@ -374,7 +374,9 @@ export class BusinessSetupService {
       {
         reason: payload.handoffReason,
         contextPreserved: payload.contextPreserved,
-        userMessage: payload.userMessage ? payload.userMessage.substring(0, 100) + '...' : 'No message provided',
+        userMessage: payload.userMessage
+          ? payload.userMessage.substring(0, 100) + '...'
+          : 'No message provided',
       },
     );
 

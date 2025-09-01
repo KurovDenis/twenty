@@ -16,7 +16,7 @@ export interface StoredAIAgentEvent {
   userId: string;
   workspaceId: string;
   type: string;
-  payload: any;
+  payload: Record<string, unknown>;
   timestamp: Date;
   consumed: boolean;
 }
@@ -84,7 +84,9 @@ export class AIAgentEventsService {
     userId: string,
     workspaceId: string,
     since: Date,
-  ): Promise<Array<{ type: string; payload: any; timestamp: string }>> {
+  ): Promise<
+    Array<{ type: string; payload: Record<string, unknown>; timestamp: string }>
+  > {
     const redis = this.redisClientService.getClient();
     const userKey = this.getUserEventsKey(userId, workspaceId);
 

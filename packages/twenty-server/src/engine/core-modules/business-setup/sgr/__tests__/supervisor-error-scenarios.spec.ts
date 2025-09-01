@@ -247,7 +247,12 @@ describe('Supervisor Error Scenarios', () => {
       };
 
       await expect(
-        toolDispatcher.dispatch(tool, mockUserId, mockWorkspaceId),
+        toolDispatcher.dispatch(
+          tool,
+          mockUserId,
+          mockWorkspaceId,
+          mockThreadId,
+        ),
       ).rejects.toThrow('Agent not found for status');
     });
   });
@@ -331,11 +336,21 @@ describe('Supervisor Error Scenarios', () => {
       };
 
       await expect(
-        toolDispatcher.dispatch(invalidTool, mockUserId, mockWorkspaceId),
+        toolDispatcher.dispatch(
+          invalidTool,
+          mockUserId,
+          mockWorkspaceId,
+          mockThreadId,
+        ),
       ).rejects.toThrow(SupervisorException);
 
       try {
-        await toolDispatcher.dispatch(invalidTool, mockUserId, mockWorkspaceId);
+        await toolDispatcher.dispatch(
+          invalidTool,
+          mockUserId,
+          mockWorkspaceId,
+          mockThreadId,
+        );
       } catch (error) {
         expect(error).toBeInstanceOf(SupervisorException);
         expect((error as SupervisorException).errorType).toBe(
@@ -356,7 +371,12 @@ describe('Supervisor Error Scenarios', () => {
       };
 
       await expect(
-        toolDispatcher.dispatch(tool, mockUserId, mockWorkspaceId),
+        toolDispatcher.dispatch(
+          tool,
+          mockUserId,
+          mockWorkspaceId,
+          mockThreadId,
+        ),
       ).rejects.toThrow('Database write failed');
     });
   });
@@ -404,6 +424,7 @@ describe('Supervisor Error Scenarios', () => {
         tool,
         mockUserId,
         mockWorkspaceId,
+        mockThreadId,
       );
 
       expect(result.success).toBe(true); // Should still succeed despite streaming error
@@ -441,6 +462,7 @@ describe('Supervisor Error Scenarios', () => {
         tool,
         mockUserId,
         mockWorkspaceId,
+        mockThreadId,
       );
 
       expect(result.success).toBe(true);

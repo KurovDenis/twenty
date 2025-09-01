@@ -7,9 +7,11 @@ import { AgentChatMessageRole } from 'src/engine/metadata-modules/agent/agent-ch
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 
 // Business setup imports
+import { UserWorkspaceService } from 'src/engine/core-modules/user-workspace/user-workspace.service';
+
 import {
-    BusinessSetupKeyValueTypeMap,
-    BusinessSetupStepKeys,
+  BusinessSetupKeyValueTypeMap,
+  BusinessSetupStepKeys,
 } from '../../business-setup.service';
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 import { BUSINESS_SETUP_EVENTS } from '../../events/business-setup.events';
@@ -19,22 +21,21 @@ import { BusinessSetupAgentService } from '../../services/business-setup-agent.s
 
 // Supervisor-specific imports
 import {
-    BusinessSetupProgress,
-    CheckBusinessSetupStatusTool,
-    CompleteRoutingTool,
-    ProcessDirectlyTool,
-    RouteToSpecializedAgentTool,
-    StatusChangeTool,
-    SupervisorStepResult,
+  BusinessSetupProgress,
+  CheckBusinessSetupStatusTool,
+  CompleteRoutingTool,
+  ProcessDirectlyTool,
+  RouteToSpecializedAgentTool,
+  StatusChangeTool,
+  SupervisorStepResult,
 } from '../schemas/supervisor-sgr.schema';
 import {
-    ISupervisorToolDispatcher,
-    SupervisorErrorType,
-    SupervisorException,
-    SupervisorToolExecutionResult,
+  ISupervisorToolDispatcher,
+  SupervisorErrorType,
+  SupervisorException,
+  SupervisorToolExecutionResult,
 } from '../types/supervisor-types';
 
-import { UserWorkspaceService } from 'src/engine/core-modules/user-workspace/user-workspace.service';
 import { AvitoWelcomeSGRService } from './avito-welcome-sgr.service';
 
 /**
@@ -91,7 +92,12 @@ export class SupervisorToolDispatcherService
           return await this.executeProcessDirectly(tool);
 
         case 'status_change':
-          return await this.executeStatusChange(tool, userId, workspaceId, threadId);
+          return await this.executeStatusChange(
+            tool,
+            userId,
+            workspaceId,
+            threadId,
+          );
 
         case 'complete_routing':
           return await this.executeCompleteRouting(tool);
@@ -230,10 +236,11 @@ export class SupervisorToolDispatcherService
 
     try {
       // Resolve userWorkspaceId from userId and workspaceId
-      const userWorkspace = await this.userWorkspaceService.getUserWorkspaceForUserOrThrow({
-        userId,
-        workspaceId,
-      });
+      const userWorkspace =
+        await this.userWorkspaceService.getUserWorkspaceForUserOrThrow({
+          userId,
+          workspaceId,
+        });
 
       // Get the appropriate agent for this status
       const agent = await this.businessSetupAgentService.getAgentForStep(

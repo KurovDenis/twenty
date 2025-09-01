@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import axios, { type AxiosRequestConfig } from 'axios';
 import * as http from 'http';
 import * as https from 'https';
 import { URL } from 'url';
+
+import axios, { type AxiosRequestConfig } from 'axios';
 
 import { HttpToolParametersZodSchema } from 'src/engine/core-modules/tool/tools/http-tool/http-tool.schema';
 import { type HttpRequestInput } from 'src/engine/core-modules/tool/tools/http-tool/types/http-request-input.type';
@@ -14,7 +15,7 @@ import { type Tool } from 'src/engine/core-modules/tool/types/tool.type';
 @Injectable()
 export class HttpTool implements Tool {
   private readonly logger = new Logger(HttpTool.name);
-  
+
   description =
     'Make an HTTP request to any URL with configurable method, headers, and body.';
   parameters = HttpToolParametersZodSchema;
@@ -28,10 +29,12 @@ export class HttpTool implements Tool {
     if (url.includes('avito.com') || url.includes('api.avito')) {
       // Correct any incorrect Avito URLs to use the proper Russian domain
       const correctedUrl = this.validateAndCorrectAvitoUrl(url);
+
       if (correctedUrl !== url) {
         this.logger.warn(`Corrected Avito URL from ${url} to ${correctedUrl}`);
       }
       this.logger.debug('Using direct Node.js HTTPS for Avito API');
+
       return this.executeWithNodeHttps(correctedUrl, method, headers, body);
     }
 
@@ -57,10 +60,11 @@ export class HttpTool implements Tool {
       const response = await axios(axiosConfig);
 
       this.logger.debug(`Request completed with status: ${response.status}`);
+
       return { result: response.data };
     } catch (error) {
       this.logger.error(`HTTP request failed for ${url}:`, error.message);
-      
+
       if (axios.isAxiosError(error)) {
         // Enhanced error handling for SSL/certificate issues
         if (error.code === 'CERT_HAS_EXPIRED') {
@@ -68,13 +72,13 @@ export class HttpTool implements Tool {
             error: 'SSL certificate has expired for the target server',
           };
         }
-        
+
         if (error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
           return {
             error: `SSL certificate hostname mismatch. Requested: ${url}, Error: ${error.message}`,
           };
         }
-        
+
         return {
           error: error.response?.data || error.message || 'HTTP request failed',
         };
@@ -92,12 +96,12 @@ export class HttpTool implements Tool {
   private validateAndCorrectAvitoUrl(url: string): string {
     try {
       const parsedUrl = new URL(url);
-      
+
       // Fix common Avito URL issues
       if (parsedUrl.hostname === 'api.avito.com') {
         parsedUrl.hostname = 'api.avito.ru';
       }
-      
+
       // Ensure we're using the correct Avito API endpoints
       if (parsedUrl.hostname === 'api.avito.ru') {
         // Map common incorrect paths to correct ones
@@ -109,10 +113,13 @@ export class HttpTool implements Tool {
           parsedUrl.pathname = '/token';
         }
       }
-      
+
       return parsedUrl.toString();
     } catch (error) {
-      this.logger.warn(`Could not parse URL ${url}, using as-is: ${error.message}`);
+      this.logger.warn(
+        `Could not parse URL ${url}, using as-is: ${error.message}`,
+      );
+
       return url;
     }
   }
@@ -124,7 +131,7 @@ export class HttpTool implements Tool {
     url: string,
     method: string,
     headers: Record<string, string> = {},
-    body?: any,
+    body?: string | Record<string, unknown>,
   ): Promise<ToolOutput> {
     return new Promise((resolve) => {
       try {
@@ -147,22 +154,29 @@ export class HttpTool implements Tool {
           servername: parsedUrl.hostname, // Ensure SNI is set correctly
         };
 
-        this.logger.debug(`Direct HTTPS request to ${parsedUrl.hostname}:${options.port}${options.path}`);
+        this.logger.debug(
+          `Direct HTTPS request to ${parsedUrl.hostname}:${options.port}${options.path}`,
+        );
 
         const req = httpModule.request(options, (res) => {
           let data = '';
-          
+
           res.on('data', (chunk) => {
             data += chunk;
           });
-          
+
           res.on('end', () => {
             try {
               const result = JSON.parse(data);
-              this.logger.debug(`Direct HTTPS request completed with status: ${res.statusCode}`);
+
+              this.logger.debug(
+                `Direct HTTPS request completed with status: ${res.statusCode}`,
+              );
               resolve({ result });
             } catch (parseError) {
-              this.logger.debug(`Direct HTTPS request completed with non-JSON response: ${data}`);
+              this.logger.debug(
+                `Direct HTTPS request completed with non-JSON response: ${data}`,
+              );
               resolve({ result: data });
             }
           });

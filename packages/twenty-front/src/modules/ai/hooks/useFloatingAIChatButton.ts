@@ -7,7 +7,8 @@ import { useRecoilValue } from 'recoil';
 import { FeatureFlagKey } from '~/generated/graphql';
 import { useCallback, useState } from 'react';
 
-import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';
+// Import Supervisor hooks instead of direct business setup status
+import { useSupervisorGuidance } from './useSupervisorGuidance';
 import { useBusinessSetupAgentChat } from '@/business-setup/hooks/useBusinessSetupAgentChat';
 import { useRecoilComponentValue } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValue';
 import { currentAIChatThreadComponentState } from '../states/currentAIChatThreadComponentState';
@@ -15,7 +16,7 @@ import { isFloatingAIChatButtonVisibleState } from '../states/isFloatingAIChatBu
 
 export const useFloatingAIChatButton = () => {
   const isAiEnabled = useIsFeatureEnabled(FeatureFlagKey.IS_AI_ENABLED);
-  const isVisible = useRecoilValue(isFloatingAIChatButtonVisibleState);
+  const baseVisibility = useRecoilValue(isFloatingAIChatButtonVisibleState);
   
   // State management for preventing multiple clicks
   const [isCreatingThread, setIsCreatingThread] = useState(false);
@@ -23,10 +24,20 @@ export const useFloatingAIChatButton = () => {
   
   const isCommandMenuOpened = useRecoilValue(isCommandMenuOpenedState);
   const commandMenuPage = useRecoilValue(commandMenuPageState);
-  const businessSetupStatus = useBusinessSetupStatus();
+  
+  // Use Supervisor guidance instead of direct business setup status
+  const { 
+    guidance, 
+    isLoading: isSupervisorLoading, 
+    error: supervisorError, 
+    executeAction, 
+    clearError,
+    isVisible: supervisorVisible 
+  } = useSupervisorGuidance();
+  
   const activeThreadId = useRecoilComponentValue(currentAIChatThreadComponentState, 'floating-chat-button');
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
-  const { createBusinessSetupChat, lastError, clearError } = useBusinessSetupAgentChat();
+  const { createBusinessSetupChat, lastError: businessSetupError, clearError: clearBusinessSetupError } = useBusinessSetupAgentChat();
 
   // Проверяем, открыт ли AI чат
   const isAIChatOpen =
@@ -34,12 +45,19 @@ export const useFloatingAIChatButton = () => {
     (commandMenuPage === CommandMenuPages.AskAI ||
       commandMenuPage === CommandMenuPages.ViewPreviousAIChats);
 
+  // Combine all error sources
+  const combinedError = supervisorError || businessSetupError;
+  const combinedClearError = useCallback(() => {
+    clearError();
+    clearBusinessSetupError();
+  }, [clearError, clearBusinessSetupError]);
+
   const handleClick = useCallback(async () => {
-    console.log('Floating AI chat button clicked with businessSetupStatus:', businessSetupStatus);
+    console.log('Floating AI chat button clicked via Supervisor guidance');
     
     // Clear any previous errors
-    if (lastError) {
-      clearError();
+    if (combinedError) {
+      combinedClearError();
     }
     
     // Prevent rapid clicks - debounce with 1 second interval
@@ -50,8 +68,8 @@ export const useFloatingAIChatButton = () => {
     }
     
     // Prevent multiple concurrent operations
-    if (isCreatingThread) {
-      console.log('Already creating thread, ignoring click');
+    if (isCreatingThread || isSupervisorLoading) {
+      console.log('Already creating thread or loading, ignoring click');
       return;
     }
     
@@ -59,42 +77,65 @@ export const useFloatingAIChatButton = () => {
     setIsCreatingThread(true);
     
     try {
-      if (businessSetupStatus === 'WELCOME') {
-        // ALWAYS force SGR Avito Agent during WELCOME stage
-        console.log('WELCOME stage detected - forcing SGR Avito Agent with auto-greeting');
-        await createBusinessSetupChat();
-      } else {
-        console.log('Opening standard AI page');
-        openAskAIPage();
-      }
-    } catch (error) {
-      console.error('Failed to handle chat button click:', error);
-      
-      // For WELCOME stage, don't fallback - show error
-      if (businessSetupStatus === 'WELCOME') {
-        console.error('Cannot create SGR Avito Agent for WELCOME stage');
-        // Error is already handled by useBusinessSetupAgentChat hook
-      } else {
-        // For other stages, fallback to opening standard AI page
-        console.log('Attempting fallback to standard AI page');
-        try {
-          openAskAIPage();
-        } catch (fallbackError) {
-          console.error('Fallback to standard AI page also failed:', fallbackError);
+      // Delegate action to Supervisor Agent instead of direct logic
+      await executeAction('chat_button_clicked', {
+        actionType: guidance?.actionType || 'standard',
+        providerInfo: guidance?.providerInfo,
+        context: {
+          isAIChatOpen,
+          activeThreadId,
+          timestamp: now.toISOString()
         }
+      });
+    } catch (error) {
+      console.error('Failed to handle chat button click via Supervisor:', error);
+      
+      // Fallback to legacy business setup logic only if Supervisor fails
+      try {
+        console.log('Attempting legacy fallback...');
+        if (guidance?.fallbackAction === 'business_setup') {
+          await createBusinessSetupChat();
+        } else {
+          openAskAIPage();
+        }
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
       }
     } finally {
       setIsCreatingThread(false);
     }
-  }, [businessSetupStatus, lastClickTime, isCreatingThread, createBusinessSetupChat, openAskAIPage, lastError, clearError]);
+  }, [    guidance?.actionType,
+    guidance?.providerInfo,
+    guidance?.fallbackAction,
+    lastClickTime, 
+    isCreatingThread, 
+    isSupervisorLoading,
+    executeAction,
+    createBusinessSetupChat, 
+    openAskAIPage, 
+    combinedError, 
+    combinedClearError,
+    isAIChatOpen,
+    activeThreadId
+  ]);
+
+  // Final visibility calculation using Supervisor guidance
+  const finalVisibility = supervisorVisible && baseVisibility && isAiEnabled && !isAIChatOpen;
 
   return {
-    isVisible: isVisible && isAiEnabled && !isAIChatOpen,
+    isVisible: finalVisibility,
     handleClick,
-    isCreatingThread,
-    businessSetupStatus,
+    isCreatingThread: isCreatingThread || isSupervisorLoading,
+    // Return Supervisor guidance data instead of raw business status
+    guidance,
     activeThreadId,
-    lastError,
-    clearError,
+    lastError: combinedError,
+    clearError: combinedClearError,
+    // Computed properties from guidance
+    buttonText: guidance?.buttonText || 'AI Assistant',
+    buttonIcon: guidance?.buttonIcon || 'IconSparkles',
+    tooltipText: guidance?.tooltipText || 'Ask AI (Press @)',
+    actionType: guidance?.actionType || 'standard',
+    providerInfo: guidance?.providerInfo,
   };
 };

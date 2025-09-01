@@ -390,6 +390,7 @@ describe('Supervisor Integration Tests', () => {
         tool,
         mockUserId,
         mockWorkspaceId,
+        mockThreadId,
       );
 
       // Verify: All services were properly called in sequence

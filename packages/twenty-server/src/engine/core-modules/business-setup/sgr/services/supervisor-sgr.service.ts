@@ -608,7 +608,9 @@ WARNING: Do NOT use tool names like "route_request_to_agent" or any other variat
       this.logger.log(
         `STREAMING supervisor reasoning step ${context.stepNumber} result:`,
         {
-          current_state: stepResult.current_state ? stepResult.current_state.substring(0, 100) + '...' : 'No state provided',
+          current_state: stepResult.current_state
+            ? stepResult.current_state.substring(0, 100) + '...'
+            : 'No state provided',
           planned_steps: stepResult.plan_remaining_steps?.length || 0,
           selected_tool: stepResult.function?.tool || 'No tool selected',
           task_completed: stepResult.task_completed,

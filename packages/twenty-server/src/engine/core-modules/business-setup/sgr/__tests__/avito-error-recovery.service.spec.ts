@@ -354,7 +354,10 @@ describe('AvitoErrorRecoveryService', () => {
         );
       }
 
-      const patterns = service.analyzeErrorPatterns(mockUserId, mockWorkspaceId);
+      const patterns = service.analyzeErrorPatterns(
+        mockUserId,
+        mockWorkspaceId,
+      );
 
       expect(patterns.frequentErrors.length).toBeGreaterThan(0);
       expect(patterns.frequentErrors[0].errorType).toBe(
@@ -375,7 +378,9 @@ describe('AvitoErrorRecoveryService', () => {
       const statistics = service.getEnhancedRecoveryStatistics();
 
       expect(statistics.totalErrors).toBe(1);
-      expect(statistics.errorsByType[AvitoErrorType.API_AUTHENTICATION_FAILED]).toBe(1);
+      expect(
+        statistics.errorsByType[AvitoErrorType.API_AUTHENTICATION_FAILED],
+      ).toBe(1);
     });
 
     it('should identify error escalation triggers', () => {
@@ -428,7 +433,9 @@ describe('AvitoErrorRecoveryService', () => {
           attemptCount: 5,
           timestamp: new Date(),
         },
-        recoveryStrategy: service.getRecoveryStrategy(AvitoErrorType.STORAGE_FAILURE),
+        recoveryStrategy: service.getRecoveryStrategy(
+          AvitoErrorType.STORAGE_FAILURE,
+        ),
       };
 
       const mockContext = AvitoWorkflowContextFactory.create(
@@ -437,7 +444,10 @@ describe('AvitoErrorRecoveryService', () => {
         mockThreadId,
       );
 
-      const escalated = await service.handleEscalation(errorDetails, mockContext);
+      const escalated = await service.handleEscalation(
+        errorDetails,
+        mockContext,
+      );
 
       expect(escalated.escalated).toBe(true);
       expect(escalated.escalationId).toBeDefined();
@@ -468,7 +478,9 @@ describe('AvitoErrorRecoveryService', () => {
           attemptCount: 1,
           timestamp: new Date(),
         },
-        recoveryStrategy: service.getRecoveryStrategy(AvitoErrorType.API_NETWORK_ERROR),
+        recoveryStrategy: service.getRecoveryStrategy(
+          AvitoErrorType.API_NETWORK_ERROR,
+        ),
       };
 
       const mockContext = AvitoWorkflowContextFactory.create(
@@ -477,7 +489,10 @@ describe('AvitoErrorRecoveryService', () => {
         mockThreadId,
       );
 
-      const escalated = await service.handleEscalation(errorDetails, mockContext);
+      const escalated = await service.handleEscalation(
+        errorDetails,
+        mockContext,
+      );
 
       expect(escalated.escalated).toBe(false);
     });
