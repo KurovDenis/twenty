@@ -1,11 +1,30 @@
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 import {
-  BusinessSetupProgress,
-  SupervisorStepResult,
+    BusinessSetupProgress,
+    SupervisorStepResult,
 } from '../schemas/supervisor-sgr.schema';
+import { type SGRStreamEvent } from './sgr-stream.types';
 
 // Export important types for use in test files
 export { BusinessSetupProgress, SupervisorStepResult };
+// Legacy alias for compatibility with existing tests
+export type SupervisorSGRStreamingResult =
+  | {
+      type: 'thinking';
+      step: SupervisorThinkingStep;
+      completed: boolean;
+    }
+  | {
+      type: 'tool_execution';
+      step: SupervisorThinkingStep;
+      completed: boolean;
+    }
+  | {
+      type: 'final_response';
+      content: string;
+      completed: boolean;
+      routedTo?: string;
+    };
 
 /**
  * Supervisor Agent Configuration
@@ -65,33 +84,7 @@ export interface SupervisorThinkingStep {
   timestamp: Date;
 }
 
-/**
- * Supervisor SGR streaming result types
- */
-export type SupervisorSGRStreamingResult =
-  | SupervisorThinkingStreamResult
-  | SupervisorToolExecutionStreamResult
-  | SupervisorFinalResponseStreamResult
-  | { type: 'function_call'; function: any; completed: boolean };
-
-export interface SupervisorThinkingStreamResult {
-  type: 'thinking';
-  step: SupervisorThinkingStep;
-  completed: boolean;
-}
-
-export interface SupervisorToolExecutionStreamResult {
-  type: 'tool_execution';
-  step: SupervisorThinkingStep;
-  completed: boolean;
-}
-
-export interface SupervisorFinalResponseStreamResult {
-  type: 'final_response';
-  content: string;
-  completed: boolean;
-  routedTo?: string;
-}
+// Legacy streaming result types removed in favor of SGRStreamEvent
 
 /**
  * Supervisor execution result with streaming context
@@ -210,12 +203,12 @@ export interface ISupervisorToolDispatcher {
  * Supervisor SGR service interface
  */
 export interface ISupervisorSGRService {
-  processMessageWithStreaming(
+  processMessageWithDetailedStreaming(
     userMessage: string,
     userId: string,
     workspaceId: string,
     threadId: string,
-  ): AsyncGenerator<SupervisorSGRStreamingResult>;
+  ): AsyncGenerator<SGRStreamEvent>;
 }
 
 /**

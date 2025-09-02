@@ -19,12 +19,12 @@ constructor(
   private toolDispatcher: SupervisorToolDispatcherService
 ) {}
 
-// Process user message with streaming
-const streamingResponse = this.supervisorService.processMessageWithStreaming(
+// Process user message with detailed SGR streaming (event-based)
+const streamingResponse = this.supervisorService.processMessageWithDetailedStreaming(
+  "Help me set up my business",
   userId,
   workspaceId,
-  threadId,
-  "Help me set up my business"
+  threadId
 );
 
 for await (const result of streamingResponse) {
@@ -118,10 +118,10 @@ Routes user to appropriate specialized agent.
 
 ### SupervisorSGRService
 
-#### `processMessageWithStreaming(userId, workspaceId, threadId, message)`
-Processes user message with streaming responses.
+#### `processMessageWithDetailedStreaming(message, userId, workspaceId, threadId)`
+Processes user message with detailed SGR streaming events.
 
-**Returns:** `AsyncGenerator<SupervisorSGRStreamingResult>`
+**Returns:** `AsyncGenerator<SGRStreamEvent>`
 
 ## Error Handling
 

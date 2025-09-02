@@ -5,11 +5,10 @@ import { useRecoilState } from 'recoil';
 import { Key } from 'ts-key-enum';
 
 import { AgentChatMessageRole } from '@/ai/constants/agent-chat-message-role';
-import { useSGRStreaming } from '@/ai/hooks/useSGRStreaming';
 import { STREAM_CHAT_QUERY } from '@/ai/rest-api/agent-chat-apollo.api';
 import {
-  AIChatObjectMetadataAndRecordContext,
-  agentChatObjectMetadataAndRecordContextState,
+    AIChatObjectMetadataAndRecordContext,
+    agentChatObjectMetadataAndRecordContextState,
 } from '@/ai/states/agentChatObjectMetadataAndRecordContextState';
 import { agentChatSelectedFilesComponentState } from '@/ai/states/agentChatSelectedFilesComponentState';
 import { agentChatUploadedFilesComponentState } from '@/ai/states/agentChatUploadedFilesComponentState';
@@ -22,11 +21,10 @@ import { useHotkeysOnFocusedElement } from '@/ui/utilities/hotkey/hooks/useHotke
 import { useScrollWrapperElement } from '@/ui/utilities/scroll/hooks/useScrollWrapperElement';
 import { useRecoilComponentValue } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValue';
 import { useApolloClient } from '@apollo/client';
-import { isDefined } from 'twenty-shared/utils';
 import { v4 } from 'uuid';
 import {
-  useGetAgentChatMessagesQuery,
-  useGetAgentChatThreadsQuery,
+    useGetAgentChatMessagesQuery,
+    useGetAgentChatThreadsQuery,
 } from '~/generated-metadata/graphql';
 import { AgentChatMessage } from '~/generated/graphql';
 import { agentChatInputState } from '../states/agentChatInputState';
@@ -82,12 +80,8 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
 
   const [isStreaming, setIsStreaming] = useState(false);
   
-  // SGR Streaming Support
-  const { 
-    isStreamingSGR, 
-    handleSGRStreamingMessage,
-    clearSGRMessages 
-  } = useSGRStreaming(agentId);
+  // SGR Streaming Support - Updated to use new system
+  const [isStreamingSGR, setIsStreamingSGR] = useState(false);
 
   const scrollWrapperId = `scroll-wrapper-ai-chat-${agentId}`;
 
@@ -100,118 +94,79 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
     });
   };
 
-  const { loading: threadsLoading } = useGetAgentChatThreadsQuery({
-    variables: { agentId },
-    skip: isDefined(currentThreadId),
-    onCompleted: (data) => {
-      if (data.agentChatThreads.length > 0) {
-        setCurrentThreadId(data.agentChatThreads[0].id);
-      }
+  const { data: threads, refetch: refetchThreads } = useGetAgentChatThreadsQuery({
+    variables: {
+      agentId,
     },
   });
 
-  const { loading: messagesLoading, refetch: refetchMessages } =
-    useGetAgentChatMessagesQuery({
-      variables: { threadId: currentThreadId as string },
-      skip: !isDefined(currentThreadId),
-      onCompleted: ({ agentChatMessages }) => {
-        setAgentChatMessages(agentChatMessages);
-        scrollToBottom();
-      },
-    });
+  const { data: messages, refetch: refetchMessages } = useGetAgentChatMessagesQuery({
+    variables: {
+      threadId: currentThreadId ?? '',
+    },
+    skip: !currentThreadId,
+  });
 
-  const isLoading =
-    messagesLoading ||
-    threadsLoading ||
-    !currentThreadId ||
-    isStreaming ||
-    (agentChatSelectedFiles as any[]).length > 0;
+  const isLoading = !threads || !messages;
 
-  const createOptimisticMessages = (content: string): AgentChatMessage[] => {
-    const optimisticUserMessage: OptimisticMessage = {
+  const createOptimisticMessages = (content: string): OptimisticMessage[] => {
+    const optimisticMessage: OptimisticMessage = {
       id: v4(),
-      threadId: currentThreadId as string,
       role: AgentChatMessageRole.USER,
       content,
       createdAt: new Date().toISOString(),
-      isPending: true,
-      files: agentChatUploadedFiles,
-    };
-
-    const optimisticAiMessage: OptimisticMessage = {
-      id: v4(),
-      threadId: currentThreadId as string,
-      role: AgentChatMessageRole.ASSISTANT,
-      content: '',
-      createdAt: new Date().toISOString(),
-      isPending: true,
+      threadId: (currentThreadId ?? '') as any,
       files: [],
+      isPending: true,
     };
 
-    return [optimisticUserMessage, optimisticAiMessage];
+    return [optimisticMessage];
   };
 
   const streamAgentResponse = async (content: string) => {
-    if (!currentThreadId) {
-      return '';
-    }
-
     setIsStreaming(true);
+    setIsStreamingSGR(true);
 
-    const recordIdsByObjectMetadataNameSingular = [];
-
-    if (
-      isAgentChatCurrentContextActive === true &&
-      isDefined(records) &&
-      isDefined(contextStoreCurrentObjectMetadataItemId)
-    ) {
-      recordIdsByObjectMetadataNameSingular.push({
-        objectMetadataNameSingular: getObjectMetadataItemById(
-          contextStoreCurrentObjectMetadataItemId,
-        ).nameSingular,
-        recordIds: records.map(({ id }) => id),
-      });
-    }
-
-    await apolloClient.query({
-      query: STREAM_CHAT_QUERY,
-      variables: {
-        requestBody: {
+    try {
+      await apolloClient.mutate({
+        mutation: STREAM_CHAT_QUERY,
+        variables: {
+          agentId,
+          message: content,
           threadId: currentThreadId,
-          userMessage: content,
-          fileIds: agentChatUploadedFiles.map((file) => file.id),
-          recordIdsByObjectMetadataNameSingular:
-            recordIdsByObjectMetadataNameSingular,
+          context: agentChatContext,
+          files: agentChatSelectedFiles,
         },
-      },
-      context: {
-        onChunk: (chunk: string) => {
-          parseAgentStreamingChunk(chunk, {
-            onTextDelta: (message: string) => {
-              setAgentStreamingMessage((prev) => ({
-                ...prev,
-                streamingText: prev.streamingText + message,
-              }));
-              scrollToBottom();
-            },
-            onToolCall: (message: string) => {
-              setAgentStreamingMessage((prev) => ({
-                ...prev,
-                toolCall: message,
-              }));
-              scrollToBottom();
-            },
-            onError: (message: string) => {
-              enqueueErrorSnackBar({
-                message,
-              });
-            },
-          });
+        context: {
+          onChunk: (chunk: string) => {
+            parseAgentStreamingChunk(chunk, {
+              onTextDelta: (message: string) => {
+                setAgentStreamingMessage((prev) => ({
+                  ...prev,
+                  streamingText: prev.streamingText + message,
+                }));
+                scrollToBottom();
+              },
+              onToolCall: (message: string) => {
+                setAgentStreamingMessage((prev) => ({
+                  ...prev,
+                  toolCall: message,
+                }));
+                scrollToBottom();
+              },
+              onError: (message: string) => {
+                enqueueErrorSnackBar({
+                  message,
+                });
+              },
+            });
+          },
         },
-      },
-    });
-
-    setIsStreaming(false);
+      });
+    } finally {
+      setIsStreaming(false);
+      setIsStreamingSGR(false);
+    }
   };
 
   const sendChatMessage = async (content: string) => {
@@ -279,5 +234,6 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
     agentStreamingMessage,
     scrollWrapperId,
     currentThreadId,
+    isStreamingSGR,
   };
 };

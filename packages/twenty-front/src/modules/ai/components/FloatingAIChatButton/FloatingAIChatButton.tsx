@@ -1,6 +1,9 @@
+import { currentUserState } from '@/auth/states/currentUserState';
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { useLingui } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useRecoilValue } from 'recoil';
 import remarkGfm from 'remark-gfm';
 import { IconLoader, IconSettings, IconSparkles } from 'twenty-ui/display';
 import { FloatingIconButton } from 'twenty-ui/input';
@@ -9,13 +12,13 @@ import { useSupervisorGuidance } from '../../hooks/useSupervisorGuidance';
 import { useWelcomeMessage } from '../../hooks/useWelcomeMessage';
 import { AIErrorBoundary } from '../ErrorBoundary';
 import {
-  StyledFloatingAIChatButton,
-  StyledFloatingAIChatButtonContainer,
-  StyledPopupActions,
-  StyledPopupContent,
-  StyledPopupHeader,
-  StyledTooltip,
-  StyledWelcomePopup,
+    StyledFloatingAIChatButton,
+    StyledFloatingAIChatButtonContainer,
+    StyledPopupActions,
+    StyledPopupContent,
+    StyledPopupHeader,
+    StyledTooltip,
+    StyledWelcomePopup,
 } from './FloatingAIChatButton.styles';
 
 export const FloatingAIChatButton = () => {
@@ -45,6 +48,8 @@ export const FloatingAIChatButton = () => {
 const FloatingAIChatButtonContent = () => {
   const isMobile = useIsMobile();
   const { t } = useLingui();
+  const currentUser = useRecoilValue(currentUserState);
+  const currentWorkspace = useRecoilValue(currentWorkspaceState);
   const { 
     guidance, 
     isLoading: isSupervisorLoading, 
@@ -62,11 +67,6 @@ const FloatingAIChatButtonContent = () => {
   const isCreatingThread = isSupervisorLoading || isExecutingAction;
   const lastError = supervisorError;
   const clearError = clearSupervisorError;
-  
-  // Early return if not visible according to Supervisor
-  if (!isVisible) {
-    return null;
-  }
   
   // Show error message when lastError changes
   useEffect(() => {
@@ -154,6 +154,10 @@ const FloatingAIChatButtonContent = () => {
       return () => clearTimeout(timer);
     }
   }, [welcomeMessage, showPopup, setShowPopup, needsUserAction]);
+
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <StyledFloatingAIChatButtonContainer

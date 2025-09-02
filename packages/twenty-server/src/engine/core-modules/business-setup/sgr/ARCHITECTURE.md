@@ -147,7 +147,7 @@ interface ToolDispatchMethods {
 ### SupervisorSGRService Interface
 ```typescript
 interface SupervisorSGRMethods {
-  processMessageWithStreaming(userId: string, workspaceId: string, threadId: string, message: string): AsyncGenerator<SupervisorSGRStreamingResult>;
+  processMessageWithDetailedStreaming(message: string, userId: string, workspaceId: string, threadId: string): AsyncGenerator<SGRStreamEvent>;
   handleProcessMessageEvent(event: SupervisorProcessMessageEvent): Promise<void>;
 }
 ```

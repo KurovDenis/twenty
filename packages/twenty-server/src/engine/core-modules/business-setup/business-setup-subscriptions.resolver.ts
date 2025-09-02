@@ -24,8 +24,10 @@ import {
   BusinessSetupEventType,
   OnboardingEventInput,
   OnboardingStatusSubscriptionResponse,
+  SGRStreamingEventInput,
   SUBSCRIPTION_CHANNELS,
   SubscriptionEventPayload,
+  SupervisorSGREventInput,
 } from './types/business-setup-subscription.types';
 
 /**
@@ -75,15 +77,30 @@ export class BusinessSetupSubscriptionsResolver {
         !isDefined(variables.input.eventTypes) ||
         variables.input.eventTypes.includes(payload.type);
 
+      // SGR event specific filtering
+      const isSGREvent = payload.type.startsWith('SGR_') || payload.type.startsWith('SUPERVISOR_SGR_');
+      let isSGRMatching = true;
+      
+      if (isSGREvent) {
+        // Additional filtering for SGR events
+        const threadMatching = !variables.input.userId || 
+          (payload.payload as any)?.threadId;
+        
+        // Check for SGR-specific metadata
+        const hasSGRMetadata = (payload.metadata as any)?.sgrStreaming || (payload.metadata as any)?.supervisorSGR;
+        
+        isSGRMatching = threadMatching && hasSGRMetadata;
+      }
+
       // Log filtered events for debugging
       // Note: Logger not available in filter context, using console.log
-      if (!isWorkspaceMatching || !isUserMatching || !isEventTypeMatching) {
+      if (!isWorkspaceMatching || !isUserMatching || !isEventTypeMatching || !isSGRMatching) {
         console.debug(
-          `Filtered event: workspace=${isWorkspaceMatching}, user=${isUserMatching}, type=${isEventTypeMatching}`,
+          `Filtered event: workspace=${isWorkspaceMatching}, user=${isUserMatching}, type=${isEventTypeMatching}, sgr=${isSGRMatching}`,
         );
       }
 
-      return isWorkspaceMatching && isUserMatching && isEventTypeMatching;
+      return isWorkspaceMatching && isUserMatching && isEventTypeMatching && isSGRMatching;
     },
   })
   onBusinessSetupEvent(
@@ -248,6 +265,185 @@ export class BusinessSetupSubscriptionsResolver {
       SUBSCRIPTION_CHANNELS.BUSINESS_SETUP_EVENTS,
       SUBSCRIPTION_CHANNELS.AI_AGENT_EVENTS,
     ]);
+  }
+
+  /**
+   * SGR Streaming events subscription
+   * Optimized for real-time SGR thinking process visualization
+   */
+  @Subscription(() => SubscriptionEventPayload, {
+    filter: (
+      payload: SubscriptionEventPayload,
+      variables: { input: SGRStreamingEventInput },
+      context: { req: { user: User } },
+    ) => {
+      const user = context.req?.user;
+
+      if (!user) {
+        return false;
+      }
+
+      // Only SGR streaming events
+      const isSGREvent = payload.type.startsWith('SGR_');
+      
+      if (!isSGREvent) {
+        return false;
+      }
+
+      // Security: Only allow events for the authenticated user's workspace
+      const isWorkspaceMatching =
+        (payload.payload as any)?.workspaceId === variables.input.workspaceId;
+
+      // Optional user filtering
+      const isUserMatching =
+        !isDefined(variables.input.userId) ||
+        (payload.payload as any)?.userId === variables.input.userId;
+
+      // Optional thread filtering for SGR events
+      const isThreadMatching =
+        !isDefined(variables.input.threadId) ||
+        (payload.payload as any)?.threadId === variables.input.threadId;
+
+      // Optional event type filtering
+      const isEventTypeMatching =
+        !isDefined(variables.input.eventTypes) ||
+        variables.input.eventTypes.includes(payload.type);
+
+      // Check for SGR-specific features
+      const hasPartialJsonParsing = variables.input.enablePartialJsonParsing !== false;
+      const hasTokenThrottling = variables.input.enableTokenThrottling !== false;
+
+      // Additional filtering based on SGR configuration
+      let isSGRConfigMatching = true;
+      if (payload.type === BusinessSetupEventType.SGR_JSON_TOKEN_CHUNK) {
+        isSGRConfigMatching = hasTokenThrottling;
+      }
+
+      return (
+        isWorkspaceMatching &&
+        isUserMatching &&
+        isThreadMatching &&
+        isEventTypeMatching &&
+        isSGRConfigMatching
+      );
+    },
+    resolve: (payload: SubscriptionEventPayload) => {
+      // Add SGR-specific metadata to the payload
+      return {
+        ...payload,
+        metadata: {
+          ...payload.metadata,
+          sgrStreaming: true,
+          resolvedAt: new Date(),
+        },
+      };
+    },
+  })
+  onSGRStreamingEvents(
+    @Args('input') input: SGRStreamingEventInput,
+    @AuthUser() user: User,
+  ) {
+    this.logger.log(
+      `Starting SGR streaming events subscription for workspace: ${input.workspaceId}, thread: ${input.threadId || 'all'}`,
+    );
+
+    // Subscribe to multiple SGR channels for comprehensive coverage
+    const channels = [
+      SUBSCRIPTION_CHANNELS.BUSINESS_SETUP_EVENTS,
+      SUBSCRIPTION_CHANNELS.SGR_STREAMING_EVENTS,
+      SUBSCRIPTION_CHANNELS.SGR_TOKEN_STREAMING,
+      SUBSCRIPTION_CHANNELS.SGR_TOOL_EXECUTION,
+      SUBSCRIPTION_CHANNELS.SGR_ERROR_EVENTS,
+    ];
+
+    return this.pubSub.asyncIterator(channels);
+  }
+
+  /**
+   * Supervisor SGR events subscription
+   * Focuses on high-level supervisor thinking and routing decisions
+   */
+  @Subscription(() => SubscriptionEventPayload, {
+    filter: (
+      payload: SubscriptionEventPayload,
+      variables: { input: SupervisorSGREventInput },
+      context: { req: { user: User } },
+    ) => {
+      const user = context.req?.user;
+
+      if (!user) {
+        return false;
+      }
+
+      // Only Supervisor SGR events
+      const isSupervisorSGREvent = payload.type.startsWith('SUPERVISOR_SGR_');
+      
+      if (!isSupervisorSGREvent) {
+        return false;
+      }
+
+      // Security: Only allow events for the authenticated user's workspace
+      const isWorkspaceMatching =
+        (payload.payload as any)?.workspaceId === variables.input.workspaceId;
+
+      // Optional user filtering
+      const isUserMatching =
+        !isDefined(variables.input.userId) ||
+        (payload.payload as any)?.userId === variables.input.userId;
+
+      // Optional thread filtering
+      const isThreadMatching =
+        !isDefined(variables.input.threadId) ||
+        (payload.payload as any)?.threadId === variables.input.threadId;
+
+      // Feature-specific filtering
+      const includeThinking = variables.input.includeThinkingSteps !== false;
+      const includeToolExecution = variables.input.includeToolExecution !== false;
+
+      let isFeatureMatching = true;
+      if (payload.type === BusinessSetupEventType.SUPERVISOR_SGR_THINKING && !includeThinking) {
+        isFeatureMatching = false;
+      }
+      if (payload.type === BusinessSetupEventType.SUPERVISOR_SGR_TOOL_EXECUTION && !includeToolExecution) {
+        isFeatureMatching = false;
+      }
+
+      return (
+        isWorkspaceMatching &&
+        isUserMatching &&
+        isThreadMatching &&
+        isFeatureMatching
+      );
+    },
+    resolve: (payload: SubscriptionEventPayload) => {
+      // Add supervisor-specific metadata
+      return {
+        ...payload,
+        metadata: {
+          ...payload.metadata,
+          supervisorSGR: true,
+          resolvedAt: new Date(),
+        },
+      };
+    },
+  })
+  onSupervisorSGREvents(
+    @Args('input') input: SupervisorSGREventInput,
+    @AuthUser() user: User,
+  ) {
+    this.logger.log(
+      `Starting Supervisor SGR events subscription for workspace: ${input.workspaceId}, thread: ${input.threadId || 'all'}`,
+    );
+
+    // Subscribe to supervisor-specific channels
+    const channels = [
+      SUBSCRIPTION_CHANNELS.BUSINESS_SETUP_EVENTS,
+      SUBSCRIPTION_CHANNELS.SUPERVISOR_SGR_EVENTS,
+      SUBSCRIPTION_CHANNELS.SUPERVISOR_THINKING,
+      SUBSCRIPTION_CHANNELS.SUPERVISOR_TOOL_EXECUTION,
+    ];
+
+    return this.pubSub.asyncIterator(channels);
   }
 
   /**

@@ -9,10 +9,10 @@ import { type Workspace } from 'src/engine/core-modules/workspace/workspace.enti
 
 import { BusinessSetupStatus } from './enums/business-setup-status.enum';
 import {
-  BUSINESS_SETUP_EVENTS,
-  BusinessSetupRouteMessageEvent,
-  SupervisorRoutingCompletedEvent,
-  SupervisorThinkingStepEvent,
+    BUSINESS_SETUP_EVENTS,
+    BusinessSetupRouteMessageEvent,
+    SupervisorRoutingCompletedEvent,
+    SupervisorThinkingStepEvent,
 } from './events/business-setup.events';
 
 export enum BusinessSetupStepKeys {
@@ -34,6 +34,10 @@ export enum BusinessSetupStepKeys {
   AVITO_ACCESS_TOKEN = 'AVITO_ACCESS_TOKEN',
   AVITO_TOKEN_EXPIRES_AT = 'AVITO_TOKEN_EXPIRES_AT',
   AVITO_CREDENTIALS_STORED = 'AVITO_CREDENTIALS_STORED',
+
+  // SGR detailed streaming flags/config
+  SGR_DETAILED_STREAMING_ENABLED = 'SGR_DETAILED_STREAMING_ENABLED',
+  SGR_STREAMING_CONFIG = 'SGR_STREAMING_CONFIG',
 }
 
 export type BusinessSetupKeyValueTypeMap = {
@@ -61,8 +65,20 @@ export type BusinessSetupKeyValueTypeMap = {
   AVITO_CLIENT_SECRET_BACKUP: string;
   'health-check-test': string;
 
+  // SGR detailed streaming flags/config
+  [BusinessSetupStepKeys.SGR_DETAILED_STREAMING_ENABLED]: boolean;
+  [BusinessSetupStepKeys.SGR_STREAMING_CONFIG]: {
+    tokenThrottleMs: number;
+    maxTokensPerChunk: number;
+    enablePartialJsonParsing: boolean;
+  };
+
   // Dynamic keys for testing and other purposes
-  [key: string]: string | boolean | BusinessSetupStatus | undefined;
+  [key: string]: string | boolean | BusinessSetupStatus | {
+    tokenThrottleMs: number;
+    maxTokensPerChunk: number;
+    enablePartialJsonParsing: boolean;
+  } | undefined;
 };
 
 @Injectable()

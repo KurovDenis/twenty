@@ -7,13 +7,13 @@ import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
 
 import {
-  type BusinessSetupKeyValueTypeMap,
-  BusinessSetupStepKeys,
+    type BusinessSetupKeyValueTypeMap,
+    BusinessSetupStepKeys,
 } from '../../business-setup.service';
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 import {
-  BUSINESS_SETUP_EVENTS,
-  type SupervisorProcessMessageEvent,
+    BUSINESS_SETUP_EVENTS,
+    type SupervisorProcessMessageEvent,
 } from '../../events/business-setup.events';
 import { BusinessSetupAgentService } from '../../services/business-setup-agent.service';
 import { AvitoWelcomeSGRService } from '../services/avito-welcome-sgr.service';

@@ -1,43 +1,36 @@
 import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
-import { generateObject } from 'ai';
-
-// Core imports
 import { AiModelRegistryService } from 'src/engine/core-modules/ai/services/ai-model-registry.service';
+import { BusinessSetupStepKeys } from 'src/engine/core-modules/business-setup/business-setup.service';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
+import { BUSINESS_SETUP_EVENTS, type SupervisorProcessMessageEvent } from '../../events/business-setup.events';
+import { SGRStreamEvent, SGRStreamEventType } from '../types/sgr-stream.types';
+import { SUPERVISOR_CONFIG } from '../types/supervisor-types';
+import { SupervisorToolDispatcherService } from './supervisor-tool-dispatcher.service';
 
-// Business setup imports
+// Core imports
 import {
-  BusinessSetupKeyValueTypeMap,
-  BusinessSetupStepKeys,
+  BusinessSetupKeyValueTypeMap
 } from '../../business-setup.service';
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
-import {
-  BUSINESS_SETUP_EVENTS,
-  SupervisorProcessMessageEvent,
-} from '../../events/business-setup.events';
 
 // Supervisor-specific imports
+import { streamText } from 'ai';
 import {
-  SupervisorExecutionParams,
   SupervisorStepResult,
-  SupervisorStepSchema,
-  SupervisorStreamingContext,
-  isCompletionTool,
+  isCompletionTool
 } from '../schemas/supervisor-sgr.schema';
 import {
+  DetailedStreamingResult,
+  ExtendedSupervisorStreamingContext
+} from '../types/sgr-stream.types';
+import {
   ISupervisorSGRService,
-  SUPERVISOR_CONFIG,
   SupervisorErrorType,
-  SupervisorException,
-  SupervisorSGRStreamingResult,
-  SupervisorThinkingStep,
+  SupervisorException
 } from '../types/supervisor-types';
-
-// Tool dispatcher (will be implemented separately)
-import { SupervisorToolDispatcherService } from './supervisor-tool-dispatcher.service';
 
 /**
  * Default configuration for supervisor SGR thinking process
@@ -158,18 +151,18 @@ export class SupervisorSGRService implements ISupervisorSGRService {
     );
 
     try {
-      // Process the message with streaming SGR
-      const sgrGenerator = this.processMessageWithStreaming(
+      // Используем НОВЫЙ детализированный стриминг
+      const sgrGenerator = this.processMessageWithDetailedStreaming(
         payload.message,
         payload.userId,
         payload.workspaceId,
         payload.threadId,
       );
 
-      // Process the SGR stream and emit events
-      for await (const result of sgrGenerator) {
-        // The streaming results are handled by the chat service via events
-        this.logger.debug(`SGR result: ${result.type}`);
+      // Обрабатываем поток SGR событий и отправляем их через EventEmitter
+      for await (const event of sgrGenerator) {
+        this.eventEmitter.emit('sgr.streaming.event', event);
+        this.logger.debug(`Emitted SGR event: ${event.type}`);
       }
     } catch (error) {
       this.logger.error(
@@ -192,447 +185,393 @@ export class SupervisorSGRService implements ISupervisorSGRService {
   }
 
   /**
-   * Main entry point for processing supervisor messages with streaming SGR
-   * Provides real-time visibility into supervisor thinking process
+   * НОВЫЙ: Детальный стриминг с токенами JSON
+   * Заменяет существующий processMessageWithStreaming для SGR событий
    */
-  async *processMessageWithStreaming(
+  async *processMessageWithDetailedStreaming(
     userMessage: string,
     userId: string,
     workspaceId: string,
     threadId: string,
-  ): AsyncGenerator<SupervisorSGRStreamingResult> {
-    this.logger.log(
-      `Processing supervisor message with STREAMING SGR for user ${userId}`,
-    );
+  ): AsyncGenerator<SGRStreamEvent> {
+    const stepId = this.generateUniqueStepId();
+    
+    // Событие начала процесса
+    yield {
+      type: SGRStreamEventType.PROCESS_START,
+      payload: {
+        threadId,
+        stepId,
+        timestamp: new Date(),
+      },
+    };
 
-    const context: SupervisorStreamingContext = {
+    try {
+      // Инициализация контекста
+      const context = this.createStreamingContext(userId, workspaceId, threadId, userMessage);
+      
+      // Выполнение детального стриминга
+      yield* this.executeDetailedSGRWorkflow(context, stepId);
+      
+      // Событие завершения
+      yield {
+        type: SGRStreamEventType.PROCESS_END,
+        payload: {
+          threadId,
+          stepId,
+          timestamp: new Date(),
+        },
+      };
+      
+    } catch (error) {
+      this.logger.error('Detailed SGR streaming failed:', error);
+      
+      yield {
+        type: SGRStreamEventType.PROCESS_ERROR,
+        payload: {
+          threadId,
+          stepId,
+          error: error.message,
+          timestamp: new Date(),
+        },
+      };
+    }
+  }
+
+  /**
+   * Основной метод детального стриминга SGR
+   */
+  private async *executeDetailedSGRWorkflow(
+    context: ExtendedSupervisorStreamingContext,
+    stepId: string,
+  ): AsyncGenerator<SGRStreamEvent> {
+    
+    const maxSteps = context.maxSteps || DEFAULT_SUPERVISOR_SGR_CONFIG.maxSteps;
+    
+    for (let stepNumber = 1; stepNumber <= maxSteps; stepNumber++) {
+      
+      // Событие начала JSON стриминга
+      yield {
+        type: SGRStreamEventType.JSON_STREAM_START,
+        payload: {
+          threadId: context.threadId,
+          stepId,
+          timestamp: new Date(),
+          metadata: {
+            stepNumber,
+            totalSteps: maxSteps,
+          },
+        },
+      };
+      
+      // Детальный стриминг JSON от LLM
+      const stepResult = yield* this.streamJSONFromLLM(context, stepNumber, stepId);
+      
+      // Событие завершения JSON стриминга
+      yield {
+        type: SGRStreamEventType.JSON_STREAM_END,
+        payload: {
+          threadId: context.threadId,
+          stepId,
+          fullJson: stepResult.fullJson,
+          timestamp: new Date(),
+          metadata: {
+            stepNumber,
+            totalSteps: maxSteps,
+            tokensEmitted: stepResult.tokenCount,
+          },
+        },
+      };
+      
+      // Парсинг и валидация JSON
+      const parsedResult = this.parseAndValidateJSON(stepResult.fullJson);
+      
+      // Событие вызова инструмента
+      yield {
+        type: SGRStreamEventType.TOOL_CALL_PENDING,
+        payload: {
+          threadId: context.threadId,
+          stepId,
+          toolName: parsedResult.function.tool,
+          toolArgs: JSON.stringify(parsedResult.function),
+          timestamp: new Date(),
+          metadata: {
+            stepNumber,
+            totalSteps: maxSteps,
+          },
+        },
+      };
+      
+      // Выполнение инструмента
+      const toolResult = await this.executeTool(parsedResult.function, context);
+      
+      // Проверка завершения
+      if (isCompletionTool(parsedResult.function)) {
+        return; // Завершаем процесс
+      }
+      
+      // Обновление контекста для следующего шага
+      this.updateConversationContext(context, parsedResult, toolResult);
+    }
+  }
+
+  /**
+   * Детальный стриминг JSON от LLM с токенами
+   */
+  private async *streamJSONFromLLM(
+    context: ExtendedSupervisorStreamingContext,
+    stepNumber: number,
+    stepId: string,
+  ): AsyncGenerator<SGRStreamEvent, DetailedStreamingResult> {
+    
+    const aiModel = this.aiModelRegistryService.getModel(this.GEMINI_MODEL_ID)?.model;
+    if (!aiModel) {
+      throw new SupervisorException(
+        SupervisorErrorType.SGR_WORKFLOW_FAILED,
+        `AI model ${this.GEMINI_MODEL_ID} not found`
+      );
+    }
+
+    // Создание промпта для структурированного вывода
+    const systemPrompt = this.createStructuredOutputPrompt(context, stepNumber);
+    
+    // Использование streamText вместо generateObject
+    const stream = streamText({
+      model: aiModel,
+      messages: [
+        ...context.conversationLog,
+        { role: 'user' as const, content: systemPrompt }
+      ],
+      temperature: 0.1,
+      maxTokens: 1500,
+    });
+
+    let fullJson = '';
+    const tokens: string[] = [];
+    const startTime = Date.now();
+    
+    // Обработка потока токенов
+    for await (const chunk of stream.textStream) {
+      const token = chunk;
+      fullJson += token;
+      tokens.push(token);
+      
+      // Yield каждого токена для детального стриминга
+      yield {
+        type: SGRStreamEventType.JSON_TOKEN_CHUNK,
+        payload: {
+          threadId: context.threadId,
+          stepId,
+          token,
+          timestamp: new Date(),
+          metadata: {
+            stepNumber,
+            tokensEmitted: tokens.length,
+          },
+        },
+      };
+    }
+    
+    const streamingDuration = Date.now() - startTime;
+    
+    return {
+      fullJson,
+      tokens,
+      isValidJson: this.isValidJson(fullJson),
+      parsedData: this.safeParseJson(fullJson),
+      streamingDuration,
+      tokenCount: tokens.length,
+    };
+  }
+
+  /**
+   * Парсинг и валидация JSON с обработкой ошибок
+   */
+  private parseAndValidateJSON(jsonString: string): SupervisorStepResult {
+    try {
+      // Попытка парсинга полного JSON
+      const parsed = JSON.parse(jsonString);
+      
+      // Валидация структуры
+      if (!parsed.function || !parsed.function.tool) {
+        throw new Error('Invalid JSON structure: missing function.tool');
+      }
+      
+      return parsed as SupervisorStepResult;
+      
+    } catch (parseError) {
+      // Попытка парсинга частичного JSON
+      const partialResult = this.parsePartialJSON(jsonString);
+      
+      if (!partialResult) {
+        throw new SupervisorException(
+          SupervisorErrorType.SGR_WORKFLOW_FAILED,
+          `Failed to parse JSON: ${parseError.message}`
+        );
+      }
+      
+      return partialResult;
+    }
+  }
+
+  /**
+   * Парсинг частичного JSON (для незавершенных ответов)
+   */
+  private parsePartialJSON(jsonString: string): SupervisorStepResult | null {
+    try {
+      // Поиск последнего валидного JSON объекта
+      const jsonMatch = jsonString.match(/\{[^{}]*\}/g);
+      
+      if (!jsonMatch) {
+        return null;
+      }
+      
+      // Берем последний найденный объект
+      const lastJson = jsonMatch[jsonMatch.length - 1];
+      const parsed = JSON.parse(lastJson);
+      
+      // Проверяем минимальную валидность
+      if (parsed.function?.tool) {
+        return parsed as SupervisorStepResult;
+      }
+      
+      return null;
+      
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Выполнение инструмента с обработкой ошибок
+   */
+  private async executeTool(
+    functionCall: any,
+    context: ExtendedSupervisorStreamingContext,
+  ): Promise<any> {
+    try {
+      return await this.toolDispatcher.dispatch(
+        functionCall,
+        context.userId,
+        context.workspaceId,
+        context.threadId,
+      );
+    } catch (error) {
+      this.logger.error('Tool execution failed:', error);
+      
+      return {
+        success: false,
+        error: error.message,
+        message: 'Tool execution failed'
+      };
+    }
+  }
+
+  /**
+   * Обновление контекста разговора
+   */
+  private updateConversationContext(
+    context: ExtendedSupervisorStreamingContext,
+    stepResult: SupervisorStepResult,
+    toolResult: any,
+  ): void {
+    context.conversationLog.push(
+      {
+        role: 'user' as const,
+        content: stepResult.current_state || 'Processing step...',
+      },
+      {
+        role: 'assistant' as const,
+        content: JSON.stringify(stepResult.function),
+      },
+      {
+        role: 'user' as const,
+        content: `Tool result: ${toolResult.success ? 'success' : 'failed'} - ${toolResult.message}`,
+      },
+    );
+  }
+
+  /**
+   * Генерация уникального ID для шага
+   */
+  private generateUniqueStepId(): string {
+    return `sgr-step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Создание контекста стриминга
+   */
+  private createStreamingContext(
+    userId: string,
+    workspaceId: string,
+    threadId: string,
+    userMessage: string,
+  ): ExtendedSupervisorStreamingContext {
+    return {
       userId,
       workspaceId,
       threadId,
       userMessage,
       maxSteps: DEFAULT_SUPERVISOR_SGR_CONFIG.maxSteps,
       stepNumber: 0,
-    };
-
-    const task = `
-User sent message: "${userMessage}"
-
-Task: Analyze this request in the context of business setup workflow and route appropriately.
-
-Instructions:
-1. Check current business setup status to understand context
-2. Determine if this request is stage-specific or general
-3. Route to appropriate specialized agent or handle directly
-4. Provide transparent reasoning for routing decisions
-5. Trigger status transitions when appropriate
-
-Be helpful, efficient, and always explain your routing decisions clearly.
-`;
-
-    try {
-      // Execute SGR workflow with streaming
-      yield* this.executeSGRWorkflowWithStreaming(
+      conversationLog: [
         {
-          task,
-          userId,
-          workspaceId,
-          threadId,
-          maxSteps: context.maxSteps || DEFAULT_SUPERVISOR_SGR_CONFIG.maxSteps,
+          role: 'system' as const,
+          content: SUPERVISOR_SYSTEM_PROMPTS.MAIN_SUPERVISOR,
         },
-        context,
-      );
-    } catch (error) {
-      this.logger.error(
-        'Streaming supervisor SGR workflow execution failed:',
-        error,
-      );
-
-      // Emit error event
-      this.eventEmitter.emit(BUSINESS_SETUP_EVENTS.SUPERVISOR_ERROR_OCCURRED, {
-        userId,
-        workspaceId,
-        threadId,
-        errorType:
-          error instanceof SupervisorException
-            ? error.type
-            : SupervisorErrorType.SGR_WORKFLOW_FAILED,
-        errorMessage: error.message,
-        context:
-          error instanceof SupervisorException
-            ? error.context
-            : { originalError: error },
-        recoverable: true,
-        timestamp: new Date(),
-      });
-
-      // Yield error result
-      yield {
-        type: 'final_response',
-        content:
-          '❌ I encountered an error while processing your request. Let me try a different approach or please rephrase your message.',
-        completed: true,
-      };
-    }
-  }
-
-  /**
-   * Execute complete supervisor SGR workflow with streaming for real-time visibility
-   */
-  private async *executeSGRWorkflowWithStreaming(
-    params: SupervisorExecutionParams,
-    context: SupervisorStreamingContext,
-  ): AsyncGenerator<SupervisorSGRStreamingResult> {
-    this.logger.log(
-      `Starting STREAMING supervisor SGR workflow with max ${params.maxSteps || DEFAULT_SUPERVISOR_SGR_CONFIG.maxSteps} steps`,
-    );
-
-    const conversationLog = [
-      {
-        role: 'system' as const,
-        content: SUPERVISOR_SYSTEM_PROMPTS.MAIN_SUPERVISOR,
-      },
-      {
-        role: 'user' as const,
-        content: params.task,
-      },
-    ];
-
-    const stepsExecuted: string[] = [];
-    const streamingSteps: SupervisorThinkingStep[] = [];
-    const maxSteps = params.maxSteps || DEFAULT_SUPERVISOR_SGR_CONFIG.maxSteps;
-    const startTime = Date.now();
-
-    for (let stepNumber = 1; stepNumber <= maxSteps; stepNumber++) {
-      try {
-        this.logger.log(
-          `Executing STREAMING supervisor SGR step ${stepNumber}/${maxSteps}`,
-        );
-
-        // STREAM: Start thinking step
-        const thinkingStep: SupervisorThinkingStep = {
-          stepNumber,
-          currentState: `Analyzing step ${stepNumber} of ${maxSteps}...`,
-          plannedSteps: [
-            'Get structured reasoning decision from AI',
-            'Execute selected tool',
-            'Analyze result',
-          ],
-          selectedTool: 'thinking',
-          timestamp: new Date(),
-        };
-
-        // Yield thinking step to user
-        yield {
-          type: 'thinking',
-          step: thinkingStep,
-          completed: false,
-        };
-
-        // Emit thinking step event
-        this.eventEmitter.emit(BUSINESS_SETUP_EVENTS.SUPERVISOR_THINKING_STEP, {
-          userId: params.userId,
-          workspaceId: params.workspaceId,
-          threadId: params.threadId,
-          step: thinkingStep,
-          completed: false,
-          timestamp: new Date(),
-        });
-
-        // Get structured decision from AI model
-        const stepResult = await this.executeReasoningStepWithStreaming({
-          conversationLog,
-          stepNumber,
-          userId: params.userId,
-          workspaceId: params.workspaceId,
-          threadId: params.threadId,
-        });
-
-        // Update thinking step with AI decision
-        thinkingStep.currentState = stepResult.current_state;
-        thinkingStep.plannedSteps = stepResult.plan_remaining_steps;
-        thinkingStep.selectedTool = stepResult.function.tool;
-        streamingSteps.push(thinkingStep);
-
-        stepsExecuted.push(`Step ${stepNumber}: ${stepResult.function.tool}`);
-
-        // STREAM: Tool selection result
-        yield {
-          type: 'thinking',
-          step: thinkingStep,
-          completed: false,
-        };
-
-        // Check for completion
-        if (isCompletionTool(stepResult.function)) {
-          this.logger.log(
-            'STREAMING supervisor SGR workflow completed successfully',
-          );
-
-          const executionTimeMs = Date.now() - startTime;
-
-          // Emit completion event
-          this.eventEmitter.emit(
-            BUSINESS_SETUP_EVENTS.SUPERVISOR_ROUTING_COMPLETED,
-            {
-              userId: params.userId,
-              workspaceId: params.workspaceId,
-              threadId: params.threadId,
-              success: stepResult.function.success,
-              finalMessage: stepResult.function.final_message,
-              routedTo: stepResult.function.routed_to,
-              stepsExecuted,
-              executionTimeMs,
-              timestamp: new Date(),
-            },
-          );
-
-          // STREAM: Final response
-          yield {
-            type: 'final_response',
-            content: stepResult.function.final_message,
-            completed: true,
-            routedTo: stepResult.function.routed_to,
-          };
-
-          return;
-        }
-
-        // STREAM: Tool execution start
-        thinkingStep.toolExecution = {
-          status: 'in_progress',
-        };
-
-        yield {
-          type: 'tool_execution',
-          step: thinkingStep,
-          completed: false,
-        };
-
-        // Execute selected tool
-        const toolResult = await this.toolDispatcher.dispatch(
-          stepResult.function,
-          params.userId,
-          params.workspaceId,
-          params.threadId,
-        );
-
-        // STREAM: Tool execution result
-        thinkingStep.toolExecution = {
-          status: toolResult.success ? 'completed' : 'failed',
-          result: toolResult.success ? toolResult.data : undefined,
-          error: toolResult.success ? undefined : toolResult.error,
-        };
-
-        yield {
-          type: 'tool_execution',
-          step: thinkingStep,
-          completed: false,
-        };
-
-        // Add tool execution to conversation context
-        conversationLog.push(
-          {
-            role: 'user' as const,
-            content:
-              stepResult.plan_remaining_steps[0] || 'Executing next step...',
-          },
-          {
-            role: 'user' as const,
-            content: `Tool execution status: ${toolResult.success ? 'successful' : 'failed'}. ${toolResult.message}`,
-          },
-        );
-
-        // Log progress
-        this.logger.log(
-          `STREAMING supervisor step ${stepNumber} completed: ${stepResult.function.tool} -> ${toolResult.success ? 'success' : 'failed'}`,
-        );
-      } catch (error) {
-        this.logger.error(
-          `STREAMING supervisor SGR step ${stepNumber} failed:`,
-          error,
-        );
-
-        // Emit error event
-        this.eventEmitter.emit(
-          BUSINESS_SETUP_EVENTS.SUPERVISOR_ERROR_OCCURRED,
-          {
-            userId: params.userId,
-            workspaceId: params.workspaceId,
-            threadId: params.threadId,
-            errorType: SupervisorErrorType.TOOL_EXECUTION_FAILED,
-            errorMessage: error.message,
-            context: { stepNumber, error },
-            recoverable: true,
-            timestamp: new Date(),
-          },
-        );
-
-        yield {
-          type: 'final_response',
-          content:
-            'I encountered an error while processing your request. Let me try a simpler approach or please try again.',
-          completed: true,
-        };
-
-        return;
-      }
-    }
-
-    // Workflow exceeded maximum steps
-    this.logger.warn(
-      `STREAMING supervisor SGR workflow exceeded maximum steps (${maxSteps})`,
-    );
-
-    const executionTimeMs = Date.now() - startTime;
-
-    // Emit completion event with failure
-    this.eventEmitter.emit(BUSINESS_SETUP_EVENTS.SUPERVISOR_ROUTING_COMPLETED, {
-      userId: params.userId,
-      workspaceId: params.workspaceId,
-      threadId: params.threadId,
-      success: false,
-      finalMessage: 'Maximum reasoning steps exceeded',
-      stepsExecuted,
-      executionTimeMs,
-      timestamp: new Date(),
-    });
-
-    yield {
-      type: 'final_response',
-      content:
-        'I need more time to analyze your request properly. Could you please rephrase it or be more specific about what you need help with?',
-      completed: true,
+        {
+          role: 'user' as const,
+          content: userMessage,
+        },
+      ],
     };
   }
 
   /**
-   * Execute single reasoning step with streaming support for supervisor decisions
+   * Создание промпта для структурированного вывода
    */
-  private async executeReasoningStepWithStreaming(context: {
-    conversationLog: any[];
-    stepNumber: number;
-    userId: string;
-    workspaceId: string;
-    threadId: string;
-  }): Promise<SupervisorStepResult> {
-    this.logger.log(
-      `Executing STREAMING supervisor reasoning step ${context.stepNumber}`,
-    );
+  private createStructuredOutputPrompt(
+    context: ExtendedSupervisorStreamingContext,
+    stepNumber: number,
+  ): string {
+    return `${SUPERVISOR_SYSTEM_PROMPTS.TASK_INSTRUCTIONS}
 
+STEP ${stepNumber} INSTRUCTIONS:
+- Analyze the current conversation context
+- Generate a structured JSON response with the following format:
+{
+  "current_state": "Description of current analysis",
+  "plan_remaining_steps": ["Step 1", "Step 2", "Step 3"],
+  "task_completed": false,
+  "function": {
+    "tool": "exact_tool_name",
+    "parameters": {...}
+  }
+}
+
+IMPORTANT: Generate valid JSON only. Do not include any explanatory text outside the JSON structure.`;
+  }
+
+  /**
+   * Проверка валидности JSON
+   */
+  private isValidJson(jsonString: string): boolean {
     try {
-      // Get AI model for structured generation
-      const aiModel = this.aiModelRegistryService.getEffectiveModelConfig(
-        this.GEMINI_MODEL_ID,
-      );
+      JSON.parse(jsonString);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
-      if (!aiModel) {
-        throw new SupervisorException(
-          SupervisorErrorType.SGR_WORKFLOW_FAILED,
-          `AI model ${this.GEMINI_MODEL_ID} not found`,
-          { modelId: this.GEMINI_MODEL_ID },
-        );
-      }
-
-      const model = this.aiModelRegistryService.getModel(
-        this.GEMINI_MODEL_ID,
-      )?.model;
-
-      if (!model) {
-        throw new SupervisorException(
-          SupervisorErrorType.SGR_WORKFLOW_FAILED,
-          `Model instance not found for ${this.GEMINI_MODEL_ID}`,
-          { modelId: this.GEMINI_MODEL_ID },
-        );
-      }
-
-      // Create enhanced task instructions with actual user and workspace IDs
-      const enhancedTaskInstructions = `${SUPERVISOR_SYSTEM_PROMPTS.TASK_INSTRUCTIONS}
-
-IMPORTANT CONTEXT:
-- Current userId: ${context.userId}
-- Current workspaceId: ${context.workspaceId}
-- Current threadId: ${context.threadId}
-
-When using tools that require userId and workspaceId (like check_business_setup_status), use these EXACT values above. Do not use placeholders or generate your own IDs.
-
-TOOL USAGE EXAMPLES:
-- To check status: {"tool": "check_business_setup_status", "userId": "${context.userId}", "workspaceId": "${context.workspaceId}"}
-- To route user: {"tool": "route_to_specialized_agent", "status": "BUSINESS_ANALYSIS", "reason": "...", "message": "..."}
-- To complete: {"tool": "complete_routing", "success": true, "final_message": "..."}
-
-WARNING: Do NOT use tool names like "route_request_to_agent" or any other variations. Use ONLY the exact tool names from the schema.`;
-
-      // Generate structured output using the supervisor schema with timeout
-      const result = await Promise.race([
-        generateObject({
-          model,
-          messages: [
-            ...context.conversationLog,
-            {
-              role: 'user' as const,
-              content: enhancedTaskInstructions,
-            },
-          ],
-          schema: SupervisorStepSchema,
-          temperature: 0.1, // Low temperature for consistent reasoning
-          maxTokens: 1500, // Higher limit for supervisor reasoning
-        }),
-        new Promise((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new SupervisorException(
-                  SupervisorErrorType.STREAMING_TIMEOUT,
-                  `Supervisor reasoning step ${context.stepNumber} timed out`,
-                  {
-                    stepNumber: context.stepNumber,
-                    timeoutMs: DEFAULT_SUPERVISOR_SGR_CONFIG.stepTimeoutMs,
-                  },
-                ),
-              ),
-            DEFAULT_SUPERVISOR_SGR_CONFIG.stepTimeoutMs,
-          ),
-        ),
-      ]);
-
-      const stepResult = (result as any).object;
-
-      if (!stepResult || !stepResult.function) {
-        throw new SupervisorException(
-          SupervisorErrorType.SGR_WORKFLOW_FAILED,
-          `Invalid step result from AI model`,
-          { stepResult, stepNumber: context.stepNumber },
-        );
-      }
-
-      this.logger.log(
-        `STREAMING supervisor reasoning step ${context.stepNumber} result:`,
-        {
-          current_state: stepResult.current_state
-            ? stepResult.current_state.substring(0, 100) + '...'
-            : 'No state provided',
-          planned_steps: stepResult.plan_remaining_steps?.length || 0,
-          selected_tool: stepResult.function?.tool || 'No tool selected',
-          task_completed: stepResult.task_completed,
-        },
-      );
-
-      return stepResult;
-    } catch (error) {
-      this.logger.error(
-        `STREAMING supervisor reasoning step ${context.stepNumber} failed:`,
-        error,
-      );
-
-      if (error instanceof SupervisorException) {
-        throw error;
-      }
-
-      throw new SupervisorException(
-        SupervisorErrorType.TOOL_EXECUTION_FAILED,
-        `Failed to execute streaming supervisor reasoning step: ${error.message}`,
-        { stepNumber: context.stepNumber, originalError: error },
-      );
+  /**
+   * Безопасный парсинг JSON
+   */
+  private safeParseJson(jsonString: string): Record<string, unknown> | undefined {
+    try {
+      return JSON.parse(jsonString);
+    } catch {
+      return undefined;
     }
   }
 
@@ -701,4 +640,8 @@ WARNING: Do NOT use tool names like "route_request_to_agent" or any other variat
       };
     }
   }
+
+  // Legacy streaming methods removed. Use processMessageWithDetailedStreaming and GraphQL subscriptions instead.
+
+  // Детальный стриминг управляется через событийную шину и не влияет на legacy API
 }

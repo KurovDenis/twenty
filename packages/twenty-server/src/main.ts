@@ -64,6 +64,8 @@ const bootstrap = async () => {
     }),
   );
 
+  app.setGlobalPrefix('api');
+
   app.use(
     '/metadata',
     graphqlUploadExpress({

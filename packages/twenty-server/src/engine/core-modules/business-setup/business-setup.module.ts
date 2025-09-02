@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { HttpModule } from '@nestjs/axios';
 
 import { AiModule } from 'src/engine/core-modules/ai/ai.module';
 import { HttpTool } from 'src/engine/core-modules/tool/tools/http-tool/http-tool';
@@ -62,6 +63,7 @@ import { SupervisorToolDispatcherService } from './sgr/services/supervisor-tool-
     WorkspaceModule, // Добавляем для использования WorkspaceService
     TerminusModule, // Add for health checks and monitoring
     EventEmitterModule, // Add for event handling in new services
+    HttpModule, // Add for HttpService dependency in AvitoBusinessSetupProvider
   ],
   providers: [
     // Core services (existing)
