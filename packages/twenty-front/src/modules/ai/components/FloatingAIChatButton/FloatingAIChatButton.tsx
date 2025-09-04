@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 import { IconLoader, IconSettings, IconSparkles } from 'twenty-ui/display';
 import { FloatingIconButton } from 'twenty-ui/input';
 import { useIsMobile } from 'twenty-ui/utilities';
-import { useSupervisorGuidance } from '../../hooks/useSupervisorGuidance';
+import { useFloatingAIChatButton } from '../../hooks/useFloatingAIChatButton';
 import { useWelcomeMessage } from '../../hooks/useWelcomeMessage';
 import { AIErrorBoundary } from '../ErrorBoundary';
 import {
@@ -54,22 +54,16 @@ const FloatingAIChatButtonContent = () => {
   const currentWorkspace = useRecoilValue(currentWorkspaceState);
   const {
     guidance,
-    isLoading: isSupervisorLoading,
-    error: supervisorError,
-    executeAction,
-    clearError: clearSupervisorError,
+    isCreatingThread,
+    handleClick,
+    lastError,
+    clearError,
     isVisible,
-  } = useSupervisorGuidance();
+  } = useFloatingAIChatButton();
   const { welcomeMessage, showPopup, setShowPopup, continueChat } =
     useWelcomeMessage();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [showError, setShowError] = useState(false);
-  const [isExecutingAction, setIsExecutingAction] = useState(false);
-
-  // All UI decisions now come from Supervisor Agent guidance
-  const isCreatingThread = isSupervisorLoading || isExecutingAction;
-  const lastError = supervisorError;
-  const clearError = clearSupervisorError;
 
   // Show error message when lastError changes
   useEffect(() => {
@@ -125,23 +119,6 @@ const FloatingAIChatButtonContent = () => {
 
   // Check if user needs action based on Supervisor guidance
   const needsUserAction = guidance?.requiresUserAction || false;
-
-  // Handle click action through Supervisor Agent
-  const handleClick = useCallback(async () => {
-    if (isExecutingAction) return;
-
-    setIsExecutingAction(true);
-    try {
-      await executeAction('chat_button_clicked', {
-        actionType: guidance?.actionType || 'standard',
-        providerInfo: guidance?.providerInfo,
-      });
-    } catch (error) {
-      console.error('Failed to execute chat button action:', error);
-    } finally {
-      setIsExecutingAction(false);
-    }
-  }, [isExecutingAction, executeAction, guidance]);
 
   // Show popup for welcome message only (not for business setup)
   useEffect(() => {

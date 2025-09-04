@@ -5,14 +5,14 @@ import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.s
 
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 
+import {
+    AdaptiveSupervisorConfigService,
+    RequestComplexity,
+} from './adaptive-supervisor-config.service';
 import { BusinessSetupAgentService } from './business-setup-agent.service';
 import { BusinessSetupStatusCacheService } from './business-setup-status-cache.service';
-import {
-  AdaptiveSupervisorConfigService,
-  RequestComplexity,
-} from './adaptive-supervisor-config.service';
-import { SupervisorErrorRecoveryService } from './supervisor-error-recovery.service';
 import { ProviderRegistry } from './provider-registry.service';
+import { SupervisorErrorRecoveryService } from './supervisor-error-recovery.service';
 
 export interface ToolCommand {
   tool: string;
@@ -190,7 +190,9 @@ export class EnhancedSupervisorToolDispatcher {
   private async checkBusinessSetupStatusWithCache(
     context: SupervisorContext,
   ): Promise<ToolResult> {
-    // Try cache first
+    // Try cache first with fallback to database
+    // Note: This method doesn't have access to User/Workspace entities
+    // so it will fall back to null if cache miss occurs
     let status = await this.statusCache.getStatus(
       context.userId,
       context.workspaceId,
@@ -199,11 +201,16 @@ export class EnhancedSupervisorToolDispatcher {
     const source = status ? 'cache' : 'database';
 
     if (!status) {
-      // Cache miss - fetch from business service
-      // This would integrate with existing business setup service
-      status = BusinessSetupStatus.WELCOME; // Placeholder - implement actual lookup
+      // Cache miss - since we don't have User/Workspace entities here,
+      // we'll use a default status and log the limitation
+      status = BusinessSetupStatus.WELCOME;
+      
+      this.logger.warn(
+        `Cache miss for business setup status: ${context.userId}:${context.workspaceId}. ` +
+        `Using default WELCOME status. Consider passing User/Workspace entities for proper database lookup.`
+      );
 
-      // Update cache
+      // Update cache with default status
       await this.statusCache.setStatus(
         context.userId,
         context.workspaceId,

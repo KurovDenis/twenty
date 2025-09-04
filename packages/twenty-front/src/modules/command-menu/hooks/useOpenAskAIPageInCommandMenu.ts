@@ -8,12 +8,16 @@ export const useOpenAskAIPageInCommandMenu = () => {
   const { navigateCommandMenu } = useCommandMenu();
 
   const openAskAIPage = (pageTitle?: string | null) => {
+    console.log('openAskAIPage called with pageTitle:', pageTitle);
+    
     navigateCommandMenu({
       page: CommandMenuPages.AskAI,
       pageTitle: pageTitle ?? t`Ask AI`,
       pageIcon: IconSparkles,
       pageId: v4(),
     });
+    
+    console.log('openAskAIPage: navigateCommandMenu called');
   };
 
   return {

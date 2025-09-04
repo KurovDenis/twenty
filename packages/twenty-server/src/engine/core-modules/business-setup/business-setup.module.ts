@@ -1,8 +1,8 @@
+import { HttpModule } from '@nestjs/axios';
 import { Module, forwardRef } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TerminusModule } from '@nestjs/terminus';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { HttpModule } from '@nestjs/axios';
 
 import { AiModule } from 'src/engine/core-modules/ai/ai.module';
 import { HttpTool } from 'src/engine/core-modules/tool/tools/http-tool/http-tool';
@@ -13,10 +13,10 @@ import { WorkspaceCacheStorageModule } from 'src/engine/workspace-cache-storage/
 
 import { TokenModule } from '../auth/token/token.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
+import { UserWorkspaceModule } from '../user-workspace/user-workspace.module';
 import { UserVarsModule } from '../user/user-vars/user-vars.module';
 import { UserModule } from '../user/user.module';
 import { WorkspaceModule } from '../workspace/workspace.module';
-import { UserWorkspaceModule } from '../user-workspace/user-workspace.module';
 
 import { BusinessSetupSubscriptionsResolver } from './business-setup-subscriptions.resolver';
 import { BusinessSetupResolver } from './business-setup.resolver';
@@ -86,6 +86,7 @@ import { SupervisorToolDispatcherService } from './sgr/services/supervisor-tool-
     // Provider System (register after foundation)
     ProviderRegistry, // Modular provider architecture
     AvitoBusinessSetupProvider, // Avito-specific provider implementation
+    // DefaultBusinessSetupProvider, // Default provider implementation
 
     // Enhanced Supervisor Services (register after providers)
     EnhancedSupervisorToolDispatcher, // Enhanced routing with provider support
@@ -137,7 +138,11 @@ import { SupervisorToolDispatcherService } from './sgr/services/supervisor-tool-
   ],
 })
 export class BusinessSetupModule {
-  constructor(private readonly providerRegistry: ProviderRegistry) {
+  constructor(
+    private readonly providerRegistry: ProviderRegistry,
+    private readonly avitoProvider: AvitoBusinessSetupProvider,
+    // private readonly defaultProvider: DefaultBusinessSetupProvider,
+  ) {
     // Register providers on module initialization
     this.registerProviders();
   }
@@ -147,16 +152,14 @@ export class BusinessSetupModule {
    * This ensures providers are available for routing decisions
    */
   private registerProviders(): void {
-    // For now, we'll skip provider registration until dependencies are resolved
-    // Future providers can be registered here once constructor dependencies are available
-    // const avitoProvider = new AvitoBusinessSetupProvider();
-    // this.providerRegistry.registerProvider(avitoProvider);
+    // Register Avito provider
+    this.providerRegistry.registerProvider(this.avitoProvider);
 
-    // const ebayProvider = new EbayBusinessSetupProvider();
-    // this.providerRegistry.registerProvider(ebayProvider);
+    // Register default provider for general cases
+    // this.providerRegistry.registerProvider(this.defaultProvider);
 
     console.log(
-      `BusinessSetupModule: Provider registration temporarily disabled`,
+      `BusinessSetupModule: Registered ${this.providerRegistry.getAllProviders().length} providers`,
     );
   }
 }

@@ -3,8 +3,8 @@ import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import {
-  SupervisorUIAdapter,
-  UIGuidance,
+    SupervisorUIAdapter,
+    UIGuidance,
 } from '../services/SupervisorUIAdapter';
 import { useErrorRecovery } from './useErrorRecovery';
 
@@ -72,7 +72,14 @@ export const useSupervisorGuidance = () => {
    */
   const executeAction = useCallback(
     async (actionType: string, context?: any) => {
+      console.log('=== useSupervisorGuidance.executeAction START ===');
+      console.log('Action type:', actionType);
+      console.log('Context:', context);
+      console.log('User ID:', userId);
+      console.log('Workspace ID:', workspaceId);
+      
       if (!userId || !workspaceId) {
+        console.error('User or workspace not available');
         throw new Error('User or workspace not available');
       }
 
@@ -91,20 +98,32 @@ export const useSupervisorGuidance = () => {
           3,
         );
 
+        console.log('=== useSupervisorGuidance.executeAction RESPONSE ===');
+        console.log('Response:', response);
+        console.log('Response success:', response.success);
+        console.log('Response redirectTo:', response.redirectTo);
+        
         if (response.success) {
-          // Refresh guidance after successful action
-          await refreshGuidance();
+          // Refresh guidance after successful action (don't await to avoid blocking response)
+          refreshGuidance().catch(err => {
+            console.warn('Failed to refresh guidance after action:', err);
+          });
+          console.log('=== useSupervisorGuidance.executeAction RETURNING SUCCESS ===');
           return response;
         } else {
+          console.error('=== useSupervisorGuidance.executeAction THROWING ERROR ===');
           throw new Error(response.error || 'Action failed');
         }
       } catch (err) {
+        console.error('=== useSupervisorGuidance.executeAction ERROR ===');
+        console.error('Error:', err);
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error';
         setError(errorMessage);
         throw err;
       } finally {
         setIsLoading(false);
+        console.log('=== useSupervisorGuidance.executeAction END ===');
       }
     },
     [userId, workspaceId, executeWithRetry, refreshGuidance],

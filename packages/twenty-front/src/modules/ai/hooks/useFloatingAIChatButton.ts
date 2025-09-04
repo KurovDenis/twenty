@@ -62,10 +62,16 @@ export const useFloatingAIChatButton = () => {
   }, [clearError, clearBusinessSetupError]);
 
   const handleClick = useCallback(async () => {
-    console.log('Floating AI chat button clicked via Supervisor guidance');
+    console.log('=== Floating AI Chat Button Click START ===');
+    console.log('Guidance:', guidance);
+    console.log('Is AI Chat Open:', isAIChatOpen);
+    console.log('Is Creating Thread:', isCreatingThread);
+    console.log('Is Supervisor Loading:', isSupervisorLoading);
+    console.log('ExecuteAction function:', executeAction);
 
     // Clear any previous errors
     if (combinedError) {
+      console.log('Clearing previous error:', combinedError);
       combinedClearError();
     }
 
@@ -85,22 +91,74 @@ export const useFloatingAIChatButton = () => {
     setLastClickTime(now);
     setIsCreatingThread(true);
 
-    try {
-      // Delegate action to Supervisor Agent instead of direct logic
-      await executeAction('chat_button_clicked', {
-        actionType: guidance?.actionType || 'standard',
-        providerInfo: guidance?.providerInfo,
-        context: {
-          isAIChatOpen,
-          activeThreadId,
-          timestamp: now.toISOString(),
-        },
-      });
+          try {
+        console.log('Calling executeAction with chat_button_clicked...');
+        
+        // Delegate action to Supervisor Agent instead of direct logic
+        const response = await executeAction('chat_button_clicked', {
+          actionType: guidance?.actionType || 'standard',
+          providerInfo: guidance?.providerInfo,
+          context: {
+            isAIChatOpen,
+            activeThreadId,
+            timestamp: now.toISOString(),
+          },
+        });
+
+        console.log('ExecuteAction response received:', response);
+        console.log('Response success:', response?.success);
+        console.log('Response redirectTo:', response?.redirectTo);
+
+      // Handle successful response from Supervisor
+      if (response && response.success) {
+        console.log('Supervisor action completed successfully:', response.message);
+        
+        // Check if Supervisor provided a specific redirect URL
+        if (response.redirectTo) {
+          console.log('Supervisor provided redirect URL:', response.redirectTo);
+          
+          // Parse the URL to extract agent information
+          try {
+            const url = new URL(response.redirectTo, window.location.origin);
+            const agentId = url.searchParams.get('agentId');
+            const businessSetupStep = url.searchParams.get('businessSetupStep');
+            
+            console.log('Parsed agent info:', { agentId, businessSetupStep });
+            
+            // Open AI chat through command menu with agent context
+            if (!isAIChatOpen) {
+              console.log('Opening AI chat with agent context via command menu');
+              openAskAIPage(`AI Assistant${agentId ? ` - ${agentId}` : ''}`);
+            } else {
+              console.log('AI chat already open, not opening again');
+            }
+          } catch (error) {
+            console.error('Failed to parse redirect URL:', error);
+            // Fallback to standard AI chat opening
+            if (!isAIChatOpen) {
+              console.log('Fallback: Opening AI chat via openAskAIPage');
+              openAskAIPage();
+            }
+          }
+        } else {
+          // Fallback to standard AI chat opening
+          if (!isAIChatOpen) {
+            console.log('Opening AI chat after successful Supervisor action');
+            openAskAIPage();
+          } else {
+            console.log('AI chat already open, not opening again');
+          }
+        }
+      } else {
+        console.warn('Supervisor action completed but not successful:', response);
+        // Fallback to opening AI chat anyway
+        if (!isAIChatOpen) {
+          console.log('Fallback: Opening AI chat despite unsuccessful response');
+          openAskAIPage();
+        }
+      }
     } catch (error) {
-      console.error(
-        'Failed to handle chat button click via Supervisor:',
-        error,
-      );
+      console.error('Failed to handle chat button click via Supervisor:', error);
 
       // Fallback to legacy business setup logic only if Supervisor fails
       try {
@@ -108,14 +166,17 @@ export const useFloatingAIChatButton = () => {
         if (guidance?.fallbackAction === 'business_setup') {
           await createBusinessSetupChat();
         } else {
+          console.log('Fallback: Opening AI chat via openAskAIPage');
           openAskAIPage();
         }
       } catch (fallbackError) {
         console.error('Fallback also failed:', fallbackError);
       }
-    } finally {
-      setIsCreatingThread(false);
-    }
+         } finally {
+       console.log('Setting isCreatingThread to false');
+       setIsCreatingThread(false);
+       console.log('=== Floating AI Chat Button Click END ===');
+     }
   }, [
     guidance?.actionType,
     guidance?.providerInfo,

@@ -9,10 +9,10 @@ import { type Workspace } from 'src/engine/core-modules/workspace/workspace.enti
 
 import { BusinessSetupStatus } from './enums/business-setup-status.enum';
 import {
-  BUSINESS_SETUP_EVENTS,
-  BusinessSetupRouteMessageEvent,
-  SupervisorRoutingCompletedEvent,
-  SupervisorThinkingStepEvent,
+    BUSINESS_SETUP_EVENTS,
+    BusinessSetupRouteMessageEvent,
+    SupervisorRoutingCompletedEvent,
+    SupervisorThinkingStepEvent,
 } from './events/business-setup.events';
 
 export enum BusinessSetupStepKeys {
@@ -100,13 +100,18 @@ export class BusinessSetupService {
     user: User,
     workspace: Workspace,
   ): Promise<BusinessSetupStatus> {
+    this.logger.debug(`[BusinessSetupService] getBusinessSetupStatus called for user ${user.id} in workspace ${workspace.id}`);
+    
     // Проверяем завершен ли onboarding
     const onboardingStatus = await this.onboardingService.getOnboardingStatus(
       user,
       workspace,
     );
+    
+    this.logger.debug(`[BusinessSetupService] Onboarding status: ${onboardingStatus}`);
 
     if (onboardingStatus !== OnboardingStatus.COMPLETED) {
+      this.logger.debug(`[BusinessSetupService] Onboarding not completed, returning WELCOME status`);
       return BusinessSetupStatus.WELCOME;
     }
 
@@ -168,9 +173,11 @@ export class BusinessSetupService {
     }
 
     if (isTestingOptimizationPending) {
+      this.logger.debug(`[BusinessSetupService] Returning TESTING_OPTIMIZATION status`);
       return BusinessSetupStatus.TESTING_OPTIMIZATION;
     }
 
+    this.logger.debug(`[BusinessSetupService] Returning COMPLETED status`);
     return BusinessSetupStatus.COMPLETED;
   }
 

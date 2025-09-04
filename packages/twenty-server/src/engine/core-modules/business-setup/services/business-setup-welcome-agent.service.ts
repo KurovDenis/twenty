@@ -12,7 +12,7 @@ import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.s
 import { AgentExecutionService } from 'src/engine/metadata-modules/agent/agent-execution.service';
 import { AgentEntity } from 'src/engine/metadata-modules/agent/agent.entity';
 
-import { BusinessSetupKeyValueTypeMap } from '../business-setup.service';
+import { BusinessSetupKeyValueTypeMap, BusinessSetupStepKeys } from '../business-setup.service';
 import { OnboardingStatusChangedEvent } from '../events/business-setup.events';
 import { SGRStreamingResult } from '../sgr/types/sgr-thinking-stream.types';
 
@@ -66,9 +66,13 @@ export class BusinessSetupWelcomeAgentService {
       try {
         this.logger.log(`Onboarding completed for user ${payload.userId}`);
 
-        // NO LONGER AUTO-CREATE WELCOME CHAT
-        // Instead, just set the business setup status to WELCOME
-        // The user will see the floating button warning and can manually start
+        // Set business setup status to WELCOME by setting the pending flag
+        await this.userVarsService.set({
+          userId: payload.userId,
+          workspaceId: payload.workspaceId,
+          key: BusinessSetupStepKeys.BUSINESS_SETUP_WELCOME_PENDING,
+          value: true,
+        });
 
         this.logger.log(
           'Business setup WELCOME status set - user will see floating button prompt',

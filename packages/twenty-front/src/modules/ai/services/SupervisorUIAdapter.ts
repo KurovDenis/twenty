@@ -1,4 +1,6 @@
+import { getTokenPair } from '@/apollo/utils/getTokenPair';
 import { BusinessSetupStatus } from '@/business-setup/hooks/useSetNextBusinessSetupStatus';
+import { REACT_APP_SERVER_BASE_URL } from '~/config';
 
 export interface UIGuidance {
   buttonText: string;
@@ -34,6 +36,7 @@ export interface SupervisorResponse {
   success: boolean;
   message?: string;
   error?: string;
+  redirectTo?: string;
 }
 
 /**
@@ -97,11 +100,11 @@ export class SupervisorUIAdapter {
     context?: any,
   ): Promise<SupervisorResponse> {
     try {
-      const response = await this.requestSupervisorGuidance({
+      const response = await this.requestSupervisorAction({
         userId,
         workspaceId,
-        requestType: 'action_execution',
-        context: { actionType, ...context },
+        actionType,
+        context,
       });
 
       // Invalidate cache after successful action
@@ -164,11 +167,19 @@ export class SupervisorUIAdapter {
   private async requestSupervisorGuidance(
     request: SupervisorRequest,
   ): Promise<SupervisorResponse> {
-    const response = await fetch('/api/supervisor/ui-guidance', {
+    const tokenPair = getTokenPair();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization header if token is available
+    if (tokenPair?.accessOrWorkspaceAgnosticToken?.token) {
+      headers['Authorization'] = `Bearer ${tokenPair.accessOrWorkspaceAgnosticToken.token}`;
+    }
+
+    const response = await fetch(`${REACT_APP_SERVER_BASE_URL}/api/supervisor/ui-guidance`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(request),
     });
 
@@ -179,6 +190,54 @@ export class SupervisorUIAdapter {
     }
 
     const data = await response.json();
+    return data;
+  }
+
+  /**
+   * Request action execution from Supervisor Agent backend
+   * This is where UI delegates action execution decisions
+   */
+  private async requestSupervisorAction(
+    request: {
+      userId: string;
+      workspaceId: string;
+      actionType: string;
+      context?: any;
+    },
+  ): Promise<SupervisorResponse> {
+    console.log('SupervisorUIAdapter: Executing action:', request);
+    
+    const tokenPair = getTokenPair();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization header if token is available
+    if (tokenPair?.accessOrWorkspaceAgnosticToken?.token) {
+      headers['Authorization'] = `Bearer ${tokenPair.accessOrWorkspaceAgnosticToken.token}`;
+    }
+
+    const url = `${REACT_APP_SERVER_BASE_URL}/api/supervisor/execute-action`;
+    console.log('SupervisorUIAdapter: Making request to:', url);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+    });
+
+    console.log('SupervisorUIAdapter: Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('SupervisorUIAdapter: Response error:', errorText);
+      throw new Error(
+        `Supervisor action execution failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log('SupervisorUIAdapter: Response data:', data);
     return data;
   }
 

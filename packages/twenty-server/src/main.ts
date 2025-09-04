@@ -51,7 +51,7 @@ const bootstrap = async () => {
   app.useGlobalFilters(new UnhandledExceptionFilter());
 
   // Global request logging middleware
-  app.use((req, res, next) => {
+  app.use((req: any, res: any, next: any) => {
     console.log('=== GLOBAL REQUEST ===');
     console.log('[GLOBAL] URL:', req.url);
     console.log('[GLOBAL] Method:', req.method);
@@ -64,7 +64,7 @@ const bootstrap = async () => {
   });
 
   // Manual token hydration middleware
-  app.use(async (req, res, next) => {
+  app.use(async (req: any, res: any, next: any) => {
     console.log('=== MANUAL MIDDLEWARE ===');
     console.log('[MANUAL] Processing request for:', req.url);
     

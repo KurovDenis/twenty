@@ -5,6 +5,9 @@ import { InjectCacheStorage } from 'src/engine/core-modules/cache-storage/decora
 import { CacheStorageService } from 'src/engine/core-modules/cache-storage/services/cache-storage.service';
 import { CacheStorageNamespace } from 'src/engine/core-modules/cache-storage/types/cache-storage-namespace.enum';
 
+import { User } from 'src/engine/core-modules/user/user.entity';
+import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
+import { BusinessSetupService } from '../business-setup.service';
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 
 export interface BusinessSetupStatusCacheData {
@@ -44,16 +47,21 @@ export class BusinessSetupStatusCacheService {
     @InjectCacheStorage(CacheStorageNamespace.BusinessSetup)
     private readonly cacheService: CacheStorageService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly businessSetupService: BusinessSetupService,
   ) {}
 
   /**
-   * Get cached business setup status
+   * Get cached business setup status with fallback to database
    */
   async getStatus(
     userId: string,
     workspaceId: string,
+    user?: User,
+    workspace?: Workspace,
   ): Promise<BusinessSetupStatus | null> {
     const cacheKey = this.generateCacheKey(userId, workspaceId);
+    
+    this.logger.debug(`[BusinessSetupStatusCache] getStatus called for ${userId}:${workspaceId}, user provided: ${!!user}, workspace provided: ${!!workspace}`);
 
     this.metrics.totalRequests++;
 
@@ -76,7 +84,29 @@ export class BusinessSetupStatusCacheService {
       this.updateHitRate();
 
       this.logger.debug(
-        `Cache miss for business setup status: ${userId}:${workspaceId}`,
+        `Cache miss for business setup status: ${userId}:${workspaceId}, fetching from database`,
+      );
+
+      // Cache miss - fetch from business setup service
+      if (user && workspace) {
+        const status = await this.businessSetupService.getBusinessSetupStatus(
+          user,
+          workspace,
+        );
+
+        // Cache the result
+        await this.setStatus(userId, workspaceId, status);
+
+        this.logger.debug(
+          `Populated cache with business setup status: ${userId}:${workspaceId} -> ${status}`,
+        );
+
+        return status;
+      }
+
+      // If user/workspace not provided, return null
+      this.logger.warn(
+        `Cannot fetch business setup status from database - user/workspace not provided: ${userId}:${workspaceId}`,
       );
 
       return null;

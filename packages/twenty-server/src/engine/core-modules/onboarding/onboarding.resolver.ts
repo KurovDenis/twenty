@@ -46,4 +46,38 @@ export class OnboardingResolver {
 
     return { success: true };
   }
+
+  @Mutation(() => OnboardingStepSuccess)
+  async resetOnboardingStatus(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ): Promise<OnboardingStepSuccess> {
+    // Сбрасываем все pending флаги
+    await this.onboardingService.setOnboardingCreateProfilePending({
+      userId: user.id,
+      workspaceId: workspace.id,
+      value: true,
+    });
+
+    await this.onboardingService.setOnboardingConnectAccountPending({
+      userId: user.id,
+      workspaceId: workspace.id,
+      value: false,
+    });
+
+    await this.onboardingService.setOnboardingInviteTeamPending({
+      workspaceId: workspace.id,
+      value: false,
+    });
+
+    await this.onboardingService.setOnboardingBookOnboardingPending({
+      userId: user.id,
+      workspaceId: workspace.id,
+      value: false,
+    });
+
+    return {
+      success: true,
+    };
+  }
 }

@@ -2,21 +2,17 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Post,
   Query,
   Sse,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 
 import { Observable } from 'rxjs';
+import { BusinessSetupService } from 'src/engine/core-modules/business-setup/business-setup.service';
 
-import { User } from 'src/engine/core-modules/user/user.entity';
-import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
-import { AuthUser } from 'src/engine/decorators/auth/auth-user.decorator';
-import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
-import { UserAuthGuard } from 'src/engine/guards/user-auth.guard';
-import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 import {
   AdaptiveSupervisorConfigService,
   RequestComplexity,
@@ -29,6 +25,12 @@ import {
   StreamingProgressService,
 } from 'src/engine/core-modules/business-setup/services/streaming-progress.service';
 import { SupervisorAnalyticsService } from 'src/engine/core-modules/business-setup/services/supervisor-analytics.service';
+import { User } from 'src/engine/core-modules/user/user.entity';
+import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
+import { AuthUser } from 'src/engine/decorators/auth/auth-user.decorator';
+import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
+import { UserAuthGuard } from 'src/engine/guards/user-auth.guard';
+import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
 
 export interface SupervisorUIGuidanceRequest {
   userId: string;
@@ -107,6 +109,8 @@ export interface SupervisorActionResponse {
 @Controller('supervisor')
 @UseGuards(UserAuthGuard, WorkspaceAuthGuard)
 export class SupervisorController {
+  private readonly logger = new Logger(SupervisorController.name);
+
   constructor(
     private readonly statusCache: BusinessSetupStatusCacheService,
     private readonly configService: AdaptiveSupervisorConfigService,
@@ -114,6 +118,7 @@ export class SupervisorController {
     private readonly providerRegistry: ProviderRegistry,
     private readonly streamingProgress: StreamingProgressService,
     private readonly analyticsService: SupervisorAnalyticsService,
+    private readonly businessSetupService: BusinessSetupService,
   ) {}
 
   /**
@@ -125,6 +130,7 @@ export class SupervisorController {
     @AuthWorkspace() workspace: Workspace,
     @Body() request: Partial<SupervisorUIGuidanceRequest>,
   ): Promise<SupervisorUIGuidanceResponse> {
+    this.logger.log(`[SupervisorController] getUIGuidance called for user ${user.id} in workspace ${workspace.id}`);
     const startTime = Date.now();
     const fullRequest = {
       userId: user.id,
@@ -134,13 +140,10 @@ export class SupervisorController {
     };
 
     try {
-      // Get business setup status from cache
-      const status = await this.statusCache.getStatus(user.id, workspace.id);
-      const isCacheHit = this.statusCache.isCacheHit;
-
-      if (!status) {
-        throw new Error('Business setup status not found');
-      }
+      // Get business setup status directly from BusinessSetupService
+      this.logger.log(`[SupervisorController] Fetching business setup status for user ${user.id} in workspace ${workspace.id}`);
+      const status = await this.businessSetupService.getBusinessSetupStatus(user, workspace);
+      this.logger.log(`[SupervisorController] Status retrieved: ${status}`);
 
       // Get adaptive configuration
       const complexity = this.configService.analyzeComplexity({
@@ -175,7 +178,7 @@ export class SupervisorController {
         businessStatus: status,
         complexity,
         executionTime,
-        cacheHit: isCacheHit,
+        cacheHit: false, // Direct service call, no cache
         providerUsed: provider?.providerId,
       });
 
@@ -187,7 +190,7 @@ export class SupervisorController {
         metadata: {
           requestComplexity: complexity,
           executionTime,
-          cacheHit: isCacheHit,
+          cacheHit: false, // Direct service call, no cache
           providerUsed: provider?.providerId,
         },
       };
@@ -237,12 +240,8 @@ export class SupervisorController {
         5,
       );
 
-      // Get business setup status
-      const status = await this.statusCache.getStatus(user.id, workspace.id);
-
-      if (!status) {
-        throw new Error('Business setup status not found');
-      }
+      // Get business setup status directly from BusinessSetupService
+      const status = await this.businessSetupService.getBusinessSetupStatus(user, workspace);
 
       this.streamingProgress.updateProgress(
         operationId,
@@ -251,8 +250,22 @@ export class SupervisorController {
         'Determining best provider for action',
       );
 
-      // Find appropriate provider
-      const provider = this.providerRegistry.findProvider(status);
+      // Find appropriate provider that supports the current status
+      const providers = this.providerRegistry.getAllProviders();
+      this.logger.log(`Available providers: ${providers.map(p => p.providerId).join(', ')}`);
+      this.logger.log(`Looking for provider supporting status: ${status}`);
+      
+      let provider = providers.find(p => p.supportsStatus(status));
+      this.logger.log(`Found provider: ${provider?.providerId || 'none'}`);
+
+      if (!provider) {
+        // Fallback to Avito provider for any status
+        const avitoProvider = this.providerRegistry.getProvider('avito');
+        if (avitoProvider) {
+          this.logger.log(`Using Avito provider as fallback for status: ${status}`);
+          provider = avitoProvider;
+        }
+      }
 
       if (!provider) {
         throw new Error(
@@ -272,7 +285,10 @@ export class SupervisorController {
         action: request.actionType,
         userId: user.id,
         workspaceId: workspace.id,
-        context: request.context,
+        context: {
+          ...request.context,
+          status: status, // Pass status to provider
+        },
       });
 
       this.streamingProgress.updateProgress(
@@ -383,7 +399,7 @@ export class SupervisorController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.statusCache.getStatus(user.id, workspace.id);
+    return this.businessSetupService.getBusinessSetupStatus(user, workspace);
   }
 
   /**

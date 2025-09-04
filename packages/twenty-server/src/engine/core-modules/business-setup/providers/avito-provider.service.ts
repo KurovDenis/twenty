@@ -5,15 +5,15 @@ import { firstValueFrom } from 'rxjs';
 
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 
-import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 import { BusinessSetupStepKeys } from '../business-setup.service';
+import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 import {
-  BusinessSetupContext,
-  BusinessSetupProvider,
-  ProviderCredentials,
-  ProviderSetupStep,
-  SetupResult,
-  ValidationResult,
+    BusinessSetupContext,
+    BusinessSetupProvider,
+    ProviderCredentials,
+    ProviderSetupStep,
+    SetupResult,
+    ValidationResult,
 } from '../services/provider-registry.service';
 
 export interface AvitoCredentials extends ProviderCredentials {
@@ -37,7 +37,10 @@ export class AvitoBusinessSetupProvider extends BusinessSetupProvider {
 
   readonly providerId = 'avito';
   readonly displayName = 'Avito Integration';
-  readonly supportedStatuses = [BusinessSetupStatus.WELCOME];
+  readonly supportedStatuses = [
+    BusinessSetupStatus.WELCOME,
+    BusinessSetupStatus.COMPLETED,
+  ];
   readonly icon = '🏪';
   readonly description =
     'Integrate your business with Avito marketplace for automated listings and management';
@@ -177,7 +180,31 @@ export class AvitoBusinessSetupProvider extends BusinessSetupProvider {
     try {
       const { action, userId, workspaceId, context } = request;
 
+      this.logger.log(`Processing ${action} action for user ${userId} in workspace ${workspaceId}`);
+
       switch (action) {
+        case 'chat_button_clicked':
+          // For WELCOME status, redirect to SGR Avito agent
+          const isWelcomeStatus = context?.status === 'WELCOME';
+          
+          if (isWelcomeStatus) {
+            return {
+              success: true,
+              message: 'Opening Avito integration chat with SGR agent',
+              redirectTo: '/ai-chat?agentId=sgr-avito-agent&businessSetupStep=WELCOME',
+              requiresFollowup: false,
+              providerId: this.providerId,
+            };
+          } else {
+            // For other statuses, open general AI chat
+            return {
+              success: true,
+              message: 'Opening AI chat interface',
+              redirectTo: '/ai-chat',
+              requiresFollowup: false,
+              providerId: this.providerId,
+            };
+          }
         case 'validate_credentials':
           return await this.validateCredentials(context.credentials);
         case 'setup_business':
