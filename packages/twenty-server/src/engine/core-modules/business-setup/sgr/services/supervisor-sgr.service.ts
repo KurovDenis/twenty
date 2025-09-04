@@ -1,36 +1,41 @@
 import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
+import { streamText } from 'ai';
+
 import { AiModelRegistryService } from 'src/engine/core-modules/ai/services/ai-model-registry.service';
 import { BusinessSetupStepKeys } from 'src/engine/core-modules/business-setup/business-setup.service';
 import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services/user-vars.service';
 import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.service';
-import { BUSINESS_SETUP_EVENTS, type SupervisorProcessMessageEvent } from '../../events/business-setup.events';
-import { SGRStreamEvent, SGRStreamEventType } from '../types/sgr-stream.types';
-import { SUPERVISOR_CONFIG } from '../types/supervisor-types';
-import { SupervisorToolDispatcherService } from './supervisor-tool-dispatcher.service';
+
+import {
+  BUSINESS_SETUP_EVENTS,
+  type SupervisorProcessMessageEvent,
+} from '../../events/business-setup.events';
+import {
+  SGRStreamEvent,
+  SGRStreamEventType,
+  DetailedStreamingResult,
+  ExtendedSupervisorStreamingContext,
+} from '../types/sgr-stream.types';
+import {
+  SUPERVISOR_CONFIG,
+  ISupervisorSGRService,
+  SupervisorErrorType,
+  SupervisorException,
+} from '../types/supervisor-types';
 
 // Core imports
-import {
-  BusinessSetupKeyValueTypeMap
-} from '../../business-setup.service';
+import { BusinessSetupKeyValueTypeMap } from '../../business-setup.service';
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 
 // Supervisor-specific imports
-import { streamText } from 'ai';
 import {
   SupervisorStepResult,
-  isCompletionTool
+  isCompletionTool,
 } from '../schemas/supervisor-sgr.schema';
-import {
-  DetailedStreamingResult,
-  ExtendedSupervisorStreamingContext
-} from '../types/sgr-stream.types';
-import {
-  ISupervisorSGRService,
-  SupervisorErrorType,
-  SupervisorException
-} from '../types/supervisor-types';
+
+import { SupervisorToolDispatcherService } from './supervisor-tool-dispatcher.service';
 
 /**
  * Default configuration for supervisor SGR thinking process
@@ -195,7 +200,7 @@ export class SupervisorSGRService implements ISupervisorSGRService {
     threadId: string,
   ): AsyncGenerator<SGRStreamEvent> {
     const stepId = this.generateUniqueStepId();
-    
+
     // Событие начала процесса
     yield {
       type: SGRStreamEventType.PROCESS_START,
@@ -208,11 +213,16 @@ export class SupervisorSGRService implements ISupervisorSGRService {
 
     try {
       // Инициализация контекста
-      const context = this.createStreamingContext(userId, workspaceId, threadId, userMessage);
-      
+      const context = this.createStreamingContext(
+        userId,
+        workspaceId,
+        threadId,
+        userMessage,
+      );
+
       // Выполнение детального стриминга
       yield* this.executeDetailedSGRWorkflow(context, stepId);
-      
+
       // Событие завершения
       yield {
         type: SGRStreamEventType.PROCESS_END,
@@ -222,10 +232,9 @@ export class SupervisorSGRService implements ISupervisorSGRService {
           timestamp: new Date(),
         },
       };
-      
     } catch (error) {
       this.logger.error('Detailed SGR streaming failed:', error);
-      
+
       yield {
         type: SGRStreamEventType.PROCESS_ERROR,
         payload: {
@@ -245,11 +254,9 @@ export class SupervisorSGRService implements ISupervisorSGRService {
     context: ExtendedSupervisorStreamingContext,
     stepId: string,
   ): AsyncGenerator<SGRStreamEvent> {
-    
     const maxSteps = context.maxSteps || DEFAULT_SUPERVISOR_SGR_CONFIG.maxSteps;
-    
+
     for (let stepNumber = 1; stepNumber <= maxSteps; stepNumber++) {
-      
       // Событие начала JSON стриминга
       yield {
         type: SGRStreamEventType.JSON_STREAM_START,
@@ -263,10 +270,14 @@ export class SupervisorSGRService implements ISupervisorSGRService {
           },
         },
       };
-      
+
       // Детальный стриминг JSON от LLM
-      const stepResult = yield* this.streamJSONFromLLM(context, stepNumber, stepId);
-      
+      const stepResult = yield* this.streamJSONFromLLM(
+        context,
+        stepNumber,
+        stepId,
+      );
+
       // Событие завершения JSON стриминга
       yield {
         type: SGRStreamEventType.JSON_STREAM_END,
@@ -282,10 +293,10 @@ export class SupervisorSGRService implements ISupervisorSGRService {
           },
         },
       };
-      
+
       // Парсинг и валидация JSON
       const parsedResult = this.parseAndValidateJSON(stepResult.fullJson);
-      
+
       // Событие вызова инструмента
       yield {
         type: SGRStreamEventType.TOOL_CALL_PENDING,
@@ -301,15 +312,15 @@ export class SupervisorSGRService implements ISupervisorSGRService {
           },
         },
       };
-      
+
       // Выполнение инструмента
       const toolResult = await this.executeTool(parsedResult.function, context);
-      
+
       // Проверка завершения
       if (isCompletionTool(parsedResult.function)) {
         return; // Завершаем процесс
       }
-      
+
       // Обновление контекста для следующего шага
       this.updateConversationContext(context, parsedResult, toolResult);
     }
@@ -323,24 +334,26 @@ export class SupervisorSGRService implements ISupervisorSGRService {
     stepNumber: number,
     stepId: string,
   ): AsyncGenerator<SGRStreamEvent, DetailedStreamingResult> {
-    
-    const aiModel = this.aiModelRegistryService.getModel(this.GEMINI_MODEL_ID)?.model;
+    const aiModel = this.aiModelRegistryService.getModel(
+      this.GEMINI_MODEL_ID,
+    )?.model;
+
     if (!aiModel) {
       throw new SupervisorException(
         SupervisorErrorType.SGR_WORKFLOW_FAILED,
-        `AI model ${this.GEMINI_MODEL_ID} not found`
+        `AI model ${this.GEMINI_MODEL_ID} not found`,
       );
     }
 
     // Создание промпта для структурированного вывода
     const systemPrompt = this.createStructuredOutputPrompt(context, stepNumber);
-    
+
     // Использование streamText вместо generateObject
     const stream = streamText({
       model: aiModel,
       messages: [
         ...context.conversationLog,
-        { role: 'user' as const, content: systemPrompt }
+        { role: 'user' as const, content: systemPrompt },
       ],
       temperature: 0.1,
       maxTokens: 1500,
@@ -349,13 +362,14 @@ export class SupervisorSGRService implements ISupervisorSGRService {
     let fullJson = '';
     const tokens: string[] = [];
     const startTime = Date.now();
-    
+
     // Обработка потока токенов
     for await (const chunk of stream.textStream) {
       const token = chunk;
+
       fullJson += token;
       tokens.push(token);
-      
+
       // Yield каждого токена для детального стриминга
       yield {
         type: SGRStreamEventType.JSON_TOKEN_CHUNK,
@@ -371,9 +385,9 @@ export class SupervisorSGRService implements ISupervisorSGRService {
         },
       };
     }
-    
+
     const streamingDuration = Date.now() - startTime;
-    
+
     return {
       fullJson,
       tokens,
@@ -391,25 +405,24 @@ export class SupervisorSGRService implements ISupervisorSGRService {
     try {
       // Попытка парсинга полного JSON
       const parsed = JSON.parse(jsonString);
-      
+
       // Валидация структуры
       if (!parsed.function || !parsed.function.tool) {
         throw new Error('Invalid JSON structure: missing function.tool');
       }
-      
+
       return parsed as SupervisorStepResult;
-      
     } catch (parseError) {
       // Попытка парсинга частичного JSON
       const partialResult = this.parsePartialJSON(jsonString);
-      
+
       if (!partialResult) {
         throw new SupervisorException(
           SupervisorErrorType.SGR_WORKFLOW_FAILED,
-          `Failed to parse JSON: ${parseError.message}`
+          `Failed to parse JSON: ${parseError.message}`,
         );
       }
-      
+
       return partialResult;
     }
   }
@@ -421,22 +434,21 @@ export class SupervisorSGRService implements ISupervisorSGRService {
     try {
       // Поиск последнего валидного JSON объекта
       const jsonMatch = jsonString.match(/\{[^{}]*\}/g);
-      
+
       if (!jsonMatch) {
         return null;
       }
-      
+
       // Берем последний найденный объект
       const lastJson = jsonMatch[jsonMatch.length - 1];
       const parsed = JSON.parse(lastJson);
-      
+
       // Проверяем минимальную валидность
       if (parsed.function?.tool) {
         return parsed as SupervisorStepResult;
       }
-      
+
       return null;
-      
     } catch {
       return null;
     }
@@ -458,11 +470,11 @@ export class SupervisorSGRService implements ISupervisorSGRService {
       );
     } catch (error) {
       this.logger.error('Tool execution failed:', error);
-      
+
       return {
         success: false,
         error: error.message,
-        message: 'Tool execution failed'
+        message: 'Tool execution failed',
       };
     }
   }
@@ -558,6 +570,7 @@ IMPORTANT: Generate valid JSON only. Do not include any explanatory text outside
   private isValidJson(jsonString: string): boolean {
     try {
       JSON.parse(jsonString);
+
       return true;
     } catch {
       return false;
@@ -567,7 +580,9 @@ IMPORTANT: Generate valid JSON only. Do not include any explanatory text outside
   /**
    * Безопасный парсинг JSON
    */
-  private safeParseJson(jsonString: string): Record<string, unknown> | undefined {
+  private safeParseJson(
+    jsonString: string,
+  ): Record<string, unknown> | undefined {
     try {
       return JSON.parse(jsonString);
     } catch {

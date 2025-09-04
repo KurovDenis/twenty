@@ -23,8 +23,8 @@ import { AuthGraphqlApiExceptionFilter } from 'src/engine/core-modules/auth/filt
 import { ApiKeyService } from 'src/engine/core-modules/api-key/api-key.service';
 import { AppToken } from 'src/engine/core-modules/app-token/app-token.entity';
 import {
-  AuthException,
-  AuthExceptionCode,
+    AuthException,
+    AuthExceptionCode,
 } from 'src/engine/core-modules/auth/auth.exception';
 import { AvailableWorkspacesAndAccessTokensOutput } from 'src/engine/core-modules/auth/dto/available-workspaces-and-access-tokens.output';
 import { GetAuthTokenFromEmailVerificationTokenInput } from 'src/engine/core-modules/auth/dto/get-auth-token-from-email-verification-token.input';
@@ -478,23 +478,38 @@ export class AuthResolver {
     @AuthUser() currentUser: User,
     @AuthProvider() authProvider: AuthProviderEnum,
   ): Promise<SignUpOutput> {
-    const { user, workspace } = await this.signInUpService.signUpOnNewWorkspace(
-      { type: 'existingUser', existingUser: currentUser },
-    );
+    console.log('[RESOLVER] signUpInNewWorkspace called');
+    console.log('[RESOLVER] currentUser:', currentUser?.email);
+    console.log('[RESOLVER] authProvider:', authProvider);
+    
+    try {
+      const { user, workspace } = await this.signInUpService.signUpOnNewWorkspace(
+        { type: 'existingUser', existingUser: currentUser },
+      );
 
-    const loginToken = await this.loginTokenService.generateLoginToken(
-      user.email,
-      workspace.id,
-      authProvider,
-    );
+      console.log('[RESOLVER] signUpOnNewWorkspace completed successfully');
+      console.log('[RESOLVER] user ID:', user.id);
+      console.log('[RESOLVER] workspace ID:', workspace.id);
 
-    return {
-      loginToken,
-      workspace: {
-        id: workspace.id,
-        workspaceUrls: this.domainManagerService.getWorkspaceUrls(workspace),
-      },
-    };
+      const loginToken = await this.loginTokenService.generateLoginToken(
+        user.email,
+        workspace.id,
+        authProvider,
+      );
+
+      console.log('[RESOLVER] loginToken generated');
+
+      return {
+        loginToken,
+        workspace: {
+          id: workspace.id,
+          workspaceUrls: this.domainManagerService.getWorkspaceUrls(workspace),
+        },
+      };
+    } catch (error) {
+      console.log('[RESOLVER] Error in signUpInNewWorkspace:', error);
+      throw error;
+    }
   }
 
   // @Mutation(() => ExchangeAuthCode)

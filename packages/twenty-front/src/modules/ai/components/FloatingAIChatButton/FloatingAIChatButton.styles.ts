@@ -66,7 +66,7 @@ export const StyledFloatingAIChatButtonContainer = styled.div`
   .spin {
     animation: ${spin} 1s linear infinite;
   }
-  
+
   .pulse {
     animation: ${pulse} 2s infinite;
   }
@@ -135,17 +135,17 @@ export const StyledBusinessSetupWelcomeMode = styled.div`
 
 // Welcome Popup стили
 export const StyledWelcomePopup = styled.div`
-  position: absolute;
-  bottom: 80px;
-  right: 0;
-  width: 320px;
+  animation: ${slideInUp} 0.3s ease-out;
   background: ${({ theme }) => theme.background.primary};
   border: 1px solid ${({ theme }) => theme.border.color.light};
   border-radius: ${({ theme }) => theme.border.radius.md};
+  bottom: 80px;
   box-shadow: ${({ theme }) => theme.boxShadow.strong};
+  position: absolute;
+  right: 0;
+  width: 320px;
   z-index: 1000;
-  animation: ${slideInUp} 0.3s ease-out;
-  
+
   @media (max-width: 480px) {
     width: 280px;
     bottom: 60px;
@@ -159,14 +159,14 @@ export const StyledPopupHeader = styled.div`
   padding: ${({ theme }) => theme.spacing(3)};
   border-bottom: 1px solid ${({ theme }) => theme.border.color.light};
   font-weight: ${({ theme }) => theme.font.weight.semiBold};
-  
+
   button {
     background: none;
     border: none;
     font-size: 18px;
     cursor: pointer;
     color: ${({ theme }) => theme.font.color.light};
-    
+
     &:hover {
       color: ${({ theme }) => theme.font.color.primary};
     }
@@ -185,7 +185,7 @@ export const StyledPopupActions = styled.div`
   gap: ${({ theme }) => theme.spacing(2)};
   padding: ${({ theme }) => theme.spacing(3)};
   border-top: 1px solid ${({ theme }) => theme.border.color.light};
-  
+
   button {
     flex: 1;
     padding: ${({ theme }) => theme.spacing(2)};
@@ -193,13 +193,13 @@ export const StyledPopupActions = styled.div`
     border-radius: ${({ theme }) => theme.border.radius.sm};
     background: ${({ theme }) => theme.background.primary};
     cursor: pointer;
-    
+
     &:first-child {
       background: ${({ theme }) => theme.color.blue};
       color: white;
       border-color: ${({ theme }) => theme.color.blue};
     }
-    
+
     &:hover {
       opacity: 0.8;
     }

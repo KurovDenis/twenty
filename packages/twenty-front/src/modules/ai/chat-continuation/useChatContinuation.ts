@@ -30,40 +30,47 @@ export const useChatContinuation = (threadId: string | null) => {
   const [error, setError] = useState<string | null>(null);
   const [lastResponse, setLastResponse] = useState<string | null>(null);
   const [nextStep, setNextStep] = useState<string | null>(null);
-  
+
   const apolloClient = useApolloClient();
 
   const continueChat = useCallback(async (input: ChatContinuationInput) => {
     // LEGACY FUNCTION - No longer used
     // All message processing now goes through SupervisorSGRService automatically
     // when users send messages to supervisor agent threads via the chat UI
-    
-    console.warn('continueChat called but is deprecated. Messages should be sent through chat UI.');
-    setError('This function is deprecated. Please use the chat interface directly.');
+
+    console.warn(
+      'continueChat called but is deprecated. Messages should be sent through chat UI.',
+    );
+    setError(
+      'This function is deprecated. Please use the chat interface directly.',
+    );
   }, []);
 
-  const transitionToNextStep = useCallback(async (input: BusinessSetupTransitionInput) => {
-    setIsLoading(true);
-    setError(null);
+  const transitionToNextStep = useCallback(
+    async (input: BusinessSetupTransitionInput) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const { data } = await apolloClient.mutate({
-        mutation: TRANSITION_TO_NEXT_STEP,
-        variables: { input }
-      });
+      try {
+        const { data } = await apolloClient.mutate({
+          mutation: TRANSITION_TO_NEXT_STEP,
+          variables: { input },
+        });
 
-      if (data?.transitionToNextStep) {
-        setNextStep(input.toStep);
-        setLastResponse(`Successfully transitioned to ${input.toStep}`);
-      } else {
-        setError('Failed to transition to next step');
+        if (data?.transitionToNextStep) {
+          setNextStep(input.toStep);
+          setLastResponse(`Successfully transitioned to ${input.toStep}`);
+        } else {
+          setError('Failed to transition to next step');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [apolloClient]);
+    },
+    [apolloClient],
+  );
 
   const resetState = useCallback(() => {
     setError(null);
@@ -78,6 +85,6 @@ export const useChatContinuation = (threadId: string | null) => {
     error,
     lastResponse,
     nextStep,
-    resetState
+    resetState,
   };
 };

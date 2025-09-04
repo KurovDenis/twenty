@@ -127,6 +127,7 @@ describe('ClientConfigService', () => {
         isMultiWorkspaceEnabled: true,
         isEmailVerificationRequired: true,
         defaultSubdomain: 'app',
+        singleWorkspaceBehavior: 'auto-redirect',
         frontDomain: 'app.twenty.com',
         debugMode: true,
         support: {

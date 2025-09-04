@@ -15,7 +15,10 @@ interface AIErrorBoundaryState {
  * Error boundary specifically for AI-related components
  * Handles errors gracefully and provides fallback UI
  */
-export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoundaryState> {
+export class AIErrorBoundary extends Component<
+  AIErrorBoundaryProps,
+  AIErrorBoundaryState
+> {
   constructor(props: AIErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -27,7 +30,7 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('AI Error Boundary caught an error:', error, errorInfo);
-    
+
     // Custom error handler
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
@@ -72,7 +75,8 @@ export class AIErrorBoundary extends Component<AIErrorBoundaryProps, AIErrorBoun
             🤖 AI Assistant Error
           </div>
           <div style={{ marginBottom: '8px' }}>
-            Something went wrong with the AI assistant. Please try refreshing the page.
+            Something went wrong with the AI assistant. Please try refreshing
+            the page.
           </div>
           <details style={{ fontSize: '12px', color: '#666' }}>
             <summary>Technical Details</summary>

@@ -2,7 +2,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-import { IconBolt, IconCheck, IconLoader, IconSparkles, IconX } from 'twenty-ui/display';
+import {
+  IconBolt,
+  IconCheck,
+  IconLoader,
+  IconSparkles,
+  IconX,
+} from 'twenty-ui/display';
 import { useSGRStreamingParser } from '../../hooks/useSGRStreamingParser';
 import { SGRStreamingStatus } from '../../types/sgr-streaming.types';
 
@@ -21,34 +27,39 @@ const StyledDashboardContainer = styled(motion.div)`
 `;
 
 const StyledHeader = styled.div`
-  display: flex;
   align-items: center;
+  background: ${({ theme }) => theme.background.primary};
+  border-bottom: 1px solid ${({ theme }) => theme.border.color.light};
+  display: flex;
   justify-content: space-between;
   padding: ${({ theme }) => theme.spacing(3)};
-  border-bottom: 1px solid ${({ theme }) => theme.border.color.light};
-  background: ${({ theme }) => theme.background.primary};
 `;
 
 const StyledStatusIndicator = styled.div<{ status: SGRStreamingStatus }>`
-  display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing(2)};
   color: ${({ theme, status }) => {
     switch (status) {
-      case 'streaming_json': return theme.color.blue;
-      case 'tool_pending': return theme.color.orange;
-      case 'completed': return theme.color.green;
-      case 'error': return theme.color.red;
-      default: return theme.font.color.secondary;
+      case 'streaming_json':
+        return theme.color.blue;
+      case 'tool_pending':
+        return theme.color.orange;
+      case 'completed':
+        return theme.color.green;
+      case 'error':
+        return theme.color.red;
+      default:
+        return theme.font.color.secondary;
     }
   }};
+  display: flex;
+  gap: ${({ theme }) => theme.spacing(2)};
 `;
 
 const StyledContent = styled.div`
-  padding: ${({ theme }) => theme.spacing(3)};
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing(4)};
+  padding: ${({ theme }) => theme.spacing(3)};
 `;
 
 const StyledErrorDisplay = styled(motion.div)`
@@ -96,7 +107,9 @@ export const SgrVisualizationDashboard = ({
   } = useSGRStreamingParser(threadId);
 
   const [isVisible, setIsVisible] = useState(false);
-  const [autoHideTimeout, setAutoHideTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [autoHideTimeout, setAutoHideTimeout] = useState<NodeJS.Timeout | null>(
+    null,
+  );
 
   // Показать дашборд когда начинается стриминг
   useEffect(() => {
@@ -114,16 +127,22 @@ export const SgrVisualizationDashboard = ({
           onComplete();
         }
       }, autoHideDelayMs);
-      
+
       setAutoHideTimeout(timeout);
     }
-    
+
     return () => {
       if (autoHideTimeout) {
         clearTimeout(autoHideTimeout);
       }
     };
-  }, [currentStatus, autoHideOnComplete, autoHideDelayMs, onComplete, autoHideTimeout]);
+  }, [
+    currentStatus,
+    autoHideOnComplete,
+    autoHideDelayMs,
+    onComplete,
+    autoHideTimeout,
+  ]);
 
   // Обработка ошибок
   useEffect(() => {
@@ -194,10 +213,10 @@ export const SgrVisualizationDashboard = ({
             {getStatusIcon()}
             <span>{getStatusText()}</span>
           </StyledStatusIndicator>
-          
+
           {/* Метрики стриминга */}
           {showMetrics && isStreaming && (
-            <StreamingMetrics 
+            <StreamingMetrics
               metrics={getStreamingMetrics()}
               isConnected={isConnected}
             />
@@ -205,7 +224,7 @@ export const SgrVisualizationDashboard = ({
         </StyledHeader>
 
         {/* Прогресс-бар */}
-        <StreamingProgressBar 
+        <StreamingProgressBar
           status={currentStatus}
           jsonProgress={jsonData}
           toolProgress={toolCall}
@@ -228,19 +247,18 @@ export const SgrVisualizationDashboard = ({
           )}
 
           {/* JSON стриминг */}
-          {(currentStatus === 'streaming_json' || currentStatus === 'parsing') && jsonData && (
-            <JSONStreamingViewer 
-              jsonData={jsonData}
-              isActive={currentStatus === 'streaming_json'}
-            />
-          )}
+          {(currentStatus === 'streaming_json' ||
+            currentStatus === 'parsing') &&
+            jsonData && (
+              <JSONStreamingViewer
+                jsonData={jsonData}
+                isActive={currentStatus === 'streaming_json'}
+              />
+            )}
 
           {/* Выполнение инструмента */}
           {currentStatus === 'tool_pending' && toolCall && (
-            <ToolExecutionViewer 
-              toolCall={toolCall}
-              isActive={true}
-            />
+            <ToolExecutionViewer toolCall={toolCall} isActive={true} />
           )}
 
           {/* Завершение */}
@@ -260,8 +278,11 @@ export const SgrVisualizationDashboard = ({
                 Анализ успешно завершен
               </div>
               {visualizationState.totalProcessingTime && (
-                <div style={{ fontSize: '14px', opacity: 0.8, marginTop: '4px' }}>
-                  Время обработки: {Math.round(visualizationState.totalProcessingTime / 1000)}с
+                <div
+                  style={{ fontSize: '14px', opacity: 0.8, marginTop: '4px' }}
+                >
+                  Время обработки:{' '}
+                  {Math.round(visualizationState.totalProcessingTime / 1000)}с
                 </div>
               )}
             </motion.div>

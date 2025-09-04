@@ -49,12 +49,15 @@ export class SupervisorUIAdapter {
    * Get UI guidance by delegating to Supervisor Agent
    * Implements caching to reduce backend requests
    */
-  async getUIGuidance(userId: string, workspaceId: string): Promise<UIGuidance> {
+  async getUIGuidance(
+    userId: string,
+    workspaceId: string,
+  ): Promise<UIGuidance> {
     const cacheKey = `${userId}:${workspaceId}`;
     const cached = this.cache.get(cacheKey);
-    
+
     // Return cached guidance if still valid
-    if (cached && (Date.now() - cached.timestamp) < this.CACHE_TTL) {
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
       return cached.guidance;
     }
 
@@ -63,14 +66,14 @@ export class SupervisorUIAdapter {
       const response = await this.requestSupervisorGuidance({
         userId,
         workspaceId,
-        requestType: 'ui_guidance'
+        requestType: 'ui_guidance',
       });
 
       if (response.success && response.guidance) {
         // Cache the guidance
         this.cache.set(cacheKey, {
           guidance: response.guidance,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         return response.guidance;
@@ -88,17 +91,17 @@ export class SupervisorUIAdapter {
    * Execute user action through Supervisor Agent
    */
   async executeUserAction(
-    userId: string, 
-    workspaceId: string, 
+    userId: string,
+    workspaceId: string,
     actionType: string,
-    context?: any
+    context?: any,
   ): Promise<SupervisorResponse> {
     try {
       const response = await this.requestSupervisorGuidance({
         userId,
         workspaceId,
         requestType: 'action_execution',
-        context: { actionType, ...context }
+        context: { actionType, ...context },
       });
 
       // Invalidate cache after successful action
@@ -113,7 +116,7 @@ export class SupervisorUIAdapter {
       return {
         guidance: this.getDefaultGuidance(),
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -144,13 +147,13 @@ export class SupervisorUIAdapter {
     const now = Date.now();
     const entries = Array.from(this.cache.entries()).map(([key, cached]) => ({
       key,
-      age: now - cached.timestamp
+      age: now - cached.timestamp,
     }));
 
     return {
       size: this.cache.size,
       hitRate: 0, // Would need to track hits/misses to calculate
-      entries
+      entries,
     };
   }
 
@@ -158,7 +161,9 @@ export class SupervisorUIAdapter {
    * Request guidance from Supervisor Agent backend
    * This is where UI delegates all business logic decisions
    */
-  private async requestSupervisorGuidance(request: SupervisorRequest): Promise<SupervisorResponse> {
+  private async requestSupervisorGuidance(
+    request: SupervisorRequest,
+  ): Promise<SupervisorResponse> {
     const response = await fetch('/api/supervisor/ui-guidance', {
       method: 'POST',
       headers: {
@@ -168,7 +173,9 @@ export class SupervisorUIAdapter {
     });
 
     if (!response.ok) {
-      throw new Error(`Supervisor request failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Supervisor request failed: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
@@ -189,7 +196,7 @@ export class SupervisorUIAdapter {
       actionType: 'standard',
       isVisible: true,
       loadingText: 'Loading...',
-      fallbackAction: 'general_ai_chat'
+      fallbackAction: 'general_ai_chat',
     };
   }
 
@@ -198,8 +205,8 @@ export class SupervisorUIAdapter {
    * This replaces hard-coded Avito logic
    */
   private adaptProviderGuidance(
-    status: BusinessSetupStatus, 
-    providerInfo: any
+    status: BusinessSetupStatus,
+    providerInfo: any,
   ): UIGuidance {
     // Supervisor determines the provider and status, UI just displays it
     switch (status) {
@@ -214,9 +221,9 @@ export class SupervisorUIAdapter {
           isVisible: true,
           loadingText: 'Setting up integration...',
           fallbackAction: 'business_setup',
-          providerInfo
+          providerInfo,
         };
-      
+
       case 'BUSINESS_ANALYSIS':
         return {
           buttonText: 'Analyze Business',
@@ -228,9 +235,9 @@ export class SupervisorUIAdapter {
           isVisible: true,
           loadingText: 'Analyzing business...',
           fallbackAction: 'business_setup',
-          providerInfo
+          providerInfo,
         };
-      
+
       case 'COMPLETED':
         return {
           buttonText: 'AI Assistant',
@@ -241,9 +248,9 @@ export class SupervisorUIAdapter {
           actionType: 'standard',
           isVisible: true,
           loadingText: 'Loading AI...',
-          fallbackAction: 'general_ai_chat'
+          fallbackAction: 'general_ai_chat',
         };
-      
+
       default:
         return this.getDefaultGuidance();
     }

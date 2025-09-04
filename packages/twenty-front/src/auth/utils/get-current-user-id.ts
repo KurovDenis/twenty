@@ -1,6 +1,6 @@
 /**
  * Get Current User ID Utility
- * 
+ *
  * Provides access to the current user's ID.
  * This utility function can be called from anywhere in the frontend.
  * It uses localStorage and cookies to retrieve user information when Recoil state is not available.
@@ -19,7 +19,8 @@ export const getCurrentUserId = (): string | null => {
     const tokenPair = cookieStorage.getItem('tokenPair');
     if (tokenPair && typeof tokenPair === 'object') {
       // Decode the access token to get user ID
-      const accessToken = (tokenPair as any).accessOrWorkspaceAgnosticToken?.token;
+      const accessToken = (tokenPair as any).accessOrWorkspaceAgnosticToken
+        ?.token;
       if (accessToken) {
         try {
           // JWT tokens have payload in the middle section (base64 encoded)

@@ -3,41 +3,50 @@ import { commandMenuPageState } from '@/command-menu/states/commandMenuPageState
 import { isCommandMenuOpenedState } from '@/command-menu/states/isCommandMenuOpenedState';
 import { CommandMenuPages } from '@/command-menu/types/CommandMenuPages';
 import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
+import { useCallback, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { FeatureFlagKey } from '~/generated/graphql';
-import { useCallback, useState } from 'react';
 
 // Import Supervisor hooks instead of direct business setup status
-import { useSupervisorGuidance } from './useSupervisorGuidance';
 import { useBusinessSetupAgentChat } from '@/business-setup/hooks/useBusinessSetupAgentChat';
 import { useRecoilComponentValue } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValue';
 import { currentAIChatThreadComponentState } from '../states/currentAIChatThreadComponentState';
 import { isFloatingAIChatButtonVisibleState } from '../states/isFloatingAIChatButtonVisibleState';
+import { useSupervisorGuidance } from './useSupervisorGuidance';
 
 export const useFloatingAIChatButton = () => {
   const isAiEnabled = useIsFeatureEnabled(FeatureFlagKey.IS_AI_ENABLED);
-  const baseVisibility = useRecoilValue(isFloatingAIChatButtonVisibleState);
-  
+  const isFloatingAIChatButtonVisible = useRecoilValue(
+    isFloatingAIChatButtonVisibleState,
+  );
+
   // State management for preventing multiple clicks
   const [isCreatingThread, setIsCreatingThread] = useState(false);
   const [lastClickTime, setLastClickTime] = useState<Date | null>(null);
-  
+
   const isCommandMenuOpened = useRecoilValue(isCommandMenuOpenedState);
   const commandMenuPage = useRecoilValue(commandMenuPageState);
-  
+
   // Use Supervisor guidance instead of direct business setup status
-  const { 
-    guidance, 
-    isLoading: isSupervisorLoading, 
-    error: supervisorError, 
-    executeAction, 
+  const {
+    guidance,
+    isLoading: isSupervisorLoading,
+    error: supervisorError,
+    executeAction,
     clearError,
-    isVisible: supervisorVisible 
+    isVisible: supervisorVisible,
   } = useSupervisorGuidance();
-  
-  const activeThreadId = useRecoilComponentValue(currentAIChatThreadComponentState, 'floating-chat-button');
+
+  const activeThreadId = useRecoilComponentValue(
+    currentAIChatThreadComponentState,
+    'floating-chat-button',
+  );
   const { openAskAIPage } = useOpenAskAIPageInCommandMenu();
-  const { createBusinessSetupChat, lastError: businessSetupError, clearError: clearBusinessSetupError } = useBusinessSetupAgentChat();
+  const {
+    createBusinessSetupChat,
+    lastError: businessSetupError,
+    clearError: clearBusinessSetupError,
+  } = useBusinessSetupAgentChat();
 
   // Проверяем, открыт ли AI чат
   const isAIChatOpen =
@@ -54,28 +63,28 @@ export const useFloatingAIChatButton = () => {
 
   const handleClick = useCallback(async () => {
     console.log('Floating AI chat button clicked via Supervisor guidance');
-    
+
     // Clear any previous errors
     if (combinedError) {
       combinedClearError();
     }
-    
+
     // Prevent rapid clicks - debounce with 1 second interval
     const now = new Date();
     if (lastClickTime && now.getTime() - lastClickTime.getTime() < 1000) {
       console.log('Ignoring rapid click - debouncing');
       return;
     }
-    
+
     // Prevent multiple concurrent operations
     if (isCreatingThread || isSupervisorLoading) {
       console.log('Already creating thread or loading, ignoring click');
       return;
     }
-    
+
     setLastClickTime(now);
     setIsCreatingThread(true);
-    
+
     try {
       // Delegate action to Supervisor Agent instead of direct logic
       await executeAction('chat_button_clicked', {
@@ -84,12 +93,15 @@ export const useFloatingAIChatButton = () => {
         context: {
           isAIChatOpen,
           activeThreadId,
-          timestamp: now.toISOString()
-        }
+          timestamp: now.toISOString(),
+        },
       });
     } catch (error) {
-      console.error('Failed to handle chat button click via Supervisor:', error);
-      
+      console.error(
+        'Failed to handle chat button click via Supervisor:',
+        error,
+      );
+
       // Fallback to legacy business setup logic only if Supervisor fails
       try {
         console.log('Attempting legacy fallback...');
@@ -104,23 +116,25 @@ export const useFloatingAIChatButton = () => {
     } finally {
       setIsCreatingThread(false);
     }
-  }, [    guidance?.actionType,
+  }, [
+    guidance?.actionType,
     guidance?.providerInfo,
     guidance?.fallbackAction,
-    lastClickTime, 
-    isCreatingThread, 
+    lastClickTime,
+    isCreatingThread,
     isSupervisorLoading,
     executeAction,
-    createBusinessSetupChat, 
-    openAskAIPage, 
-    combinedError, 
+    createBusinessSetupChat,
+    openAskAIPage,
+    combinedError,
     combinedClearError,
     isAIChatOpen,
-    activeThreadId
+    activeThreadId,
   ]);
 
   // Final visibility calculation using Supervisor guidance
-  const finalVisibility = supervisorVisible && baseVisibility && isAiEnabled && !isAIChatOpen;
+  const finalVisibility =
+    supervisorVisible && isFloatingAIChatButtonVisible && isAiEnabled && !isAIChatOpen;
 
   return {
     isVisible: finalVisibility,

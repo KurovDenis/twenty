@@ -12,30 +12,32 @@ import { useSupervisorGuidance } from '../../hooks/useSupervisorGuidance';
 import { useWelcomeMessage } from '../../hooks/useWelcomeMessage';
 import { AIErrorBoundary } from '../ErrorBoundary';
 import {
-    StyledFloatingAIChatButton,
-    StyledFloatingAIChatButtonContainer,
-    StyledPopupActions,
-    StyledPopupContent,
-    StyledPopupHeader,
-    StyledTooltip,
-    StyledWelcomePopup,
+  StyledFloatingAIChatButton,
+  StyledFloatingAIChatButtonContainer,
+  StyledPopupActions,
+  StyledPopupContent,
+  StyledPopupHeader,
+  StyledTooltip,
+  StyledWelcomePopup,
 } from './FloatingAIChatButton.styles';
 
 export const FloatingAIChatButton = () => {
   return (
     <AIErrorBoundary
       fallback={
-        <div style={{ 
-          position: 'fixed', 
-          bottom: '20px', 
-          right: '20px', 
-          padding: '12px', 
-          backgroundColor: '#ffebee', 
-          border: '1px solid #ffcdd2', 
-          borderRadius: '8px',
-          fontSize: '12px',
-          color: '#c62828'
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            padding: '12px',
+            backgroundColor: '#ffebee',
+            border: '1px solid #ffcdd2',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: '#c62828',
+          }}
+        >
           AI Assistant temporarily unavailable
         </div>
       }
@@ -50,24 +52,25 @@ const FloatingAIChatButtonContent = () => {
   const { t } = useLingui();
   const currentUser = useRecoilValue(currentUserState);
   const currentWorkspace = useRecoilValue(currentWorkspaceState);
-  const { 
-    guidance, 
-    isLoading: isSupervisorLoading, 
-    error: supervisorError, 
-    executeAction, 
+  const {
+    guidance,
+    isLoading: isSupervisorLoading,
+    error: supervisorError,
+    executeAction,
     clearError: clearSupervisorError,
-    isVisible 
+    isVisible,
   } = useSupervisorGuidance();
-  const { welcomeMessage, showPopup, setShowPopup, continueChat } = useWelcomeMessage();
+  const { welcomeMessage, showPopup, setShowPopup, continueChat } =
+    useWelcomeMessage();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [showError, setShowError] = useState(false);
   const [isExecutingAction, setIsExecutingAction] = useState(false);
-  
+
   // All UI decisions now come from Supervisor Agent guidance
   const isCreatingThread = isSupervisorLoading || isExecutingAction;
   const lastError = supervisorError;
   const clearError = clearSupervisorError;
-  
+
   // Show error message when lastError changes
   useEffect(() => {
     if (lastError) {
@@ -80,7 +83,7 @@ const FloatingAIChatButtonContent = () => {
       return () => clearTimeout(timer);
     }
   }, [lastError, clearError]);
-  
+
   /**
    * Get tooltip text from Supervisor guidance
    */
@@ -88,11 +91,11 @@ const FloatingAIChatButtonContent = () => {
     if (isCreatingThread) {
       return guidance?.loadingText || t`Creating chat...`;
     }
-    
+
     // Use Supervisor guidance instead of direct status checking
     return guidance?.tooltipText || t`Ask AI (Press @)`;
   }, [isCreatingThread, guidance?.tooltipText, guidance?.loadingText, t]);
-  
+
   /**
    * Get button icon from Supervisor guidance
    */
@@ -100,7 +103,7 @@ const FloatingAIChatButtonContent = () => {
     if (isCreatingThread) {
       return IconLoader;
     }
-    
+
     // Use Supervisor guidance for icon selection
     switch (guidance?.buttonIcon) {
       case 'IconSettings':
@@ -111,7 +114,7 @@ const FloatingAIChatButtonContent = () => {
         return IconSparkles;
     }
   }, [isCreatingThread, guidance?.buttonIcon]);
-  
+
   /**
    * Get button variant from Supervisor guidance
    */
@@ -126,7 +129,7 @@ const FloatingAIChatButtonContent = () => {
   // Handle click action through Supervisor Agent
   const handleClick = useCallback(async () => {
     if (isExecutingAction) return;
-    
+
     setIsExecutingAction(true);
     try {
       await executeAction('chat_button_clicked', {
@@ -139,13 +142,13 @@ const FloatingAIChatButtonContent = () => {
       setIsExecutingAction(false);
     }
   }, [isExecutingAction, executeAction, guidance]);
-  
+
   // Show popup for welcome message only (not for business setup)
   useEffect(() => {
     // Only show popup for welcome messages, not for business setup warnings
     if (welcomeMessage && !showPopup && !needsUserAction) {
       setShowPopup(true);
-      
+
       // Auto-hide after 10 seconds for regular welcome messages
       const timer = setTimeout(() => {
         setShowPopup(false);
@@ -175,9 +178,13 @@ const FloatingAIChatButtonContent = () => {
         <div
           style={{
             transform: isCreatingThread ? 'none' : undefined,
-            filter: needsUserAction ? 'hue-rotate(30deg) brightness(1.1)' : undefined,
+            filter: needsUserAction
+              ? 'hue-rotate(30deg) brightness(1.1)'
+              : undefined,
           }}
-          className={isCreatingThread ? 'spin' : needsUserAction ? 'pulse' : undefined}
+          className={
+            isCreatingThread ? 'spin' : needsUserAction ? 'pulse' : undefined
+          }
         >
           <FloatingIconButton
             Icon={getButtonIcon()}
@@ -207,7 +214,7 @@ const FloatingAIChatButtonContent = () => {
 
       {/* Action Required Indicator */}
       {needsUserAction && (
-        <div 
+        <div
           style={{
             position: 'absolute',
             top: '-8px',
@@ -222,7 +229,7 @@ const FloatingAIChatButtonContent = () => {
             fontSize: '8px',
             color: 'white',
             fontWeight: 'bold',
-            animation: 'pulse 2s infinite'
+            animation: 'pulse 2s infinite',
           }}
           title={guidance?.tooltipText || 'Action Required'}
         >
@@ -243,7 +250,7 @@ const FloatingAIChatButtonContent = () => {
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             padding: '2px 6px',
             borderRadius: '4px',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
           }}
         >
           Creating chat...
@@ -266,13 +273,17 @@ const FloatingAIChatButtonContent = () => {
             color: '#c62828',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             zIndex: 1000,
-            animation: 'slideInUp 0.3s ease-out'
+            animation: 'slideInUp 0.3s ease-out',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+          <div
+            style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}
+          >
             <span style={{ fontSize: '16px' }}>⚠️</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Chat Creation Failed</div>
+              <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                Chat Creation Failed
+              </div>
               <div>{lastError}</div>
             </div>
             <button
@@ -286,19 +297,22 @@ const FloatingAIChatButtonContent = () => {
                 fontSize: '16px',
                 cursor: 'pointer',
                 padding: '0 4px',
-                color: '#c62828'
+                color: '#c62828',
               }}
             >
               ×
             </button>
           </div>
           {guidance?.providerInfo && (
-            <div style={{
-              marginTop: '8px',
-              fontSize: '12px',
-              opacity: 0.8
-            }}>
-              💡 {guidance.providerInfo.displayName} integration required for setup.
+            <div
+              style={{
+                marginTop: '8px',
+                fontSize: '12px',
+                opacity: 0.8,
+              }}
+            >
+              💡 {guidance.providerInfo.displayName} integration required for
+              setup.
             </div>
           )}
         </div>
@@ -309,16 +323,18 @@ const FloatingAIChatButtonContent = () => {
         <StyledWelcomePopup>
           <StyledPopupHeader>
             <span>
-              {guidance?.providerInfo ? `🤖 ${guidance.providerInfo.displayName}` : '💬 AI Assistant'}
+              {guidance?.providerInfo
+                ? `🤖 ${guidance.providerInfo.displayName}`
+                : '💬 AI Assistant'}
             </span>
-            <button 
+            <button
               onClick={() => setShowPopup(false)}
               style={{
                 background: 'none',
                 border: 'none',
                 fontSize: '18px',
                 cursor: 'pointer',
-                padding: '0 4px'
+                padding: '0 4px',
               }}
             >
               ×
@@ -329,22 +345,23 @@ const FloatingAIChatButtonContent = () => {
               {welcomeMessage}
             </ReactMarkdown>
             {guidance?.providerInfo && (
-              <div 
+              <div
                 style={{
                   marginTop: '12px',
                   padding: '8px',
                   backgroundColor: '#e3f2fd',
                   borderRadius: '4px',
                   fontSize: '12px',
-                  color: '#1976d2'
+                  color: '#1976d2',
                 }}
               >
-                💡 This is a specialized assistant for {guidance.providerInfo.displayName} integration.
+                💡 This is a specialized assistant for{' '}
+                {guidance.providerInfo.displayName} integration.
               </div>
             )}
           </StyledPopupContent>
           <StyledPopupActions>
-            <button 
+            <button
               onClick={continueChat}
               style={{
                 backgroundColor: '#1976d2',
@@ -353,12 +370,12 @@ const FloatingAIChatButtonContent = () => {
                 padding: '8px 16px',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                fontSize: '14px'
+                fontSize: '14px',
               }}
             >
               Continue Chat
             </button>
-            <button 
+            <button
               onClick={() => setShowPopup(false)}
               style={{
                 backgroundColor: 'transparent',
@@ -367,7 +384,7 @@ const FloatingAIChatButtonContent = () => {
                 padding: '8px 16px',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                fontSize: '14px'
+                fontSize: '14px',
               }}
             >
               Dismiss

@@ -7,7 +7,8 @@ import { isDefined } from 'twenty-shared/utils';
 import { AuthException } from 'src/engine/core-modules/auth/auth.exception';
 import { AuthGraphqlApiExceptionFilter } from 'src/engine/core-modules/auth/filters/auth-graphql-api-exception.filter';
 import { AccessTokenService } from 'src/engine/core-modules/auth/token/services/access-token.service';
-import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { WorkspaceAgnosticTokenService } from 'src/engine/core-modules/auth/token/services/workspace-agnostic-token.service';
+import { type AuthContext, JwtTokenTypeEnum } from 'src/engine/core-modules/auth/types/auth-context.type';
 import { getAuthExceptionRestStatus } from 'src/engine/core-modules/auth/utils/get-auth-exception-rest-status.util';
 import { ExceptionHandlerService } from 'src/engine/core-modules/exception-handler/exception-handler.service';
 import { ErrorCode } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
@@ -16,8 +17,8 @@ import { DataSourceService } from 'src/engine/metadata-modules/data-source/data-
 import { WorkspaceMetadataCacheService } from 'src/engine/metadata-modules/workspace-metadata-cache/services/workspace-metadata-cache.service';
 import { INTERNAL_SERVER_ERROR } from 'src/engine/middlewares/constants/default-error-message.constant';
 import {
-  handleException,
-  handleExceptionAndConvertToGraphQLError,
+    handleException,
+    handleExceptionAndConvertToGraphQLError,
 } from 'src/engine/utils/global-exception-handler.util';
 import { WorkspaceCacheStorageService } from 'src/engine/workspace-cache-storage/workspace-cache-storage.service';
 import { type CustomException } from 'src/utils/custom-exception';
@@ -31,6 +32,7 @@ export class MiddlewareService {
     private readonly dataSourceService: DataSourceService,
     private readonly exceptionHandlerService: ExceptionHandlerService,
     private readonly jwtWrapperService: JwtWrapperService,
+    private readonly workspaceAgnosticTokenService: WorkspaceAgnosticTokenService,
   ) {}
 
   public isTokenPresent(request: Request): boolean {
@@ -127,7 +129,14 @@ export class MiddlewareService {
   }
 
   public async hydrateGraphqlRequest(request: Request) {
-    if (!this.isTokenPresent(request)) {
+    console.log('[MIDDLEWARE] hydrateGraphqlRequest called');
+    
+    const token = this.jwtWrapperService.extractJwtFromRequest()(request);
+    console.log('[MIDDLEWARE] Token extracted:', token ? 'YES' : 'NO');
+    console.log('[MIDDLEWARE] Token value:', token ? token.substring(0, 20) + '...' : 'NONE');
+    
+    if (!token) {
+      console.log('[MIDDLEWARE] No token found, setting locale only');
       request.locale =
         (request.headers['x-locale'] as keyof typeof APP_LOCALES) ??
         SOURCE_LOCALE;
@@ -135,14 +144,39 @@ export class MiddlewareService {
       return;
     }
 
+    const decoded = this.jwtWrapperService.decode<{ type?: JwtTokenTypeEnum }>(
+      token,
+    ) as any;
+    console.log('[MIDDLEWARE] Token decoded type:', decoded?.type);
+
+    if (decoded?.type === JwtTokenTypeEnum.WORKSPACE_AGNOSTIC) {
+      console.log('[MIDDLEWARE] Processing workspace-agnostic token');
+      const data = await this.workspaceAgnosticTokenService.validateToken(token);
+      console.log('[MIDDLEWARE] Workspace-agnostic token validated, user:', data.user?.email);
+      this.bindUserOnlyToRequestObject({ user: data.user }, request);
+      return;
+    }
+
+    console.log('[MIDDLEWARE] Processing access token');
+    // ACCESS token path stays as is
     const data = await this.accessTokenService.validateTokenByRequest(request);
+    console.log('[MIDDLEWARE] Access token validated, user:', data.user?.email);
     const metadataVersion = data.workspace
       ? await this.workspaceStorageCacheService.getMetadataVersion(
           data.workspace.id,
         )
       : undefined;
-
     this.bindDataToRequestObject(data, request, metadataVersion);
+  }
+
+  // Helper: bind only user & locale (no workspace)
+  private bindUserOnlyToRequestObject(
+    data: { user: unknown },
+    request: Request,
+  ) {
+    request.user = data.user as any;
+    request.locale =
+      (request.headers['x-locale'] as keyof typeof APP_LOCALES) ?? SOURCE_LOCALE;
   }
 
   private hasErrorStatus(error: unknown): error is { status: number } {

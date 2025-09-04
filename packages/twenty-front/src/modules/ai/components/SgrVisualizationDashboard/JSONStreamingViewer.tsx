@@ -12,12 +12,12 @@ const StyledContainer = styled(Card)`
 `;
 
 const StyledHeader = styled.div`
-  display: flex;
   align-items: center;
+  background: ${({ theme }) => theme.background.tertiary};
+  border-bottom: 1px solid ${({ theme }) => theme.border.color.light};
+  display: flex;
   justify-content: space-between;
   padding: ${({ theme }) => theme.spacing(2)} ${({ theme }) => theme.spacing(3)};
-  border-bottom: 1px solid ${({ theme }) => theme.border.color.light};
-  background: ${({ theme }) => theme.background.tertiary};
 `;
 
 const StyledTitle = styled.div`
@@ -41,41 +41,42 @@ const StyledContent = styled.div`
 `;
 
 const StyledJsonContainer = styled.div`
-  position: relative;
-  min-height: 150px;
   background: ${({ theme }) => theme.background.secondary};
-  border-radius: ${({ theme }) => theme.border.radius.sm};
   border: 1px solid ${({ theme }) => theme.border.color.light};
+  border-radius: ${({ theme }) => theme.border.radius.sm};
+  min-height: 150px;
   overflow: hidden;
+  position: relative;
 `;
 
 const StyledRawJsonDisplay = styled.div`
+  color: ${({ theme }) => theme.font.color.primary};
   font-family: ${({ theme }) => theme.font.family.monospace};
   font-size: ${({ theme }) => theme.font.size.sm};
+  max-height: 300px;
+  overflow-y: auto;
   padding: ${({ theme }) => theme.spacing(3)};
   white-space: pre-wrap;
   word-break: break-all;
-  color: ${({ theme }) => theme.font.color.primary};
-  max-height: 300px;
-  overflow-y: auto;
 `;
 
 const StyledJsonTreeContainer = styled.div`
-  padding: ${({ theme }) => theme.spacing(2)};
   max-height: 300px;
   overflow-y: auto;
+  padding: ${({ theme }) => theme.spacing(2)};
 `;
 
 const StyledValidationIndicator = styled(motion.div)<{ isValid: boolean }>`
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 4px 8px;
+  background: ${({ isValid, theme }) =>
+    isValid ? theme.color.green : theme.color.orange};
   border-radius: 4px;
+  color: white;
   font-size: 12px;
   font-weight: bold;
-  color: white;
-  background: ${({ isValid, theme }) => isValid ? theme.color.green : theme.color.orange};
+  padding: 4px 8px;
+  position: absolute;
+  right: 8px;
+  top: 8px;
 `;
 
 const StyledStreamingCursor = styled(motion.span)`
@@ -90,12 +91,10 @@ const StyledStreamingCursor = styled(motion.span)`
 const StyledTabButton = styled.button<{ active: boolean }>`
   padding: ${({ theme }) => theme.spacing(1)} ${({ theme }) => theme.spacing(2)};
   border: none;
-  background: ${({ active, theme }) => 
-    active ? theme.background.primary : 'transparent'
-  };
-  color: ${({ active, theme }) => 
-    active ? theme.font.color.primary : theme.font.color.secondary
-  };
+  background: ${({ active, theme }) =>
+    active ? theme.background.primary : 'transparent'};
+  color: ${({ active, theme }) =>
+    active ? theme.font.color.primary : theme.font.color.secondary};
   border-radius: ${({ theme }) => theme.border.radius.sm};
   font-size: ${({ theme }) => theme.font.size.sm};
   cursor: pointer;
@@ -110,7 +109,8 @@ const StyledTabButton = styled.button<{ active: boolean }>`
 const StyledTabs = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing(1)};
-  padding: ${({ theme }) => theme.spacing(2)} ${({ theme }) => theme.spacing(3)} 0;
+  padding: ${({ theme }) => theme.spacing(2)} ${({ theme }) => theme.spacing(3)}
+    0;
 `;
 
 type ViewMode = 'raw' | 'tree';
@@ -163,20 +163,20 @@ export const JSONStreamingViewer = ({
   /**
    * Рендер Raw JSON режима
    */
-  const renderRawMode = useCallback(() => (
-    <StyledRawJsonDisplay
-      ref={rawJsonRef}
-      onScroll={handleScroll}
-    >
-      {jsonData.rawJson}
-      {isActive && (
-        <StyledStreamingCursor
-          animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      )}
-    </StyledRawJsonDisplay>
-  ), [jsonData.rawJson, isActive, handleScroll]);
+  const renderRawMode = useCallback(
+    () => (
+      <StyledRawJsonDisplay ref={rawJsonRef} onScroll={handleScroll}>
+        {jsonData.rawJson}
+        {isActive && (
+          <StyledStreamingCursor
+            animate={{ opacity: [1, 0] }}
+            transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
+      </StyledRawJsonDisplay>
+    ),
+    [jsonData.rawJson, isActive, handleScroll],
+  );
 
   /**
    * Рендер Tree JSON режима
@@ -198,7 +198,7 @@ export const JSONStreamingViewer = ({
 
     return (
       <StyledJsonTreeContainer>
-        <JsonTree 
+        <JsonTree
           value={jsonData.parsedJson as any}
           shouldExpandNodeInitially={() => true}
           emptyArrayLabel="Пустой массив"
@@ -226,7 +226,7 @@ export const JSONStreamingViewer = ({
             </motion.div>
           )}
         </StyledTitle>
-        
+
         <StyledTokenCounter>
           <span>{jsonData.totalTokens} токенов</span>
           {isActive && jsonData.streamingSpeed > 0 && (
@@ -265,19 +265,20 @@ export const JSONStreamingViewer = ({
           </StyledValidationIndicator>
 
           {/* Отображение JSON */}
-          {jsonData.parsedJson && Object.keys(jsonData.parsedJson).length > 0 && (
-            <StyledJsonContainer>
-              <JsonTree 
-                value={jsonData.parsedJson as any}
-                shouldExpandNodeInitially={() => true}
-                emptyArrayLabel="Пустой массив"
-                emptyObjectLabel="Пустой объект"
-                emptyStringLabel="[пустая строка]"
-                arrowButtonCollapsedLabel="Развернуть"
-                arrowButtonExpandedLabel="Свернуть"
-              />
-            </StyledJsonContainer>
-          )}
+          {jsonData.parsedJson &&
+            Object.keys(jsonData.parsedJson).length > 0 && (
+              <StyledJsonContainer>
+                <JsonTree
+                  value={jsonData.parsedJson as any}
+                  shouldExpandNodeInitially={() => true}
+                  emptyArrayLabel="Пустой массив"
+                  emptyObjectLabel="Пустой объект"
+                  emptyStringLabel="[пустая строка]"
+                  arrowButtonCollapsedLabel="Развернуть"
+                  arrowButtonExpandedLabel="Свернуть"
+                />
+              </StyledJsonContainer>
+            )}
         </StyledJsonContainer>
       </StyledContent>
     </StyledContainer>

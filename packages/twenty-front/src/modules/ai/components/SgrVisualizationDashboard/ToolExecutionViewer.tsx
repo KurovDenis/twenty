@@ -303,6 +303,17 @@ export const ToolExecutionViewer = ({
           </StyledProgressSection>
         )}
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         {/* Отображение аргументов инструмента */}
         <StyledArgsContainer>
           <StyledArgsTitle>Аргументы:</StyledArgsTitle>

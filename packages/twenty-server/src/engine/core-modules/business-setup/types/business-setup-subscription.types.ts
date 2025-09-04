@@ -1,9 +1,9 @@
 import {
-    createUnionType,
-    Field,
-    InputType,
-    ObjectType,
-    registerEnumType,
+  createUnionType,
+  Field,
+  InputType,
+  ObjectType,
+  registerEnumType,
 } from '@nestjs/graphql';
 
 /**
@@ -14,7 +14,7 @@ export enum BusinessSetupEventType {
   AI_AGENT_WELCOME_CHAT_CREATED = 'AI_AGENT_WELCOME_CHAT_CREATED',
   AI_AGENT_WELCOME_CHAT_FAILED = 'AI_AGENT_WELCOME_CHAT_FAILED',
   BUSINESS_SETUP_STEP_COMPLETED = 'BUSINESS_SETUP_STEP_COMPLETED',
-  
+
   // SGR Streaming Events
   SGR_STREAMING_START = 'SGR_STREAMING_START',
   SGR_JSON_STREAM_START = 'SGR_JSON_STREAM_START',
@@ -23,7 +23,7 @@ export enum BusinessSetupEventType {
   SGR_TOOL_CALL_PENDING = 'SGR_TOOL_CALL_PENDING',
   SGR_STREAMING_END = 'SGR_STREAMING_END',
   SGR_STREAMING_ERROR = 'SGR_STREAMING_ERROR',
-  
+
   // Supervisor SGR Events
   SUPERVISOR_SGR_START = 'SUPERVISOR_SGR_START',
   SUPERVISOR_SGR_THINKING = 'SUPERVISOR_SGR_THINKING',
@@ -406,9 +406,10 @@ export const BusinessSetupEventPayload = createUnionType({
       if ('currentState' in value && 'plannedSteps' in value) {
         return SupervisorSGRPayload;
       }
+
       return SGRStreamingPayload;
     }
-    
+
     // Legacy events
     if ('status' in value && 'previousStatus' in value) {
       return OnboardingStatusChangedPayload;
@@ -492,13 +493,13 @@ export const SUBSCRIPTION_CHANNELS = {
   ONBOARDING_EVENTS: 'onboardingEvents',
   AI_AGENT_EVENTS: 'aiAgentEvents',
   CHAT_EVENTS: 'chatEvents',
-  
+
   // SGR Streaming каналы
   SGR_STREAMING_EVENTS: 'sgrStreamingEvents',
   SGR_TOKEN_STREAMING: 'sgrTokenStreaming',
   SGR_TOOL_EXECUTION: 'sgrToolExecution',
   SGR_ERROR_EVENTS: 'sgrErrorEvents',
-  
+
   // Supervisor SGR каналы
   SUPERVISOR_SGR_EVENTS: 'supervisorSgrEvents',
   SUPERVISOR_THINKING: 'supervisorThinking',
@@ -527,7 +528,7 @@ export class EventRouter {
     // SGR Streaming events routing
     if (eventType.startsWith('SGR_')) {
       channels.push(SUBSCRIPTION_CHANNELS.SGR_STREAMING_EVENTS);
-      
+
       // Specific SGR channels
       switch (eventType) {
         case BusinessSetupEventType.SGR_JSON_TOKEN_CHUNK:
@@ -535,11 +536,11 @@ export class EventRouter {
         case BusinessSetupEventType.SGR_JSON_STREAM_END:
           channels.push(SUBSCRIPTION_CHANNELS.SGR_TOKEN_STREAMING);
           break;
-          
+
         case BusinessSetupEventType.SGR_TOOL_CALL_PENDING:
           channels.push(SUBSCRIPTION_CHANNELS.SGR_TOOL_EXECUTION);
           break;
-          
+
         case BusinessSetupEventType.SGR_STREAMING_ERROR:
           channels.push(SUBSCRIPTION_CHANNELS.SGR_ERROR_EVENTS);
           break;
@@ -549,13 +550,13 @@ export class EventRouter {
     // Supervisor SGR events routing
     if (eventType.startsWith('SUPERVISOR_SGR_')) {
       channels.push(SUBSCRIPTION_CHANNELS.SUPERVISOR_SGR_EVENTS);
-      
+
       // Specific supervisor channels
       switch (eventType) {
         case BusinessSetupEventType.SUPERVISOR_SGR_THINKING:
           channels.push(SUBSCRIPTION_CHANNELS.SUPERVISOR_THINKING);
           break;
-          
+
         case BusinessSetupEventType.SUPERVISOR_SGR_TOOL_EXECUTION:
           channels.push(SUBSCRIPTION_CHANNELS.SUPERVISOR_TOOL_EXECUTION);
           break;

@@ -12,7 +12,10 @@ import {
   isToolExecutionEvent,
   isFinalResponseEvent,
 } from './sgr-event-bridge.service';
-import { SGRMessageType, SGRToolExecutionStatus } from '@/ai/types/sgr-message.types';
+import {
+  SGRMessageType,
+  SGRToolExecutionStatus,
+} from '@/ai/types/sgr-message.types';
 
 describe('SGR Event Type Guards', () => {
   // Mock data for testing

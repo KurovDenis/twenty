@@ -4,15 +4,17 @@ import styled from 'styled-components';
 import { Chip } from 'twenty-ui/components';
 
 const StyledMetricsContainer = styled.div`
-  display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing(2)};
+  display: flex;
   flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spacing(2)};
 `;
 
-const StyledMetricChip = styled(Chip)<{ variant: 'info' | 'success' | 'warning' | 'error' }>`
+const StyledMetricChip = styled(Chip)<{
+  variant: 'info' | 'success' | 'warning' | 'error';
+}>`
   font-size: ${({ theme }) => theme.font.size.xs};
-  
+
   ${({ variant, theme }) => {
     const colors = {
       info: theme.color.blue,
@@ -20,7 +22,7 @@ const StyledMetricChip = styled(Chip)<{ variant: 'info' | 'success' | 'warning' 
       warning: theme.color.orange,
       error: theme.color.red,
     };
-    
+
     return `
       background: ${colors[variant]}15;
       color: ${colors[variant]};
@@ -51,7 +53,6 @@ export const StreamingMetrics = ({
   metrics,
   isConnected,
 }: StreamingMetricsProps) => {
-  
   /**
    * Форматирование времени обработки
    */
@@ -91,18 +92,12 @@ export const StreamingMetrics = ({
 
       {/* Скорость стриминга */}
       {metrics.isActive && metrics.streamingSpeed > 0 && (
-        <StyledMetricChip
-          variant="info"
-          label={formattedStreamingSpeed}
-        />
+        <StyledMetricChip variant="info" label={formattedStreamingSpeed} />
       )}
 
       {/* Время обработки */}
       {metrics.processingTime > 0 && (
-        <StyledMetricChip
-          variant="info"
-          label={formattedProcessingTime}
-        />
+        <StyledMetricChip variant="info" label={formattedProcessingTime} />
       )}
 
       {/* Статус JSON валидации */}
@@ -114,12 +109,7 @@ export const StreamingMetrics = ({
       )}
 
       {/* Индикатор ошибки */}
-      {metrics.hasError && (
-        <StyledMetricChip
-          variant="error"
-          label="Ошибка"
-        />
-      )}
+      {metrics.hasError && <StyledMetricChip variant="error" label="Ошибка" />}
     </StyledMetricsContainer>
   );
 };

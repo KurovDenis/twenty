@@ -14,6 +14,7 @@ import { LoggerService } from 'src/engine/core-modules/logger/logger.service';
 import { getSessionStorageOptions } from 'src/engine/core-modules/session-storage/session-storage.module-factory';
 import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
 import { UnhandledExceptionFilter } from 'src/filters/unhandled-exception.filter';
+import { MiddlewareService } from 'src/engine/middlewares/middleware.service';
 
 import { AppModule } from './app.module';
 import './instrument';
@@ -48,6 +49,45 @@ const bootstrap = async () => {
   app.useLogger(logger);
 
   app.useGlobalFilters(new UnhandledExceptionFilter());
+
+  // Global request logging middleware
+  app.use((req, res, next) => {
+    console.log('=== GLOBAL REQUEST ===');
+    console.log('[GLOBAL] URL:', req.url);
+    console.log('[GLOBAL] Method:', req.method);
+    console.log('[GLOBAL] Path:', req.path);
+    console.log('[GLOBAL] Original URL:', req.originalUrl);
+    console.log('[GLOBAL] Headers:', Object.keys(req.headers));
+    console.log('[GLOBAL] Authorization:', req.headers.authorization);
+    console.log('=== GLOBAL REQUEST END ===');
+    next();
+  });
+
+  // Manual token hydration middleware
+  app.use(async (req, res, next) => {
+    console.log('=== MANUAL MIDDLEWARE ===');
+    console.log('[MANUAL] Processing request for:', req.url);
+    
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    console.log('[MANUAL] Token extracted:', token ? 'YES' : 'NO');
+    
+    if (token) {
+      try {
+        // Get the middleware service using the correct token
+        const middlewareService = app.get(MiddlewareService);
+        console.log('[MANUAL] MiddlewareService obtained');
+        await middlewareService.hydrateGraphqlRequest(req);
+        console.log('[MANUAL] Token hydration completed');
+      } catch (error) {
+        console.log('[MANUAL] Token hydration error:', error.message);
+        console.log('[MANUAL] Error stack:', error.stack);
+      }
+    }
+    
+    console.log('[MANUAL] request.user after hydration:', req.user ? 'SET' : 'UNDEFINED');
+    console.log('=== MANUAL MIDDLEWARE END ===');
+    next();
+  });
 
   app.useBodyParser('json', { limit: settings.storage.maxFileSize });
   app.useBodyParser('urlencoded', {

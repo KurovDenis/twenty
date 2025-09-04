@@ -9,10 +9,10 @@ import { type Workspace } from 'src/engine/core-modules/workspace/workspace.enti
 
 import { BusinessSetupStatus } from './enums/business-setup-status.enum';
 import {
-    BUSINESS_SETUP_EVENTS,
-    BusinessSetupRouteMessageEvent,
-    SupervisorRoutingCompletedEvent,
-    SupervisorThinkingStepEvent,
+  BUSINESS_SETUP_EVENTS,
+  BusinessSetupRouteMessageEvent,
+  SupervisorRoutingCompletedEvent,
+  SupervisorThinkingStepEvent,
 } from './events/business-setup.events';
 
 export enum BusinessSetupStepKeys {
@@ -74,11 +74,16 @@ export type BusinessSetupKeyValueTypeMap = {
   };
 
   // Dynamic keys for testing and other purposes
-  [key: string]: string | boolean | BusinessSetupStatus | {
-    tokenThrottleMs: number;
-    maxTokensPerChunk: number;
-    enablePartialJsonParsing: boolean;
-  } | undefined;
+  [key: string]:
+    | string
+    | boolean
+    | BusinessSetupStatus
+    | {
+        tokenThrottleMs: number;
+        maxTokensPerChunk: number;
+        enablePartialJsonParsing: boolean;
+      }
+    | undefined;
 };
 
 @Injectable()

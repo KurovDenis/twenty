@@ -133,6 +133,9 @@ export class ClientConfig {
   defaultSubdomain: string;
 
   @Field(() => String)
+  singleWorkspaceBehavior: 'auto-redirect' | 'create-new' | 'show-choice';
+
+  @Field(() => String)
   frontDomain: string;
 
   @Field(() => Boolean)

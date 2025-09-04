@@ -1,6 +1,6 @@
 /**
  * Frontend Event Emitter Utility
- * 
+ *
  * Provides a simple event emitter for frontend event handling,
  * bridging backend events to frontend components.
  */
@@ -32,7 +32,7 @@ class FrontendEventEmitter {
   emit(event: string, ...args: any[]): void {
     const handlers = this.events.get(event);
     if (handlers) {
-      handlers.forEach(handler => handler(...args));
+      handlers.forEach((handler) => handler(...args));
     }
   }
 
@@ -61,4 +61,5 @@ export const getEventEmitter = (): FrontendEventEmitter => {
  */
 export const AI_AGENT_EVENTS = BUSINESS_SETUP_EVENTS;
 
-export type AIAgentEventType = typeof BUSINESS_SETUP_EVENTS[keyof typeof BUSINESS_SETUP_EVENTS];
+export type AIAgentEventType =
+  (typeof BUSINESS_SETUP_EVENTS)[keyof typeof BUSINESS_SETUP_EVENTS];

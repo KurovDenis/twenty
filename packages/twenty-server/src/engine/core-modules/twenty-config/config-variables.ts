@@ -3,6 +3,7 @@ import { type LogLevel, Logger } from '@nestjs/common';
 import { Transform, plainToClass } from 'class-transformer';
 import {
   IsDefined,
+  IsIn,
   IsNumber,
   IsOptional,
   IsUrl,
@@ -1058,6 +1059,16 @@ export class ConfigVariables {
   @IsNumber()
   @Min(1)
   MAX_WORKSPACES_PER_USER = 5;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.ServerConfig,
+    description: 'Behavior when user has exactly 1 workspace: auto-redirect, create-new, or show-choice',
+    type: ConfigVariableType.STRING,
+    isEnvOnly: true,
+  })
+  @IsOptional()
+  @IsIn(['auto-redirect', 'create-new', 'show-choice'])
+  SINGLE_WORKSPACE_BEHAVIOR = 'auto-redirect';
 
   @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.Other,

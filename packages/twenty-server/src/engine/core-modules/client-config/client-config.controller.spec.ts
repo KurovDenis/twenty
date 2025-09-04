@@ -3,8 +3,8 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { SupportDriver } from 'src/engine/core-modules/twenty-config/interfaces/support.interface';
 
 import {
-  type ModelId,
-  ModelProvider,
+    type ModelId,
+    ModelProvider,
 } from 'src/engine/core-modules/ai/constants/ai-models.const';
 import { ClientConfigService } from 'src/engine/core-modules/client-config/services/client-config.service';
 
@@ -68,6 +68,7 @@ describe('ClientConfigController', () => {
         isMultiWorkspaceEnabled: true,
         isEmailVerificationRequired: false,
         defaultSubdomain: 'app',
+        singleWorkspaceBehavior: 'auto-redirect' as 'auto-redirect' | 'create-new' | 'show-choice',
         frontDomain: 'localhost',
         debugMode: true,
         support: {

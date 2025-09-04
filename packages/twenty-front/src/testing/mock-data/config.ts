@@ -6,6 +6,7 @@ export const mockedClientConfig: ClientConfig = {
   signInPrefilled: true,
   isMultiWorkspaceEnabled: false,
   isEmailVerificationRequired: false,
+  singleWorkspaceBehavior: 'auto-redirect',
   authProviders: {
     google: true,
     magicLink: false,

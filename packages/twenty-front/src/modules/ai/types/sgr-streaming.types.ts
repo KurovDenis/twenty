@@ -4,9 +4,9 @@ import { SGRThinkingStep, SGRToolExecutionStatus } from './sgr-message.types';
  * Типы событий для детального SGR стриминга
  * Соответствуют событиям бэкенда из Фазы 1
  */
-export type SGRStreamEventType = 
+export type SGRStreamEventType =
   | 'SGR_PROCESS_START'
-  | 'SGR_JSON_STREAM_START' 
+  | 'SGR_JSON_STREAM_START'
   | 'SGR_JSON_TOKEN_CHUNK'
   | 'SGR_JSON_STREAM_END'
   | 'SGR_TOOL_CALL_PENDING'
@@ -44,14 +44,14 @@ export type SGRStreamEvent = {
 /**
  * Состояние SGR стриминга для UI
  */
-export type SGRStreamingStatus = 
-  | 'idle'           // Ожидание
-  | 'starting'       // Начало процесса
+export type SGRStreamingStatus =
+  | 'idle' // Ожидание
+  | 'starting' // Начало процесса
   | 'streaming_json' // Стриминг JSON от LLM
-  | 'parsing'        // Парсинг JSON
-  | 'tool_pending'   // Ожидание выполнения инструмента
-  | 'completed'      // Завершено
-  | 'error';         // Ошибка
+  | 'parsing' // Парсинг JSON
+  | 'tool_pending' // Ожидание выполнения инструмента
+  | 'completed' // Завершено
+  | 'error'; // Ошибка
 
 /**
  * Данные для визуализации JSON стриминга

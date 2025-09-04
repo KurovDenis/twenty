@@ -2,9 +2,15 @@ import { gql } from '@apollo/client';
 import * as Apollo from '@apollo/client';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
-export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
-export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
-export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+export type Exact<T extends { [key: string]: unknown }> = {
+  [K in keyof T]: T[K];
+};
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & {
+  [SubKey in K]?: Maybe<T[SubKey]>;
+};
+export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & {
+  [SubKey in K]: Maybe<T[SubKey]>;
+};
 const defaultOptions = {} as const;
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -40,7 +46,7 @@ export type AdminPanelHealthServiceData = {
 
 export enum AdminPanelHealthServiceStatus {
   OPERATIONAL = 'OPERATIONAL',
-  OUTAGE = 'OUTAGE'
+  OUTAGE = 'OUTAGE',
 }
 
 export type AdminPanelWorkerQueueHealth = {
@@ -109,7 +115,7 @@ export enum AggregateOperations {
   MIN = 'MIN',
   PERCENTAGE_EMPTY = 'PERCENTAGE_EMPTY',
   PERCENTAGE_NOT_EMPTY = 'PERCENTAGE_NOT_EMPTY',
-  SUM = 'SUM'
+  SUM = 'SUM',
 }
 
 export type Analytics = {
@@ -120,7 +126,7 @@ export type Analytics = {
 
 export enum AnalyticsType {
   PAGEVIEW = 'PAGEVIEW',
-  TRACK = 'TRACK'
+  TRACK = 'TRACK',
 }
 
 export type ApiConfig = {
@@ -262,7 +268,7 @@ export type BillingMeteredProductUsageOutput = {
 /** The different billing plans available */
 export enum BillingPlanKey {
   ENTERPRISE = 'ENTERPRISE',
-  PRO = 'PRO'
+  PRO = 'PRO',
 }
 
 export type BillingPlanOutput = {
@@ -300,10 +306,12 @@ export type BillingPriceTierDto = {
 /** The different billing price tiers modes */
 export enum BillingPriceTiersMode {
   GRADUATED = 'GRADUATED',
-  VOLUME = 'VOLUME'
+  VOLUME = 'VOLUME',
 }
 
-export type BillingPriceUnionDto = BillingPriceLicensedDto | BillingPriceMeteredDto;
+export type BillingPriceUnionDto =
+  | BillingPriceLicensedDto
+  | BillingPriceMeteredDto;
 
 export type BillingProduct = {
   __typename?: 'BillingProduct';
@@ -317,7 +325,7 @@ export type BillingProduct = {
 /** The different billing products available */
 export enum BillingProductKey {
   BASE_PRODUCT = 'BASE_PRODUCT',
-  WORKFLOW_NODE_EXECUTION = 'WORKFLOW_NODE_EXECUTION'
+  WORKFLOW_NODE_EXECUTION = 'WORKFLOW_NODE_EXECUTION',
 }
 
 export type BillingProductMetadata = {
@@ -363,7 +371,7 @@ export type BillingUpdateOutput = {
 
 export enum BillingUsageType {
   LICENSED = 'LICENSED',
-  METERED = 'METERED'
+  METERED = 'METERED',
 }
 
 export type BooleanFieldComparison = {
@@ -373,7 +381,7 @@ export type BooleanFieldComparison = {
 
 export enum CalendarChannelVisibility {
   METADATA = 'METADATA',
-  SHARE_EVERYTHING = 'SHARE_EVERYTHING'
+  SHARE_EVERYTHING = 'SHARE_EVERYTHING',
 }
 
 export type Captcha = {
@@ -384,7 +392,7 @@ export type Captcha = {
 
 export enum CaptchaDriverType {
   GOOGLE_RECAPTCHA = 'GOOGLE_RECAPTCHA',
-  TURNSTILE = 'TURNSTILE'
+  TURNSTILE = 'TURNSTILE',
 }
 
 export type CheckUserExistOutput = {
@@ -411,7 +419,7 @@ export type ComputeStepOutputSchemaInput = {
 export enum ConfigSource {
   DATABASE = 'DATABASE',
   DEFAULT = 'DEFAULT',
-  ENVIRONMENT = 'ENVIRONMENT'
+  ENVIRONMENT = 'ENVIRONMENT',
 }
 
 export type ConfigVariable = {
@@ -431,7 +439,7 @@ export enum ConfigVariableType {
   BOOLEAN = 'BOOLEAN',
   ENUM = 'ENUM',
   NUMBER = 'NUMBER',
-  STRING = 'STRING'
+  STRING = 'STRING',
 }
 
 export enum ConfigVariablesGroup {
@@ -454,7 +462,7 @@ export enum ConfigVariablesGroup {
   StorageConfig = 'StorageConfig',
   SupportChatConfig = 'SupportChatConfig',
   TokensDuration = 'TokensDuration',
-  TwoFactorAuthentication = 'TwoFactorAuthentication'
+  TwoFactorAuthentication = 'TwoFactorAuthentication',
 }
 
 export type ConfigVariablesGroupData = {
@@ -787,7 +795,7 @@ export enum DatabaseEventAction {
   DELETED = 'DELETED',
   DESTROYED = 'DESTROYED',
   RESTORED = 'RESTORED',
-  UPDATED = 'UPDATED'
+  UPDATED = 'UPDATED',
 }
 
 export type DateFilter = {
@@ -855,7 +863,7 @@ export enum DistantTableUpdate {
   COLUMNS_ADDED = 'COLUMNS_ADDED',
   COLUMNS_DELETED = 'COLUMNS_DELETED',
   COLUMNS_TYPE_CHANGED = 'COLUMNS_TYPE_CHANGED',
-  TABLE_DELETED = 'TABLE_DELETED'
+  TABLE_DELETED = 'TABLE_DELETED',
 }
 
 export type EditSsoInput = {
@@ -924,7 +932,7 @@ export enum FeatureFlagKey {
   IS_UNIQUE_INDEXES_ENABLED = 'IS_UNIQUE_INDEXES_ENABLED',
   IS_WORKFLOW_BRANCH_ENABLED = 'IS_WORKFLOW_BRANCH_ENABLED',
   IS_WORKFLOW_FILTERING_ENABLED = 'IS_WORKFLOW_FILTERING_ENABLED',
-  IS_WORKSPACE_MIGRATION_V2_ENABLED = 'IS_WORKSPACE_MIGRATION_V2_ENABLED'
+  IS_WORKSPACE_MIGRATION_V2_ENABLED = 'IS_WORKSPACE_MIGRATION_V2_ENABLED',
 }
 
 export type Field = {
@@ -1003,7 +1011,7 @@ export enum FieldMetadataType {
   SELECT = 'SELECT',
   TEXT = 'TEXT',
   TS_VECTOR = 'TS_VECTOR',
-  UUID = 'UUID'
+  UUID = 'UUID',
 }
 
 export type FieldPermission = {
@@ -1040,12 +1048,12 @@ export enum FileFolder {
   PersonPicture = 'PersonPicture',
   ProfilePicture = 'ProfilePicture',
   ServerlessFunction = 'ServerlessFunction',
-  WorkspaceLogo = 'WorkspaceLogo'
+  WorkspaceLogo = 'WorkspaceLogo',
 }
 
 export enum FilterIs {
   NotNull = 'NotNull',
-  Null = 'Null'
+  Null = 'Null',
 }
 
 export type FindAvailableSsoidpOutput = {
@@ -1102,12 +1110,12 @@ export enum HealthIndicatorId {
   connectedAccount = 'connectedAccount',
   database = 'database',
   redis = 'redis',
-  worker = 'worker'
+  worker = 'worker',
 }
 
 export enum IdentityProviderType {
   OIDC = 'OIDC',
-  SAML = 'SAML'
+  SAML = 'SAML',
 }
 
 export type ImapSmtpCaldavConnectionParameters = {
@@ -1143,12 +1151,10 @@ export type Index = {
   updatedAt: Scalars['DateTime'];
 };
 
-
 export type IndexIndexFieldMetadatasArgs = {
   filter?: IndexFieldFilter;
   paging?: CursorPaging;
 };
-
 
 export type IndexObjectMetadataArgs = {
   filter?: ObjectFilter;
@@ -1221,7 +1227,7 @@ export type IndexObjectMetadataConnection = {
 /** Type of the index */
 export enum IndexType {
   BTREE = 'BTREE',
-  GIN = 'GIN'
+  GIN = 'GIN',
 }
 
 export type InitiateTwoFactorAuthenticationProvisioningOutput = {
@@ -1262,14 +1268,14 @@ export type LoginToken = {
 export enum MessageChannelVisibility {
   METADATA = 'METADATA',
   SHARE_EVERYTHING = 'SHARE_EVERYTHING',
-  SUBJECT = 'SUBJECT'
+  SUBJECT = 'SUBJECT',
 }
 
 export enum ModelProvider {
   ANTHROPIC = 'ANTHROPIC',
   NONE = 'NONE',
   OPENAI = 'OPENAI',
-  OPENAI_COMPATIBLE = 'OPENAI_COMPATIBLE'
+  OPENAI_COMPATIBLE = 'OPENAI_COMPATIBLE',
 }
 
 export type Mutation = {
@@ -1401,35 +1407,29 @@ export type Mutation = {
   verifyTwoFactorAuthenticationMethodForAuthenticatedUser: VerifyTwoFactorAuthenticationMethodOutput;
 };
 
-
 export type MutationActivateWorkflowVersionArgs = {
   workflowVersionId: Scalars['UUID'];
 };
 
-
 export type MutationActivateWorkspaceArgs = {
   data: ActivateWorkspaceInput;
 };
-
 
 export type MutationAssignRoleToAgentArgs = {
   agentId: Scalars['UUID'];
   roleId: Scalars['UUID'];
 };
 
-
 export type MutationAssignRoleToApiKeyArgs = {
   apiKeyId: Scalars['UUID'];
   roleId: Scalars['UUID'];
 };
-
 
 export type MutationAuthorizeAppArgs = {
   clientId: Scalars['String'];
   codeChallenge?: InputMaybe<Scalars['String']>;
   redirectUrl: Scalars['String'];
 };
-
 
 export type MutationCheckoutSessionArgs = {
   plan?: BillingPlanKey;
@@ -1438,82 +1438,66 @@ export type MutationCheckoutSessionArgs = {
   successUrlPath?: InputMaybe<Scalars['String']>;
 };
 
-
 export type MutationComputeStepOutputSchemaArgs = {
   input: ComputeStepOutputSchemaInput;
 };
-
 
 export type MutationCreateAgentChatThreadArgs = {
   input: CreateAgentChatThreadInput;
 };
 
-
 export type MutationCreateAgentHandoffArgs = {
   input: CreateAgentHandoffInput;
 };
-
 
 export type MutationCreateApiKeyArgs = {
   input: CreateApiKeyDto;
 };
 
-
 export type MutationCreateApprovedAccessDomainArgs = {
   input: CreateApprovedAccessDomainInput;
 };
-
 
 export type MutationCreateCoreViewArgs = {
   input: CreateViewInput;
 };
 
-
 export type MutationCreateCoreViewFieldArgs = {
   input: CreateViewFieldInput;
 };
-
 
 export type MutationCreateCoreViewFilterArgs = {
   input: CreateViewFilterInput;
 };
 
-
 export type MutationCreateCoreViewFilterGroupArgs = {
   input: CreateViewFilterGroupInput;
 };
-
 
 export type MutationCreateCoreViewGroupArgs = {
   input: CreateViewGroupInput;
 };
 
-
 export type MutationCreateCoreViewSortArgs = {
   input: CreateViewSortInput;
 };
-
 
 export type MutationCreateDatabaseConfigVariableArgs = {
   key: Scalars['String'];
   value: Scalars['JSON'];
 };
 
-
 export type MutationCreateDraftFromWorkflowVersionArgs = {
   input: CreateDraftFromWorkflowVersionInput;
 };
-
 
 export type MutationCreateFileArgs = {
   file: Scalars['Upload'];
 };
 
-
 export type MutationCreateOidcIdentityProviderArgs = {
   input: SetupOidcSsoInput;
 };
-
 
 export type MutationCreateObjectEventArgs = {
   event: Scalars['String'];
@@ -1522,179 +1506,144 @@ export type MutationCreateObjectEventArgs = {
   recordId: Scalars['UUID'];
 };
 
-
 export type MutationCreateOneAgentArgs = {
   input: CreateAgentInput;
 };
-
 
 export type MutationCreateOneFieldArgs = {
   input: CreateOneFieldMetadataInput;
 };
 
-
 export type MutationCreateOneRoleArgs = {
   createRoleInput: CreateRoleInput;
 };
-
 
 export type MutationCreateOneServerlessFunctionArgs = {
   input: CreateServerlessFunctionInput;
 };
 
-
 export type MutationCreateSamlIdentityProviderArgs = {
   input: SetupSamlSsoInput;
 };
-
 
 export type MutationCreateWebhookArgs = {
   input: CreateWebhookDto;
 };
 
-
 export type MutationCreateWorkflowVersionEdgeArgs = {
   input: CreateWorkflowVersionEdgeInput;
 };
-
 
 export type MutationCreateWorkflowVersionStepArgs = {
   input: CreateWorkflowVersionStepInput;
 };
 
-
 export type MutationDeactivateWorkflowVersionArgs = {
   workflowVersionId: Scalars['UUID'];
 };
-
 
 export type MutationDeleteApprovedAccessDomainArgs = {
   input: DeleteApprovedAccessDomainInput;
 };
 
-
 export type MutationDeleteCoreViewArgs = {
   id: Scalars['String'];
 };
-
 
 export type MutationDeleteCoreViewFieldArgs = {
   id: Scalars['String'];
 };
 
-
 export type MutationDeleteCoreViewFilterArgs = {
   id: Scalars['String'];
 };
-
 
 export type MutationDeleteCoreViewFilterGroupArgs = {
   id: Scalars['String'];
 };
 
-
 export type MutationDeleteCoreViewGroupArgs = {
   id: Scalars['String'];
 };
-
 
 export type MutationDeleteCoreViewSortArgs = {
   id: Scalars['String'];
 };
 
-
 export type MutationDeleteDatabaseConfigVariableArgs = {
   key: Scalars['String'];
 };
-
 
 export type MutationDeleteFileArgs = {
   fileId: Scalars['UUID'];
 };
 
-
 export type MutationDeleteOneAgentArgs = {
   input: AgentIdInput;
 };
-
 
 export type MutationDeleteOneFieldArgs = {
   input: DeleteOneFieldInput;
 };
 
-
 export type MutationDeleteOneObjectArgs = {
   input: DeleteOneObjectInput;
 };
-
 
 export type MutationDeleteOneRoleArgs = {
   roleId: Scalars['UUID'];
 };
 
-
 export type MutationDeleteOneServerlessFunctionArgs = {
   input: ServerlessFunctionIdInput;
 };
-
 
 export type MutationDeleteSsoIdentityProviderArgs = {
   input: DeleteSsoInput;
 };
 
-
 export type MutationDeleteTwoFactorAuthenticationMethodArgs = {
   twoFactorAuthenticationMethodId: Scalars['UUID'];
 };
-
 
 export type MutationDeleteWebhookArgs = {
   input: DeleteWebhookDto;
 };
 
-
 export type MutationDeleteWorkflowVersionEdgeArgs = {
   input: CreateWorkflowVersionEdgeInput;
 };
-
 
 export type MutationDeleteWorkflowVersionStepArgs = {
   input: DeleteWorkflowVersionStepInput;
 };
 
-
 export type MutationDeleteWorkspaceInvitationArgs = {
   appTokenId: Scalars['String'];
 };
 
-
 export type MutationEditSsoIdentityProviderArgs = {
   input: EditSsoInput;
 };
-
 
 export type MutationEmailPasswordResetLinkArgs = {
   email: Scalars['String'];
   workspaceId: Scalars['UUID'];
 };
 
-
 export type MutationExecuteOneServerlessFunctionArgs = {
   input: ExecuteServerlessFunctionInput;
 };
-
 
 export type MutationGenerateApiKeyTokenArgs = {
   apiKeyId: Scalars['UUID'];
   expiresAt: Scalars['String'];
 };
 
-
 export type MutationGetAuthTokensFromLoginTokenArgs = {
   loginToken: Scalars['String'];
   origin: Scalars['String'];
 };
-
 
 export type MutationGetAuthTokensFromOtpArgs = {
   captchaToken?: InputMaybe<Scalars['String']>;
@@ -1703,11 +1652,9 @@ export type MutationGetAuthTokensFromOtpArgs = {
   otp: Scalars['String'];
 };
 
-
 export type MutationGetAuthorizationUrlForSsoArgs = {
   input: GetAuthorizationUrlForSsoInput;
 };
-
 
 export type MutationGetLoginTokenFromCredentialsArgs = {
   captchaToken?: InputMaybe<Scalars['String']>;
@@ -1718,7 +1665,6 @@ export type MutationGetLoginTokenFromCredentialsArgs = {
   verifyEmailRedirectPath?: InputMaybe<Scalars['String']>;
 };
 
-
 export type MutationGetLoginTokenFromEmailVerificationTokenArgs = {
   captchaToken?: InputMaybe<Scalars['String']>;
   email: Scalars['String'];
@@ -1726,66 +1672,54 @@ export type MutationGetLoginTokenFromEmailVerificationTokenArgs = {
   origin: Scalars['String'];
 };
 
-
 export type MutationGetWorkspaceAgnosticTokenFromEmailVerificationTokenArgs = {
   captchaToken?: InputMaybe<Scalars['String']>;
   email: Scalars['String'];
   emailVerificationToken: Scalars['String'];
 };
 
-
 export type MutationImpersonateArgs = {
   userId: Scalars['UUID'];
   workspaceId: Scalars['UUID'];
 };
-
 
 export type MutationInitiateOtpProvisioningArgs = {
   loginToken: Scalars['String'];
   origin: Scalars['String'];
 };
 
-
 export type MutationPublishServerlessFunctionArgs = {
   input: PublishServerlessFunctionInput;
 };
-
 
 export type MutationRemoveAgentHandoffArgs = {
   input: RemoveAgentHandoffInput;
 };
 
-
 export type MutationRemoveRoleFromAgentArgs = {
   agentId: Scalars['UUID'];
 };
 
-
 export type MutationRenewTokenArgs = {
   appToken: Scalars['String'];
 };
-
 
 export type MutationResendEmailVerificationTokenArgs = {
   email: Scalars['String'];
   origin: Scalars['String'];
 };
 
-
 export type MutationResendWorkspaceInvitationArgs = {
   appTokenId: Scalars['String'];
 };
-
 
 export type MutationRevokeApiKeyArgs = {
   input: RevokeApiKeyDto;
 };
 
-
 export type MutationRunWorkflowVersionArgs = {
   input: RunWorkflowVersionInput;
 };
-
 
 export type MutationSaveImapSmtpCaldavAccountArgs = {
   accountOwnerId: Scalars['UUID'];
@@ -1794,11 +1728,9 @@ export type MutationSaveImapSmtpCaldavAccountArgs = {
   id?: InputMaybe<Scalars['UUID']>;
 };
 
-
 export type MutationSendInvitationsArgs = {
   emails: Array<Scalars['String']>;
 };
-
 
 export type MutationSignInArgs = {
   captchaToken?: InputMaybe<Scalars['String']>;
@@ -1808,7 +1740,6 @@ export type MutationSignInArgs = {
   verifyEmailRedirectPath?: InputMaybe<Scalars['String']>;
 };
 
-
 export type MutationSignUpArgs = {
   captchaToken?: InputMaybe<Scalars['String']>;
   email: Scalars['String'];
@@ -1816,7 +1747,6 @@ export type MutationSignUpArgs = {
   password: Scalars['String'];
   verifyEmailRedirectPath?: InputMaybe<Scalars['String']>;
 };
-
 
 export type MutationSignUpInWorkspaceArgs = {
   captchaToken?: InputMaybe<Scalars['String']>;
@@ -1829,11 +1759,9 @@ export type MutationSignUpInWorkspaceArgs = {
   workspacePersonalInviteToken?: InputMaybe<Scalars['String']>;
 };
 
-
 export type MutationSubmitFormStepArgs = {
   input: SubmitFormStepInput;
 };
-
 
 export type MutationTrackAnalyticsArgs = {
   event?: InputMaybe<Scalars['String']>;
@@ -1842,114 +1770,93 @@ export type MutationTrackAnalyticsArgs = {
   type: AnalyticsType;
 };
 
-
 export type MutationUpdateApiKeyArgs = {
   input: UpdateApiKeyDto;
 };
-
 
 export type MutationUpdateCoreViewArgs = {
   id: Scalars['String'];
   input: UpdateViewInput;
 };
 
-
 export type MutationUpdateCoreViewFieldArgs = {
   id: Scalars['String'];
   input: UpdateViewFieldInput;
 };
-
 
 export type MutationUpdateCoreViewFilterArgs = {
   id: Scalars['String'];
   input: UpdateViewFilterInput;
 };
 
-
 export type MutationUpdateCoreViewFilterGroupArgs = {
   id: Scalars['String'];
   input: UpdateViewFilterGroupInput;
 };
-
 
 export type MutationUpdateCoreViewGroupArgs = {
   id: Scalars['String'];
   input: UpdateViewGroupInput;
 };
 
-
 export type MutationUpdateCoreViewSortArgs = {
   id: Scalars['String'];
   input: UpdateViewSortInput;
 };
-
 
 export type MutationUpdateDatabaseConfigVariableArgs = {
   key: Scalars['String'];
   value: Scalars['JSON'];
 };
 
-
 export type MutationUpdateLabPublicFeatureFlagArgs = {
   input: UpdateLabPublicFeatureFlagInput;
 };
-
 
 export type MutationUpdateOneAgentArgs = {
   input: UpdateAgentInput;
 };
 
-
 export type MutationUpdateOneFieldArgs = {
   input: UpdateOneFieldMetadataInput;
 };
-
 
 export type MutationUpdateOneObjectArgs = {
   input: UpdateOneObjectInput;
 };
 
-
 export type MutationUpdateOneRoleArgs = {
   updateRoleInput: UpdateRoleInput;
 };
 
-
 export type MutationUpdateOneServerlessFunctionArgs = {
   input: UpdateServerlessFunctionInput;
 };
-
 
 export type MutationUpdatePasswordViaResetTokenArgs = {
   newPassword: Scalars['String'];
   passwordResetToken: Scalars['String'];
 };
 
-
 export type MutationUpdateWebhookArgs = {
   input: UpdateWebhookDto;
 };
-
 
 export type MutationUpdateWorkflowRunStepArgs = {
   input: UpdateWorkflowRunStepInput;
 };
 
-
 export type MutationUpdateWorkflowVersionPositionsArgs = {
   input: UpdateWorkflowVersionPositionsInput;
 };
-
 
 export type MutationUpdateWorkflowVersionStepArgs = {
   input: UpdateWorkflowVersionStepInput;
 };
 
-
 export type MutationUpdateWorkspaceArgs = {
   data: UpdateWorkspaceInput;
 };
-
 
 export type MutationUpdateWorkspaceFeatureFlagArgs = {
   featureFlag: Scalars['String'];
@@ -1957,63 +1864,53 @@ export type MutationUpdateWorkspaceFeatureFlagArgs = {
   workspaceId: Scalars['UUID'];
 };
 
-
 export type MutationUpdateWorkspaceMemberRoleArgs = {
   roleId: Scalars['UUID'];
   workspaceMemberId: Scalars['UUID'];
 };
-
 
 export type MutationUploadFileArgs = {
   file: Scalars['Upload'];
   fileFolder?: InputMaybe<FileFolder>;
 };
 
-
 export type MutationUploadImageArgs = {
   file: Scalars['Upload'];
   fileFolder?: InputMaybe<FileFolder>;
 };
 
-
 export type MutationUploadProfilePictureArgs = {
   file: Scalars['Upload'];
 };
-
 
 export type MutationUploadWorkspaceLogoArgs = {
   file: Scalars['Upload'];
 };
 
-
 export type MutationUpsertFieldPermissionsArgs = {
   upsertFieldPermissionsInput: UpsertFieldPermissionsInput;
 };
-
 
 export type MutationUpsertObjectPermissionsArgs = {
   upsertObjectPermissionsInput: UpsertObjectPermissionsInput;
 };
 
-
 export type MutationUpsertPermissionFlagsArgs = {
   upsertPermissionFlagsInput: UpsertPermissionFlagsInput;
 };
-
 
 export type MutationUserLookupAdminPanelArgs = {
   userIdentifier: Scalars['String'];
 };
 
-
 export type MutationValidateApprovedAccessDomainArgs = {
   input: ValidateApprovedAccessDomainInput;
 };
 
-
-export type MutationVerifyTwoFactorAuthenticationMethodForAuthenticatedUserArgs = {
-  otp: Scalars['String'];
-};
+export type MutationVerifyTwoFactorAuthenticationMethodForAuthenticatedUserArgs =
+  {
+    otp: Scalars['String'];
+  };
 
 export type Object = {
   __typename?: 'Object';
@@ -2044,12 +1941,10 @@ export type Object = {
   updatedAt: Scalars['DateTime'];
 };
 
-
 export type ObjectFieldsArgs = {
   filter?: FieldFilter;
   paging?: CursorPaging;
 };
-
 
 export type ObjectIndexMetadatasArgs = {
   filter?: IndexFilter;
@@ -2159,7 +2054,7 @@ export enum OnboardingStatus {
   PLAN_REQUIRED = 'PLAN_REQUIRED',
   PROFILE_CREATION = 'PROFILE_CREATION',
   SYNC_EMAIL = 'SYNC_EMAIL',
-  WORKSPACE_ACTIVATION = 'WORKSPACE_ACTIVATION'
+  WORKSPACE_ACTIVATION = 'WORKSPACE_ACTIVATION',
 }
 
 export type OnboardingStepSuccess = {
@@ -2198,14 +2093,14 @@ export enum PermissionFlagType {
   SEND_EMAIL_TOOL = 'SEND_EMAIL_TOOL',
   WORKFLOWS = 'WORKFLOWS',
   WORKSPACE = 'WORKSPACE',
-  WORKSPACE_MEMBERS = 'WORKSPACE_MEMBERS'
+  WORKSPACE_MEMBERS = 'WORKSPACE_MEMBERS',
 }
 
 export enum PermissionsOnAllObjectRecords {
   DESTROY_ALL_OBJECT_RECORDS = 'DESTROY_ALL_OBJECT_RECORDS',
   READ_ALL_OBJECT_RECORDS = 'READ_ALL_OBJECT_RECORDS',
   SOFT_DELETE_ALL_OBJECT_RECORDS = 'SOFT_DELETE_ALL_OBJECT_RECORDS',
-  UPDATE_ALL_OBJECT_RECORDS = 'UPDATE_ALL_OBJECT_RECORDS'
+  UPDATE_ALL_OBJECT_RECORDS = 'UPDATE_ALL_OBJECT_RECORDS',
 }
 
 export type PlaceDetailsResultDto = {
@@ -2320,73 +2215,59 @@ export type Query = {
   webhooks: Array<Webhook>;
 };
 
-
 export type QueryAgentChatMessagesArgs = {
   threadId: Scalars['UUID'];
 };
-
 
 export type QueryAgentChatThreadArgs = {
   id: Scalars['UUID'];
 };
 
-
 export type QueryAgentChatThreadsArgs = {
   agentId: Scalars['UUID'];
 };
-
 
 export type QueryApiKeyArgs = {
   input: GetApiKeyDto;
 };
 
-
 export type QueryBillingPortalSessionArgs = {
   returnUrlPath?: InputMaybe<Scalars['String']>;
 };
-
 
 export type QueryCheckUserExistsArgs = {
   captchaToken?: InputMaybe<Scalars['String']>;
   email: Scalars['String'];
 };
 
-
 export type QueryCheckWorkspaceInviteHashIsValidArgs = {
   inviteHash: Scalars['String'];
 };
-
 
 export type QueryFindAgentHandoffTargetsArgs = {
   input: AgentIdInput;
 };
 
-
 export type QueryFindAgentHandoffsArgs = {
   input: AgentIdInput;
 };
-
 
 export type QueryFindOneAgentArgs = {
   input: AgentIdInput;
 };
 
-
 export type QueryFindOneServerlessFunctionArgs = {
   input: ServerlessFunctionIdInput;
 };
-
 
 export type QueryFindWorkspaceFromInviteHashArgs = {
   inviteHash: Scalars['String'];
 };
 
-
 export type QueryGetAddressDetailsArgs = {
   placeId: Scalars['String'];
   token: Scalars['String'];
 };
-
 
 export type QueryGetAutoCompleteAddressArgs = {
   address: Scalars['String'];
@@ -2395,102 +2276,82 @@ export type QueryGetAutoCompleteAddressArgs = {
   token: Scalars['String'];
 };
 
-
 export type QueryGetAvailablePackagesArgs = {
   input: ServerlessFunctionIdInput;
 };
-
 
 export type QueryGetConnectedImapSmtpCaldavAccountArgs = {
   id: Scalars['UUID'];
 };
 
-
 export type QueryGetCoreViewArgs = {
   id: Scalars['String'];
 };
-
 
 export type QueryGetCoreViewFieldArgs = {
   id: Scalars['String'];
 };
 
-
 export type QueryGetCoreViewFieldsArgs = {
   viewId: Scalars['String'];
 };
-
 
 export type QueryGetCoreViewFilterArgs = {
   id: Scalars['String'];
 };
 
-
 export type QueryGetCoreViewFilterGroupArgs = {
   id: Scalars['String'];
 };
-
 
 export type QueryGetCoreViewFilterGroupsArgs = {
   viewId?: InputMaybe<Scalars['String']>;
 };
 
-
 export type QueryGetCoreViewFiltersArgs = {
   viewId?: InputMaybe<Scalars['String']>;
 };
-
 
 export type QueryGetCoreViewGroupArgs = {
   id: Scalars['String'];
 };
 
-
 export type QueryGetCoreViewGroupsArgs = {
   viewId?: InputMaybe<Scalars['String']>;
 };
-
 
 export type QueryGetCoreViewSortArgs = {
   id: Scalars['String'];
 };
 
-
 export type QueryGetCoreViewSortsArgs = {
   viewId?: InputMaybe<Scalars['String']>;
 };
-
 
 export type QueryGetCoreViewsArgs = {
   objectMetadataId?: InputMaybe<Scalars['String']>;
 };
 
-
 export type QueryGetDatabaseConfigVariableArgs = {
   key: Scalars['String'];
 };
-
 
 export type QueryGetIndicatorHealthStatusArgs = {
   indicatorId: HealthIndicatorId;
 };
 
-
 export type QueryGetPublicWorkspaceDataByDomainArgs = {
   origin?: InputMaybe<Scalars['String']>;
 };
-
 
 export type QueryGetQueueMetricsArgs = {
   queueName: Scalars['String'];
   timeRange?: InputMaybe<QueueMetricsTimeRange>;
 };
 
-
 export type QueryGetServerlessFunctionSourceCodeArgs = {
   input: GetServerlessFunctionSourceCodeInput;
 };
-
 
 export type QueryGetTimelineCalendarEventsFromCompanyIdArgs = {
   companyId: Scalars['UUID'];
@@ -2498,13 +2359,11 @@ export type QueryGetTimelineCalendarEventsFromCompanyIdArgs = {
   pageSize: Scalars['Int'];
 };
 
-
 export type QueryGetTimelineCalendarEventsFromOpportunityIdArgs = {
   opportunityId: Scalars['UUID'];
   page: Scalars['Int'];
   pageSize: Scalars['Int'];
 };
-
 
 export type QueryGetTimelineCalendarEventsFromPersonIdArgs = {
   page: Scalars['Int'];
@@ -2512,13 +2371,11 @@ export type QueryGetTimelineCalendarEventsFromPersonIdArgs = {
   personId: Scalars['UUID'];
 };
 
-
 export type QueryGetTimelineThreadsFromCompanyIdArgs = {
   companyId: Scalars['UUID'];
   page: Scalars['Int'];
   pageSize: Scalars['Int'];
 };
-
 
 export type QueryGetTimelineThreadsFromOpportunityIdArgs = {
   opportunityId: Scalars['UUID'];
@@ -2526,13 +2383,11 @@ export type QueryGetTimelineThreadsFromOpportunityIdArgs = {
   pageSize: Scalars['Int'];
 };
 
-
 export type QueryGetTimelineThreadsFromPersonIdArgs = {
   page: Scalars['Int'];
   pageSize: Scalars['Int'];
   personId: Scalars['UUID'];
 };
-
 
 export type QuerySearchArgs = {
   after?: InputMaybe<Scalars['String']>;
@@ -2543,11 +2398,9 @@ export type QuerySearchArgs = {
   searchInput: Scalars['String'];
 };
 
-
 export type QueryValidatePasswordResetTokenArgs = {
   passwordResetToken: Scalars['String'];
 };
-
 
 export type QueryWebhookArgs = {
   input: GetWebhookDto;
@@ -2579,7 +2432,7 @@ export enum QueueMetricsTimeRange {
   OneDay = 'OneDay',
   OneHour = 'OneHour',
   SevenDays = 'SevenDays',
-  TwelveHours = 'TwelveHours'
+  TwelveHours = 'TwelveHours',
 }
 
 export type Relation = {
@@ -2594,7 +2447,7 @@ export type Relation = {
 /** Relation type */
 export enum RelationType {
   MANY_TO_ONE = 'MANY_TO_ONE',
-  ONE_TO_MANY = 'ONE_TO_MANY'
+  ONE_TO_MANY = 'ONE_TO_MANY',
 }
 
 export type RemoteServer = {
@@ -2622,7 +2475,7 @@ export type RemoteTable = {
 /** Status of the table */
 export enum RemoteTableStatus {
   NOT_SYNCED = 'NOT_SYNCED',
-  SYNCED = 'SYNCED'
+  SYNCED = 'SYNCED',
 }
 
 export type RemoveAgentHandoffInput = {
@@ -2688,7 +2541,7 @@ export type SsoIdentityProvider = {
 export enum SsoIdentityProviderStatus {
   Active = 'Active',
   Error = 'Error',
-  Inactive = 'Inactive'
+  Inactive = 'Inactive',
 }
 
 export type SearchRecord = {
@@ -2766,7 +2619,7 @@ export type ServerlessFunctionExecutionResult = {
 export enum ServerlessFunctionExecutionStatus {
   ERROR = 'ERROR',
   IDLE = 'IDLE',
-  SUCCESS = 'SUCCESS'
+  SUCCESS = 'SUCCESS',
 }
 
 export type ServerlessFunctionIdInput = {
@@ -2833,7 +2686,6 @@ export type Subscription = {
   onDbEvent: OnDbEventDto;
 };
 
-
 export type SubscriptionOnDbEventArgs = {
   input: OnDbEventInput;
 };
@@ -2842,7 +2694,7 @@ export enum SubscriptionInterval {
   Day = 'Day',
   Month = 'Month',
   Week = 'Week',
-  Year = 'Year'
+  Year = 'Year',
 }
 
 export enum SubscriptionStatus {
@@ -2853,7 +2705,7 @@ export enum SubscriptionStatus {
   PastDue = 'PastDue',
   Paused = 'Paused',
   Trialing = 'Trialing',
-  Unpaid = 'Unpaid'
+  Unpaid = 'Unpaid',
 }
 
 export type Support = {
@@ -2864,7 +2716,7 @@ export type Support = {
 
 export enum SupportDriver {
   FRONT = 'FRONT',
-  NONE = 'NONE'
+  NONE = 'NONE',
 }
 
 export type SystemHealth = {
@@ -3253,7 +3105,9 @@ export type UserWorkspace = {
   /** @deprecated Use objectPermissions instead */
   objectRecordsPermissions?: Maybe<Array<PermissionsOnAllObjectRecords>>;
   permissionFlags?: Maybe<Array<PermissionFlagType>>;
-  twoFactorAuthenticationMethodSummary?: Maybe<Array<TwoFactorAuthenticationMethodDto>>;
+  twoFactorAuthenticationMethodSummary?: Maybe<
+    Array<TwoFactorAuthenticationMethodDto>
+  >;
   updatedAt: Scalars['DateTime'];
   user: User;
   userId: Scalars['UUID'];
@@ -3286,7 +3140,7 @@ export type VersionInfo = {
 export enum ViewFilterGroupLogicalOperator {
   AND = 'AND',
   NOT = 'NOT',
-  OR = 'OR'
+  OR = 'OR',
 }
 
 export enum ViewFilterOperand {
@@ -3305,22 +3159,22 @@ export enum ViewFilterOperand {
   IS_RELATIVE = 'IS_RELATIVE',
   IS_TODAY = 'IS_TODAY',
   LESS_THAN_OR_EQUAL = 'LESS_THAN_OR_EQUAL',
-  VECTOR_SEARCH = 'VECTOR_SEARCH'
+  VECTOR_SEARCH = 'VECTOR_SEARCH',
 }
 
 export enum ViewOpenRecordIn {
   RECORD_PAGE = 'RECORD_PAGE',
-  SIDE_PANEL = 'SIDE_PANEL'
+  SIDE_PANEL = 'SIDE_PANEL',
 }
 
 export enum ViewSortDirection {
   ASC = 'ASC',
-  DESC = 'DESC'
+  DESC = 'DESC',
 }
 
 export enum ViewType {
   KANBAN = 'KANBAN',
-  TABLE = 'TABLE'
+  TABLE = 'TABLE',
 }
 
 export type Webhook = {
@@ -3434,7 +3288,7 @@ export enum WorkspaceActivationStatus {
   INACTIVE = 'INACTIVE',
   ONGOING_CREATION = 'ONGOING_CREATION',
   PENDING_CREATION = 'PENDING_CREATION',
-  SUSPENDED = 'SUSPENDED'
+  SUSPENDED = 'SUSPENDED',
 }
 
 export type WorkspaceEdge = {
@@ -3489,14 +3343,14 @@ export enum WorkspaceMemberDateFormatEnum {
   DAY_FIRST = 'DAY_FIRST',
   MONTH_FIRST = 'MONTH_FIRST',
   SYSTEM = 'SYSTEM',
-  YEAR_FIRST = 'YEAR_FIRST'
+  YEAR_FIRST = 'YEAR_FIRST',
 }
 
 /** Time time as Military, Standard or system as default */
 export enum WorkspaceMemberTimeFormatEnum {
   HOUR_12 = 'HOUR_12',
   HOUR_24 = 'HOUR_24',
-  SYSTEM = 'SYSTEM'
+  SYSTEM = 'SYSTEM',
 }
 
 export type WorkspaceNameAndId = {
@@ -3521,50 +3375,91 @@ export type SearchQueryVariables = Exact<{
   searchInput: Scalars['String'];
   limit: Scalars['Int'];
   after?: InputMaybe<Scalars['String']>;
-  excludedObjectNameSingulars?: InputMaybe<Array<Scalars['String']> | Scalars['String']>;
-  includedObjectNameSingulars?: InputMaybe<Array<Scalars['String']> | Scalars['String']>;
+  excludedObjectNameSingulars?: InputMaybe<
+    Array<Scalars['String']> | Scalars['String']
+  >;
+  includedObjectNameSingulars?: InputMaybe<
+    Array<Scalars['String']> | Scalars['String']
+  >;
   filter?: InputMaybe<ObjectRecordFilterInput>;
 }>;
 
-
-export type SearchQuery = { __typename?: 'Query', search: { __typename?: 'SearchResultConnection', edges: Array<{ __typename?: 'SearchResultEdge', cursor: string, node: { __typename?: 'SearchRecord', recordId: any, objectNameSingular: string, label: string, imageUrl?: string | null, tsRankCD: number, tsRank: number } }>, pageInfo: { __typename?: 'SearchResultPageInfo', hasNextPage: boolean, endCursor?: string | null } } };
+export type SearchQuery = {
+  __typename?: 'Query';
+  search: {
+    __typename?: 'SearchResultConnection';
+    edges: Array<{
+      __typename?: 'SearchResultEdge';
+      cursor: string;
+      node: {
+        __typename?: 'SearchRecord';
+        recordId: any;
+        objectNameSingular: string;
+        label: string;
+        imageUrl?: string | null;
+        tsRankCD: number;
+        tsRank: number;
+      };
+    }>;
+    pageInfo: {
+      __typename?: 'SearchResultPageInfo';
+      hasNextPage: boolean;
+      endCursor?: string | null;
+    };
+  };
+};
 
 export type OnDbEventSubscriptionVariables = Exact<{
   input: OnDbEventInput;
 }>;
 
-
-export type OnDbEventSubscription = { __typename?: 'Subscription', onDbEvent: { __typename?: 'OnDbEventDTO', eventDate: string, action: DatabaseEventAction, objectNameSingular: string, updatedFields?: Array<string> | null, record: any } };
-
+export type OnDbEventSubscription = {
+  __typename?: 'Subscription';
+  onDbEvent: {
+    __typename?: 'OnDbEventDTO';
+    eventDate: string;
+    action: DatabaseEventAction;
+    objectNameSingular: string;
+    updatedFields?: Array<string> | null;
+    record: any;
+  };
+};
 
 export const SearchDocument = gql`
-    query Search($searchInput: String!, $limit: Int!, $after: String, $excludedObjectNameSingulars: [String!], $includedObjectNameSingulars: [String!], $filter: ObjectRecordFilterInput) {
-  search(
-    searchInput: $searchInput
-    limit: $limit
-    after: $after
-    excludedObjectNameSingulars: $excludedObjectNameSingulars
-    includedObjectNameSingulars: $includedObjectNameSingulars
-    filter: $filter
+  query Search(
+    $searchInput: String!
+    $limit: Int!
+    $after: String
+    $excludedObjectNameSingulars: [String!]
+    $includedObjectNameSingulars: [String!]
+    $filter: ObjectRecordFilterInput
   ) {
-    edges {
-      node {
-        recordId
-        objectNameSingular
-        label
-        imageUrl
-        tsRankCD
-        tsRank
+    search(
+      searchInput: $searchInput
+      limit: $limit
+      after: $after
+      excludedObjectNameSingulars: $excludedObjectNameSingulars
+      includedObjectNameSingulars: $includedObjectNameSingulars
+      filter: $filter
+    ) {
+      edges {
+        node {
+          recordId
+          objectNameSingular
+          label
+          imageUrl
+          tsRankCD
+          tsRank
+        }
+        cursor
       }
-      cursor
-    }
-    pageInfo {
-      hasNextPage
-      endCursor
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
     }
   }
-}
-    `;
+`;
 
 /**
  * __useSearchQuery__
@@ -3587,28 +3482,41 @@ export const SearchDocument = gql`
  *   },
  * });
  */
-export function useSearchQuery(baseOptions: Apollo.QueryHookOptions<SearchQuery, SearchQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<SearchQuery, SearchQueryVariables>(SearchDocument, options);
-      }
-export function useSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SearchQuery, SearchQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<SearchQuery, SearchQueryVariables>(SearchDocument, options);
-        }
+export function useSearchQuery(
+  baseOptions: Apollo.QueryHookOptions<SearchQuery, SearchQueryVariables>,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<SearchQuery, SearchQueryVariables>(
+    SearchDocument,
+    options,
+  );
+}
+export function useSearchLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<SearchQuery, SearchQueryVariables>,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<SearchQuery, SearchQueryVariables>(
+    SearchDocument,
+    options,
+  );
+}
 export type SearchQueryHookResult = ReturnType<typeof useSearchQuery>;
 export type SearchLazyQueryHookResult = ReturnType<typeof useSearchLazyQuery>;
-export type SearchQueryResult = Apollo.QueryResult<SearchQuery, SearchQueryVariables>;
+export type SearchQueryResult = Apollo.QueryResult<
+  SearchQuery,
+  SearchQueryVariables
+>;
 export const OnDbEventDocument = gql`
-    subscription OnDbEvent($input: OnDbEventInput!) {
-  onDbEvent(input: $input) {
-    eventDate
-    action
-    objectNameSingular
-    updatedFields
-    record
+  subscription OnDbEvent($input: OnDbEventInput!) {
+    onDbEvent(input: $input) {
+      eventDate
+      action
+      objectNameSingular
+      updatedFields
+      record
+    }
   }
-}
-    `;
+`;
 
 /**
  * __useOnDbEventSubscription__
@@ -3626,9 +3534,20 @@ export const OnDbEventDocument = gql`
  *   },
  * });
  */
-export function useOnDbEventSubscription(baseOptions: Apollo.SubscriptionHookOptions<OnDbEventSubscription, OnDbEventSubscriptionVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useSubscription<OnDbEventSubscription, OnDbEventSubscriptionVariables>(OnDbEventDocument, options);
-      }
-export type OnDbEventSubscriptionHookResult = ReturnType<typeof useOnDbEventSubscription>;
-export type OnDbEventSubscriptionResult = Apollo.SubscriptionResult<OnDbEventSubscription>;
+export function useOnDbEventSubscription(
+  baseOptions: Apollo.SubscriptionHookOptions<
+    OnDbEventSubscription,
+    OnDbEventSubscriptionVariables
+  >,
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useSubscription<
+    OnDbEventSubscription,
+    OnDbEventSubscriptionVariables
+  >(OnDbEventDocument, options);
+}
+export type OnDbEventSubscriptionHookResult = ReturnType<
+  typeof useOnDbEventSubscription
+>;
+export type OnDbEventSubscriptionResult =
+  Apollo.SubscriptionResult<OnDbEventSubscription>;

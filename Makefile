@@ -23,8 +23,9 @@ postgres-on-docker: clean-containers
 	@echo "Creating databases if they don't exist..."
 	docker exec twenty_pg psql -U postgres -d postgres -c "CREATE DATABASE \"default\" WITH OWNER postgres;" 2>nul || echo "Database default already exists"
 	docker exec twenty_pg psql -U postgres -d postgres -c "CREATE DATABASE \"test\" WITH OWNER postgres;" 2>nul || echo "Database test already exists"
-	@echo "Creating core schema..."
-	docker exec twenty_pg psql -U postgres -d default -c "CREATE SCHEMA IF NOT EXISTS core;"
+	docker exec twenty_pg psql -U postgres -d postgres -c "CREATE DATABASE \"twenty\" WITH OWNER postgres;" 2>nul || echo "Database twenty already exists"
+	@echo "Creating core schema in twenty database..."
+	docker exec twenty_pg psql -U postgres -d twenty -c "CREATE SCHEMA IF NOT EXISTS core;"
 	@echo "PostgreSQL setup complete!"
 
 redis-on-docker:

@@ -1,6 +1,6 @@
 /**
  * Unit tests for useCreateNewAIChatThread hook
- * 
+ *
  * Tests the enhanced functionality for passing businessSetupStep parameter
  * to create specialized business setup agents.
  */
@@ -8,7 +8,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { RecoilRoot } from 'recoil';
 import { useCreateNewAIChatThread } from '../useCreateNewAIChatThread';
-import { currentAIChatThreadComponentState } from '@/ai/states/currentAIChatThreadComponentState';
 import { ReactNode } from 'react';
 
 // Mock dependencies
@@ -23,25 +22,26 @@ const mockCreateAgentChatThreadMutation = jest.fn();
 // Mock the hooks and mutations
 beforeEach(() => {
   jest.clearAllMocks();
-  
-  require('@/command-menu/hooks/useOpenAskAIPageInCommandMenu').useOpenAskAIPageInCommandMenu = jest.fn(() => ({
-    openAskAIPage: mockOpenAskAIPage,
-  }));
-  
-  require('@/business-setup/hooks/useBusinessSetupStatus').useBusinessSetupStatus = mockUseBusinessSetupStatus;
-  
-  require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation = jest.fn(() => [
-    mockCreateAgentChatThreadMutation,
-    { loading: false, error: null }
-  ]);
+
+  require('@/command-menu/hooks/useOpenAskAIPageInCommandMenu').useOpenAskAIPageInCommandMenu =
+    jest.fn(() => ({
+      openAskAIPage: mockOpenAskAIPage,
+    }));
+
+  require('@/business-setup/hooks/useBusinessSetupStatus').useBusinessSetupStatus =
+    mockUseBusinessSetupStatus;
+
+  require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation =
+    jest.fn(() => [
+      mockCreateAgentChatThreadMutation,
+      { loading: false, error: null },
+    ]);
 });
 
 // Helper wrapper with RecoilRoot
 const createWrapper = () => {
   return ({ children }: { children: ReactNode }) => (
-    <RecoilRoot>
-      {children}
-    </RecoilRoot>
+    <RecoilRoot>{children}</RecoilRoot>
   );
 };
 
@@ -53,12 +53,15 @@ describe('useCreateNewAIChatThread', () => {
     it('should initialize with correct mutation variables for standard usage', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue(null);
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
 
       const wrapper = createWrapper();
-      
+
       // Act
-      renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), { wrapper });
+      renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), {
+        wrapper,
+      });
 
       // Assert
       expect(mockMutation).toHaveBeenCalledWith({
@@ -76,15 +79,20 @@ describe('useCreateNewAIChatThread', () => {
     it('should include businessSetupStep when provided explicitly', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('BUSINESS_ANALYSIS');
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
 
       const wrapper = createWrapper();
-      
+
       // Act
-      renderHook(() => useCreateNewAIChatThread({ 
-        agentId: testAgentId, 
-        businessSetupStep: 'WELCOME' 
-      }), { wrapper });
+      renderHook(
+        () =>
+          useCreateNewAIChatThread({
+            agentId: testAgentId,
+            businessSetupStep: 'WELCOME',
+          }),
+        { wrapper },
+      );
 
       // Assert
       expect(mockMutation).toHaveBeenCalledWith({
@@ -102,12 +110,15 @@ describe('useCreateNewAIChatThread', () => {
     it('should use current business setup status when no explicit step provided', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('BUSINESS_ANALYSIS');
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
 
       const wrapper = createWrapper();
-      
+
       // Act
-      renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), { wrapper });
+      renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), {
+        wrapper,
+      });
 
       // Assert
       expect(mockMutation).toHaveBeenCalledWith({
@@ -125,12 +136,15 @@ describe('useCreateNewAIChatThread', () => {
     it('should exclude businessSetupStep when status is COMPLETED', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('COMPLETED');
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
 
       const wrapper = createWrapper();
-      
+
       // Act
-      renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), { wrapper });
+      renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), {
+        wrapper,
+      });
 
       // Assert
       expect(mockMutation).toHaveBeenCalledWith({
@@ -153,10 +167,14 @@ describe('useCreateNewAIChatThread', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
       const wrapper = createWrapper();
-      const { result } = renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), { wrapper });
+      const { result } = renderHook(
+        () => useCreateNewAIChatThread({ agentId: testAgentId }),
+        { wrapper },
+      );
 
       // Get the onCompleted callback
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
       const onCompleted = mockMutation.mock.calls[0][0].onCompleted;
 
       // Act
@@ -164,17 +182,17 @@ describe('useCreateNewAIChatThread', () => {
         onCompleted({
           createAgentChatThread: {
             id: testThreadId,
-            agentId: 'specialized-agent-789'
-          }
+            agentId: 'specialized-agent-789',
+          },
         });
       });
 
       // Assert
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Created new chat thread:', 
-        testThreadId, 
-        'with agent:', 
-        'specialized-agent-789'
+        'Created new chat thread:',
+        testThreadId,
+        'with agent:',
+        'specialized-agent-789',
       );
       expect(mockOpenAskAIPage).toHaveBeenCalledTimes(1);
 
@@ -188,10 +206,14 @@ describe('useCreateNewAIChatThread', () => {
       const testError = new Error('GraphQL mutation failed');
 
       const wrapper = createWrapper();
-      const { result } = renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), { wrapper });
+      const { result } = renderHook(
+        () => useCreateNewAIChatThread({ agentId: testAgentId }),
+        { wrapper },
+      );
 
       // Get the onError callback
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
       const onError = mockMutation.mock.calls[0][0].onError;
 
       // Act
@@ -200,7 +222,10 @@ describe('useCreateNewAIChatThread', () => {
       });
 
       // Assert
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to create agent chat thread:', testError);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to create agent chat thread:',
+        testError,
+      );
 
       consoleSpy.mockRestore();
     });
@@ -210,15 +235,20 @@ describe('useCreateNewAIChatThread', () => {
     it('should prioritize explicit businessSetupStep over current status', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('BUSINESS_ANALYSIS');
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
 
       const wrapper = createWrapper();
-      
+
       // Act
-      renderHook(() => useCreateNewAIChatThread({ 
-        agentId: testAgentId, 
-        businessSetupStep: 'WELCOME' 
-      }), { wrapper });
+      renderHook(
+        () =>
+          useCreateNewAIChatThread({
+            agentId: testAgentId,
+            businessSetupStep: 'WELCOME',
+          }),
+        { wrapper },
+      );
 
       // Assert
       expect(mockMutation).toHaveBeenCalledWith({
@@ -236,15 +266,20 @@ describe('useCreateNewAIChatThread', () => {
     it('should handle undefined explicit businessSetupStep', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('WELCOME');
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
 
       const wrapper = createWrapper();
-      
+
       // Act
-      renderHook(() => useCreateNewAIChatThread({ 
-        agentId: testAgentId, 
-        businessSetupStep: undefined 
-      }), { wrapper });
+      renderHook(
+        () =>
+          useCreateNewAIChatThread({
+            agentId: testAgentId,
+            businessSetupStep: undefined,
+          }),
+        { wrapper },
+      );
 
       // Assert
       expect(mockMutation).toHaveBeenCalledWith({
@@ -264,12 +299,15 @@ describe('useCreateNewAIChatThread', () => {
     it('should handle null current business setup status', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue(null);
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
 
       const wrapper = createWrapper();
-      
+
       // Act
-      renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), { wrapper });
+      renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), {
+        wrapper,
+      });
 
       // Assert
       expect(mockMutation).toHaveBeenCalledWith({
@@ -287,10 +325,11 @@ describe('useCreateNewAIChatThread', () => {
     it('should handle empty string agentId', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('WELCOME');
-      const mockMutation = require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
+      const mockMutation =
+        require('~/generated-metadata/graphql').useCreateAgentChatThreadMutation;
 
       const wrapper = createWrapper();
-      
+
       // Act
       renderHook(() => useCreateNewAIChatThread({ agentId: '' }), { wrapper });
 
@@ -312,9 +351,12 @@ describe('useCreateNewAIChatThread', () => {
     it('should return createAgentChatThread function', () => {
       // Arrange
       const wrapper = createWrapper();
-      
+
       // Act
-      const { result } = renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), { wrapper });
+      const { result } = renderHook(
+        () => useCreateNewAIChatThread({ agentId: testAgentId }),
+        { wrapper },
+      );
 
       // Assert
       expect(result.current).toHaveProperty('createAgentChatThread');
@@ -324,7 +366,10 @@ describe('useCreateNewAIChatThread', () => {
     it('should allow calling createAgentChatThread function', async () => {
       // Arrange
       const wrapper = createWrapper();
-      const { result } = renderHook(() => useCreateNewAIChatThread({ agentId: testAgentId }), { wrapper });
+      const { result } = renderHook(
+        () => useCreateNewAIChatThread({ agentId: testAgentId }),
+        { wrapper },
+      );
 
       // Act & Assert (should not throw)
       await act(async () => {

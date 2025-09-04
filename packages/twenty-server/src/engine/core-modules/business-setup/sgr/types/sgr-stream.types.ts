@@ -1,9 +1,9 @@
 import {
-    createUnionType,
-    Field,
-    InputType,
-    ObjectType,
-    registerEnumType,
+  createUnionType,
+  Field,
+  InputType,
+  ObjectType,
+  registerEnumType,
 } from '@nestjs/graphql';
 
 /**
@@ -216,6 +216,7 @@ export const SGRStreamingPayloadUnion = createUnionType({
     if ('toolName' in value && 'toolArgs' in value) {
       return SGRToolCallPendingPayload;
     }
+
     // Определение по структуре может быть расширено
     return SGRProcessStartPayload;
   },
@@ -226,10 +227,22 @@ export const SGRStreamingPayloadUnion = createUnionType({
  */
 export type SGRStreamEvent =
   | { type: SGRStreamEventType.PROCESS_START; payload: SGRProcessStartPayload }
-  | { type: SGRStreamEventType.JSON_STREAM_START; payload: SGRJsonStreamStartPayload }
-  | { type: SGRStreamEventType.JSON_TOKEN_CHUNK; payload: SGRJsonTokenChunkPayload }
-  | { type: SGRStreamEventType.JSON_STREAM_END; payload: SGRJsonStreamEndPayload }
-  | { type: SGRStreamEventType.TOOL_CALL_PENDING; payload: SGRToolCallPendingPayload }
+  | {
+      type: SGRStreamEventType.JSON_STREAM_START;
+      payload: SGRJsonStreamStartPayload;
+    }
+  | {
+      type: SGRStreamEventType.JSON_TOKEN_CHUNK;
+      payload: SGRJsonTokenChunkPayload;
+    }
+  | {
+      type: SGRStreamEventType.JSON_STREAM_END;
+      payload: SGRJsonStreamEndPayload;
+    }
+  | {
+      type: SGRStreamEventType.TOOL_CALL_PENDING;
+      payload: SGRToolCallPendingPayload;
+    }
   | { type: SGRStreamEventType.PROCESS_END; payload: SGRProcessEndPayload }
   | { type: SGRStreamEventType.PROCESS_ERROR; payload: SGRProcessErrorPayload };
 
@@ -251,19 +264,19 @@ export interface SGRStreamingConfig {
   tokenThrottleMs: number;
   maxTokensPerChunk: number;
   maxTokensPerBatch: number;
-  
+
   // Парсинг JSON
   enablePartialJsonParsing: boolean;
   jsonParsingTimeoutMs: number;
-  
+
   // Обработка ошибок
   maxRetryAttempts: number;
   retryDelayMs: number;
-  
+
   // Безопасность
   enableSanitization: boolean;
   sanitizationConfig: SGRDataSanitizationConfig;
-  
+
   // Мониторинг
   enableMetrics: boolean;
   metricsLogInterval: number;
@@ -343,27 +356,34 @@ export const DEFAULT_SGR_STREAMING_CONFIG: SGRStreamingConfig = {
   tokenThrottleMs: 100,
   maxTokensPerChunk: 10,
   maxTokensPerBatch: 50,
-  
+
   // JSON парсинг
   enablePartialJsonParsing: true,
   jsonParsingTimeoutMs: 5000,
-  
+
   // Retry логика
   maxRetryAttempts: 3,
   retryDelayMs: 1000,
-  
+
   // Безопасность
   enableSanitization: true,
   sanitizationConfig: {
     sensitiveKeys: [
-      'password', 'token', 'apiKey', 'secret', 'client_secret',
-      'access_token', 'refresh_token', 'private_key', 'auth_token'
+      'password',
+      'token',
+      'apiKey',
+      'secret',
+      'client_secret',
+      'access_token',
+      'refresh_token',
+      'private_key',
+      'auth_token',
     ],
     maxJsonLength: 10000,
     maxTokenLength: 1000,
     enablePartialJsonParsing: true,
   },
-  
+
   // Мониторинг
   enableMetrics: true,
   metricsLogInterval: 100,
@@ -378,11 +398,11 @@ export const SGR_STREAMING_CHANNELS = {
   SGR_TOKEN_STREAMING: 'sgrTokenStreaming',
   SGR_TOOL_EXECUTION: 'sgrToolExecution',
   SGR_ERROR_EVENTS: 'sgrErrorEvents',
-  
+
   // Специфичные каналы
   SGR_JSON_EVENTS: 'sgrJsonEvents',
   SGR_PROCESS_EVENTS: 'sgrProcessEvents',
-  
+
   // Debugging каналы (только для development)
   SGR_DEBUG_EVENTS: 'sgrDebugEvents',
   SGR_METRICS_EVENTS: 'sgrMetricsEvents',
@@ -394,10 +414,10 @@ export const SGR_STREAMING_CHANNELS = {
 export class SGRStreamingEventRouter {
   static routeSGRStreamingEvent(eventType: SGRStreamEventType): string[] {
     const channels: string[] = [];
-    
+
     // Основной канал для всех SGR событий
     channels.push(SGR_STREAMING_CHANNELS.SGR_STREAMING_EVENTS);
-    
+
     // Специфичные каналы по типу события
     switch (eventType) {
       case SGRStreamEventType.JSON_TOKEN_CHUNK:
@@ -406,32 +426,32 @@ export class SGRStreamingEventRouter {
         channels.push(SGR_STREAMING_CHANNELS.SGR_JSON_EVENTS);
         channels.push(SGR_STREAMING_CHANNELS.SGR_TOKEN_STREAMING);
         break;
-        
+
       case SGRStreamEventType.TOOL_CALL_PENDING:
         channels.push(SGR_STREAMING_CHANNELS.SGR_TOOL_EXECUTION);
         break;
-        
+
       case SGRStreamEventType.PROCESS_ERROR:
         channels.push(SGR_STREAMING_CHANNELS.SGR_ERROR_EVENTS);
         break;
-        
+
       case SGRStreamEventType.PROCESS_START:
       case SGRStreamEventType.PROCESS_END:
         channels.push(SGR_STREAMING_CHANNELS.SGR_PROCESS_EVENTS);
         break;
     }
-    
+
     return channels;
   }
-  
+
   static getUserSpecificSGRChannel(userId: string, threadId: string): string {
     return `user:${userId}:thread:${threadId}:sgr-events`;
   }
-  
+
   static getWorkspaceSpecificSGRChannel(workspaceId: string): string {
     return `workspace:${workspaceId}:sgr-events`;
   }
-  
+
   static getDebugChannel(threadId: string): string {
     return `debug:thread:${threadId}:sgr-events`;
   }
@@ -444,41 +464,49 @@ export class SGRStreamingValidators {
   static isValidThreadId(threadId: string): boolean {
     return typeof threadId === 'string' && threadId.length > 0;
   }
-  
+
   static isValidStepId(stepId: string): boolean {
     return typeof stepId === 'string' && stepId.length > 0;
   }
-  
-  static isValidToken(token: string, maxLength: number = 1000): boolean {
+
+  static isValidToken(token: string, maxLength = 1000): boolean {
     return typeof token === 'string' && token.length <= maxLength;
   }
-  
-  static isValidJson(jsonString: string, maxLength: number = 10000): boolean {
-    if (!jsonString || typeof jsonString !== 'string' || jsonString.length > maxLength) {
+
+  static isValidJson(jsonString: string, maxLength = 10000): boolean {
+    if (
+      !jsonString ||
+      typeof jsonString !== 'string' ||
+      jsonString.length > maxLength
+    ) {
       return false;
     }
-    
+
     try {
       JSON.parse(jsonString);
+
       return true;
     } catch {
       return false;
     }
   }
-  
-  static sanitizeToolArgs(toolArgs: Record<string, any>, sensitiveKeys: string[]): Record<string, any> {
+
+  static sanitizeToolArgs(
+    toolArgs: Record<string, any>,
+    sensitiveKeys: string[],
+  ): Record<string, any> {
     if (!toolArgs || typeof toolArgs !== 'object') {
       return {};
     }
-    
+
     const sanitized = { ...toolArgs };
-    
+
     for (const key of sensitiveKeys) {
       if (key in sanitized) {
         sanitized[key] = '[REDACTED]';
       }
     }
-    
+
     return sanitized;
   }
 }

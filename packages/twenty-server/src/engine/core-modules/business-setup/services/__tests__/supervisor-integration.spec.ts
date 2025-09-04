@@ -284,7 +284,9 @@ describe('Supervisor Architecture Integration Tests', () => {
       // Make 10 concurrent UI guidance requests
       const promises = Array(10)
         .fill(null)
-        .map(() => supervisorController.getUIGuidance(user, workspace as any, {}));
+        .map(() =>
+          supervisorController.getUIGuidance(user, workspace as any, {}),
+        );
 
       const responses = await Promise.all(promises);
 
@@ -464,7 +466,11 @@ describe('Supervisor Architecture Integration Tests', () => {
       const workspace = new MockWorkspace();
 
       // Generate activity to track
-      await supervisorController.getUIGuidance(user as any, workspace as any, {});
+      await supervisorController.getUIGuidance(
+        user as any,
+        workspace as any,
+        {},
+      );
       await supervisorController.executeAction(user as any, workspace as any, {
         userId: user.id,
         workspaceId: workspace.id,
@@ -509,11 +515,15 @@ describe('Supervisor Architecture Integration Tests', () => {
 
       // Generate provider-specific activity
       for (let i = 0; i < 5; i++) {
-        await supervisorController.executeAction(user as any, workspace as any, {
-          userId: user.id,
-          workspaceId: workspace.id,
-          actionType: 'test_action',
-        });
+        await supervisorController.executeAction(
+          user as any,
+          workspace as any,
+          {
+            userId: user.id,
+            workspaceId: workspace.id,
+            actionType: 'test_action',
+          },
+        );
       }
 
       const providerPerformance = analyticsService.getProviderPerformance('1h');
@@ -630,7 +640,7 @@ describe('Supervisor Architecture Integration Tests', () => {
           const response = await supervisorController.getUIGuidance(
             user as any,
             workspace as any,
-            { },
+            {},
           );
 
           return response;

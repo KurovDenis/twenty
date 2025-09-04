@@ -154,17 +154,26 @@ export class JwtWrapperService {
 
   extractJwtFromRequest(): JwtFromRequestFunction {
     return (request: ExpressRequest) => {
+      console.log('[JWT_EXTRACT] extractJwtFromRequest called');
+      console.log('[JWT_EXTRACT] Request headers:', Object.keys(request.headers));
+      console.log('[JWT_EXTRACT] Authorization header:', request.headers.authorization);
+      
       // First try to extract token from Authorization header
       const tokenFromHeader = ExtractJwt.fromAuthHeaderAsBearerToken()(request);
+      console.log('[JWT_EXTRACT] Token from header:', tokenFromHeader ? 'YES' : 'NO');
 
       if (tokenFromHeader) {
+        console.log('[JWT_EXTRACT] Returning token from header');
         return tokenFromHeader;
       }
 
       // If not found in header, try to extract from URL query parameter
       // This is for edge cases where we don't control the origin request
       // (e.g. the REST API playground)
-      return ExtractJwt.fromUrlQueryParameter('token')(request);
+      const tokenFromQuery = ExtractJwt.fromUrlQueryParameter('token')(request);
+      console.log('[JWT_EXTRACT] Token from query:', tokenFromQuery ? 'YES' : 'NO');
+      console.log('[JWT_EXTRACT] Returning token from query');
+      return tokenFromQuery;
     };
   }
 }

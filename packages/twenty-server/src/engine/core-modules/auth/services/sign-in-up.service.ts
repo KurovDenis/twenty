@@ -11,20 +11,20 @@ import { v4 } from 'uuid';
 import { USER_SIGNUP_EVENT_NAME } from 'src/engine/api/graphql/workspace-query-runner/constants/user-signup-event-name.constants';
 import { type AppToken } from 'src/engine/core-modules/app-token/app-token.entity';
 import {
-  AuthException,
-  AuthExceptionCode,
+    AuthException,
+    AuthExceptionCode,
 } from 'src/engine/core-modules/auth/auth.exception';
 import {
-  PASSWORD_REGEX,
-  compareHash,
-  hashPassword,
+    PASSWORD_REGEX,
+    compareHash,
+    hashPassword,
 } from 'src/engine/core-modules/auth/auth.util';
 import {
-  type AuthProviderWithPasswordType,
-  type ExistingUserOrPartialUserWithPicture,
-  type PartialUserWithPicture,
-  type SignInUpBaseParams,
-  type SignInUpNewUserPayload,
+    type AuthProviderWithPasswordType,
+    type ExistingUserOrPartialUserWithPicture,
+    type PartialUserWithPicture,
+    type SignInUpBaseParams,
+    type SignInUpNewUserPayload,
 } from 'src/engine/core-modules/auth/types/signInUp.type';
 import { DomainManagerService } from 'src/engine/core-modules/domain-manager/services/domain-manager.service';
 import { OnboardingService } from 'src/engine/core-modules/onboarding/onboarding.service';
@@ -356,22 +356,28 @@ export class SignInUpService {
   }
 
   private async checkUserWorkspaceLimit(userEmail: string) {
+    console.log('[CHECK_WORKSPACE_LIMIT] Starting checkUserWorkspaceLimit for email:', userEmail);
+    
     const maxWorkspacesPerUser = this.twentyConfigService.get(
       'MAX_WORKSPACES_PER_USER',
     );
+    console.log('[CHECK_WORKSPACE_LIMIT] MAX_WORKSPACES_PER_USER:', maxWorkspacesPerUser);
 
     // Find user by email
     const user = await this.userRepository.findOne({
       where: { email: userEmail },
       relations: ['userWorkspaces'],
     });
+    console.log('[CHECK_WORKSPACE_LIMIT] User found:', user ? 'YES' : 'NO');
 
     if (user && user.userWorkspaces) {
       const activeWorkspacesCount = user.userWorkspaces.filter(
         (userWorkspace) => !userWorkspace.deletedAt,
       ).length;
+      console.log('[CHECK_WORKSPACE_LIMIT] Active workspaces count:', activeWorkspacesCount);
 
       if (activeWorkspacesCount >= maxWorkspacesPerUser) {
+        console.log('[CHECK_WORKSPACE_LIMIT] LIMIT EXCEEDED - throwing exception');
         throw new AuthException(
           `Maximum workspace limit reached. You can only create or join up to ${maxWorkspacesPerUser} workspaces.`,
           AuthExceptionCode.SIGNUP_DISABLED,
@@ -381,15 +387,21 @@ export class SignInUpService {
         );
       }
     }
+    
+    console.log('[CHECK_WORKSPACE_LIMIT] Workspace limit check passed');
   }
 
   async signUpOnNewWorkspace(
     userData: ExistingUserOrPartialUserWithPicture['userData'],
   ) {
+    console.log('[SIGNUP_NEW_WORKSPACE] Starting signUpOnNewWorkspace');
+    
     const email =
       userData.type === 'newUserWithPicture'
         ? userData.newUserWithPicture.email
         : userData.existingUser.email;
+
+    console.log('[SIGNUP_NEW_WORKSPACE] Email:', email);
 
     if (!email) {
       throw new AuthException(
@@ -401,12 +413,17 @@ export class SignInUpService {
       );
     }
 
+    console.log('[SIGNUP_NEW_WORKSPACE] Checking workspace limit...');
     // Check workspace limit for user before creating new workspace
     await this.checkUserWorkspaceLimit(email);
+    console.log('[SIGNUP_NEW_WORKSPACE] Workspace limit check passed');
 
+    console.log('[SIGNUP_NEW_WORKSPACE] Setting default impersonate and access...');
     const { canImpersonate, canAccessFullAdminPanel } =
       await this.setDefaultImpersonateAndAccessFullAdminPanel();
+    console.log('[SIGNUP_NEW_WORKSPACE] Default settings set');
 
+    console.log('[SIGNUP_NEW_WORKSPACE] Generating logo URL...');
     const logoUrl = `${TWENTY_ICONS_BASE_URL}/${getDomainNameByEmail(email)}`;
     const isLogoUrlValid = async () => {
       try {
@@ -420,29 +437,49 @@ export class SignInUpService {
     };
 
     const isWorkEmailFound = isWorkEmail(email);
+    console.log('[SIGNUP_NEW_WORKSPACE] Is work email:', isWorkEmailFound);
+    
     const logo =
       isWorkEmailFound && (await isLogoUrlValid()) ? logoUrl : undefined;
+    console.log('[SIGNUP_NEW_WORKSPACE] Logo URL:', logo);
 
+    console.log('[SIGNUP_NEW_WORKSPACE] Generating subdomain...');
+    const subdomain = await this.domainManagerService.generateSubdomain(
+      isWorkEmailFound ? { email } : {},
+    );
+    console.log('[SIGNUP_NEW_WORKSPACE] Generated subdomain:', subdomain);
+
+    console.log('[SIGNUP_NEW_WORKSPACE] Creating workspace object...');
     const workspaceToCreate = this.workspaceRepository.create({
-      subdomain: await this.domainManagerService.generateSubdomain(
-        isWorkEmailFound ? { email } : {},
-      ),
+      subdomain,
       displayName: '',
       inviteHash: v4(),
       activationStatus: WorkspaceActivationStatus.PENDING_CREATION,
       logo,
     });
+    console.log('[SIGNUP_NEW_WORKSPACE] Workspace object created');
 
+    console.log('[SIGNUP_NEW_WORKSPACE] Saving workspace to database...');
     const workspace = await this.workspaceRepository.save(workspaceToCreate);
+    console.log('[SIGNUP_NEW_WORKSPACE] Workspace saved with ID:', workspace.id);
 
     const isExistingUser = userData.type === 'existingUser';
-    const user = isExistingUser
-      ? userData.existingUser
-      : await this.saveNewUser(userData.newUserWithPicture, {
-          canImpersonate,
-          canAccessFullAdminPanel,
-        });
+    console.log('[SIGNUP_NEW_WORKSPACE] Is existing user:', isExistingUser);
 
+    let user;
+    if (isExistingUser) {
+      user = userData.existingUser;
+      console.log('[SIGNUP_NEW_WORKSPACE] Using existing user:', user.id);
+    } else {
+      console.log('[SIGNUP_NEW_WORKSPACE] Creating new user...');
+      user = await this.saveNewUser(userData.newUserWithPicture, {
+        canImpersonate,
+        canAccessFullAdminPanel,
+      });
+      console.log('[SIGNUP_NEW_WORKSPACE] New user created with ID:', user.id);
+    }
+
+    console.log('[SIGNUP_NEW_WORKSPACE] Creating userWorkspace link...');
     await this.userWorkspaceService.create({
       userId: user.id,
       workspaceId: workspace.id,
@@ -451,14 +488,20 @@ export class SignInUpService {
         ? undefined
         : userData.newUserWithPicture.picture,
     });
+    console.log('[SIGNUP_NEW_WORKSPACE] UserWorkspace link created');
 
+    console.log('[SIGNUP_NEW_WORKSPACE] Activating onboarding for user...');
     await this.activateOnboardingForUser(user, workspace);
+    console.log('[SIGNUP_NEW_WORKSPACE] Onboarding activated');
 
+    console.log('[SIGNUP_NEW_WORKSPACE] Setting onboarding invite team pending...');
     await this.onboardingService.setOnboardingInviteTeamPending({
       workspaceId: workspace.id,
       value: true,
     });
+    console.log('[SIGNUP_NEW_WORKSPACE] Onboarding invite team pending set');
 
+    console.log('[SIGNUP_NEW_WORKSPACE] Returning user and workspace');
     return { user, workspace };
   }
 

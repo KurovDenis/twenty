@@ -19,7 +19,7 @@ import { isGoogleMessagingEnabledState } from '@/client-config/states/isGoogleMe
 import { isImapSmtpCaldavEnabledState } from '@/client-config/states/isImapSmtpCaldavEnabledState';
 import { isMicrosoftCalendarEnabledState } from '@/client-config/states/isMicrosoftCalendarEnabledState';
 import { isMicrosoftMessagingEnabledState } from '@/client-config/states/isMicrosoftMessagingEnabledState';
-import { isMultiWorkspaceEnabledState } from '@/client-config/states/isMultiWorkspaceEnabledState';
+import { isMultiWorkspaceEnabledState, singleWorkspaceBehaviorState } from '@/client-config/states/isMultiWorkspaceEnabledState';
 import { labPublicFeatureFlagsState } from '@/client-config/states/labPublicFeatureFlagsState';
 import { sentryConfigState } from '@/client-config/states/sentryConfigState';
 import { supportChatState } from '@/client-config/states/supportChatState';
@@ -39,6 +39,9 @@ export const ClientConfigProviderEffect = () => {
   );
   const setIsMultiWorkspaceEnabled = useSetRecoilState(
     isMultiWorkspaceEnabledState,
+  );
+  const setSingleWorkspaceBehavior = useSetRecoilState(
+    singleWorkspaceBehaviorState,
   );
   const setIsEmailVerificationRequired = useSetRecoilState(
     isEmailVerificationRequiredState,
@@ -131,6 +134,8 @@ export const ClientConfigProviderEffect = () => {
       return;
     }
 
+    console.log('[DEBUG] Received clientConfig:', data.clientConfig);
+
     setClientConfigApiStatus((currentStatus) => ({
       ...currentStatus,
       isErrored: false,
@@ -148,6 +153,7 @@ export const ClientConfigProviderEffect = () => {
     setIsAnalyticsEnabled(data?.clientConfig.analyticsEnabled);
     setIsDeveloperDefaultSignInPrefilled(data?.clientConfig.signInPrefilled);
     setIsMultiWorkspaceEnabled(data?.clientConfig.isMultiWorkspaceEnabled);
+    setSingleWorkspaceBehavior(data?.clientConfig.singleWorkspaceBehavior);
     setIsEmailVerificationRequired(
       data?.clientConfig.isEmailVerificationRequired,
     );

@@ -1,12 +1,17 @@
 /**
  * React Error Boundary for Invariant Error Handling
- * 
+ *
  * Provides specialized error boundary component that gracefully handles
  * InvariantError instances and provides user-friendly error display.
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { InvariantError, invariant, error as logError, debug as logDebug } from 'twenty-shared/utils';
+import {
+    InvariantError,
+    invariant,
+    debug as logDebug,
+    error as logError,
+} from 'twenty-shared/utils';
 
 interface Props {
   children: ReactNode;
@@ -23,13 +28,13 @@ interface State {
 
 /**
  * Error boundary component specifically designed for handling InvariantError instances
- * 
+ *
  * Features:
  * - Detects and specially handles InvariantError
  * - Provides configurable fallback UI
  * - Integrates with invariant logging system
  * - Supports custom error reporting
- * 
+ *
  * @example
  * ```tsx
  * <InvariantErrorBoundary
@@ -102,24 +107,25 @@ export class InvariantErrorBoundary extends Component<Props, State> {
     const isProduction = process.env.NODE_ENV === 'production';
 
     return (
-      <div style={{
-        padding: '20px',
-        margin: '20px',
-        border: '1px solid #ff6b6b',
-        borderRadius: '8px',
-        backgroundColor: '#fff5f5',
-        color: '#c92a2a',
-        fontFamily: 'system-ui, sans-serif',
-      }}>
+      <div
+        style={{
+          padding: '20px',
+          margin: '20px',
+          border: '1px solid #ff6b6b',
+          borderRadius: '8px',
+          backgroundColor: '#fff5f5',
+          color: '#c92a2a',
+          fontFamily: 'system-ui, sans-serif',
+        }}
+      >
         <h2 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>
           {isInvariantError ? 'Application Error' : 'Unexpected Error'}
         </h2>
-        
+
         <p style={{ margin: '0 0 16px 0' }}>
           {isInvariantError && !isProduction
             ? error?.message
-            : 'Something went wrong. Please try again or contact support if the problem persists.'
-          }
+            : 'Something went wrong. Please try again or contact support if the problem persists.'}
         </p>
 
         {showErrorDetails && error && (
@@ -127,25 +133,29 @@ export class InvariantErrorBoundary extends Component<Props, State> {
             <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
               Error Details (Development Mode)
             </summary>
-            <pre style={{
-              backgroundColor: '#f8f9fa',
-              padding: '12px',
-              borderRadius: '4px',
-              overflow: 'auto',
-              fontSize: '12px',
-              marginTop: '8px',
-            }}>
-              {error.stack}
-            </pre>
-            {errorInfo && (
-              <pre style={{
+            <pre
+              style={{
                 backgroundColor: '#f8f9fa',
                 padding: '12px',
                 borderRadius: '4px',
                 overflow: 'auto',
                 fontSize: '12px',
                 marginTop: '8px',
-              }}>
+              }}
+            >
+              {error.stack}
+            </pre>
+            {errorInfo && (
+              <pre
+                style={{
+                  backgroundColor: '#f8f9fa',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  overflow: 'auto',
+                  fontSize: '12px',
+                  marginTop: '8px',
+                }}
+              >
                 Component Stack: {errorInfo.componentStack}
               </pre>
             )}
@@ -181,11 +191,11 @@ export class InvariantErrorBoundary extends Component<Props, State> {
 
 /**
  * Higher-order component that wraps a component with InvariantErrorBoundary
- * 
+ *
  * @param Component - React component to wrap
  * @param boundaryProps - Props to pass to the error boundary
  * @returns Wrapped component with error boundary
- * 
+ *
  * @example
  * ```tsx
  * const SafeUserProfile = withInvariantErrorBoundary(UserProfile, {
@@ -195,7 +205,7 @@ export class InvariantErrorBoundary extends Component<Props, State> {
  */
 export function withInvariantErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  boundaryProps?: Omit<Props, 'children'>
+  boundaryProps?: Omit<Props, 'children'>,
 ) {
   const WrappedComponent = (props: P) => (
     <InvariantErrorBoundary {...boundaryProps}>
@@ -210,16 +220,16 @@ export function withInvariantErrorBoundary<P extends object>(
 
 /**
  * Hook for handling invariant errors in functional components
- * 
+ *
  * Provides utilities for error handling and recovery in functional components.
- * 
+ *
  * @returns Error handling utilities
- * 
+ *
  * @example
  * ```tsx
  * function UserProfile({ userId }: { userId: string }) {
  *   const { handleError, clearError, hasError } = useInvariantError();
- *   
+ *
  *   const handleLoadUser = async () => {
  *     try {
  *       invariant(userId, 'User ID is required');
@@ -230,11 +240,11 @@ export function withInvariantErrorBoundary<P extends object>(
  *       handleError(error);
  *     }
  *   };
- *   
+ *
  *   if (hasError) {
  *     return <div>Error occurred. <button onClick={clearError}>Retry</button></div>;
  *   }
- *   
+ *
  *   return <div>User profile content</div>;
  * }
  * ```
@@ -266,13 +276,13 @@ export function useInvariantError() {
 
 /**
  * React hook for safe invariant calls in components
- * 
+ *
  * Provides a way to use invariant assertions that automatically
  * handle errors through the component's error handling system.
- * 
+ *
  * @param onError - Optional error handler
  * @returns Safe invariant function
- * 
+ *
  * @example
  * ```tsx
  * function UserForm() {
@@ -280,32 +290,35 @@ export function useInvariantError() {
  *     // Handle error locally
  *     setFormError(error.message);
  *   });
- *   
+ *
  *   const handleSubmit = (data: FormData) => {
  *     if (!safeInvariant(data.email, 'Email is required')) return;
  *     if (!safeInvariant(data.name, 'Name is required')) return;
- *     
+ *
  *     // Submit form
  *   };
  * }
  * ```
  */
 export function useSafeInvariant(onError?: (error: Error) => void) {
-  return React.useCallback((
-    condition: any,
-    message?: string | number
-  ): condition is NonNullable<typeof condition> => {
-    try {
-      invariant(condition, message);
-      return true;
-    } catch (error) {
-      if (onError) {
-        onError(error as Error);
-      } else {
-        // Log error if no handler provided
-        logError('Safe invariant failed:', message);
+  return React.useCallback(
+    (
+      condition: any,
+      message?: string | number,
+    ): condition is NonNullable<typeof condition> => {
+      try {
+        invariant(condition, message);
+        return true;
+      } catch (error) {
+        if (onError) {
+          onError(error as Error);
+        } else {
+          // Log error if no handler provided
+          logError('Safe invariant failed:', message);
+        }
+        return false;
       }
-      return false;
-    }
-  }, [onError]);
+    },
+    [onError],
+  );
 }

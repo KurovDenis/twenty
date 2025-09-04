@@ -12,10 +12,11 @@ export const recordTableRowContextValue: RecordTableRowContextValue = {
   inView: true,
 };
 
-export const recordTableRowDraggableContextValue: RecordTableRowDraggableContextValue = {
-  dragHandleProps: {} as any,
-  isDragging: false,
-};
+export const recordTableRowDraggableContextValue: RecordTableRowDraggableContextValue =
+  {
+    dragHandleProps: {} as any,
+    isDragging: false,
+  };
 
 export const recordTableCellContextValue: RecordTableCellContextValue = {
   columnDefinition: {

@@ -101,6 +101,9 @@ export class ClientConfigService {
         'IS_EMAIL_VERIFICATION_REQUIRED',
       ),
       defaultSubdomain: this.twentyConfigService.get('DEFAULT_SUBDOMAIN'),
+      singleWorkspaceBehavior: (this.twentyConfigService.get(
+        'SINGLE_WORKSPACE_BEHAVIOR',
+      ) || 'auto-redirect') as 'auto-redirect' | 'create-new' | 'show-choice',
       frontDomain: this.domainManagerService.getFrontUrl().hostname,
       debugMode:
         this.twentyConfigService.get('NODE_ENV') ===

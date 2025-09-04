@@ -3,11 +3,14 @@ import { useAIAgentEventsSubscription } from './useBusinessSetupSubscriptions';
 import { getCurrentUserId } from '~/auth/utils/get-current-user-id';
 import { useNavigate } from 'react-router-dom';
 import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';
-import { getAgentConfigForStatus, getGreetingMessage } from '@/business-setup/config/businessSetupAgents.config';
+import {
+  getAgentConfigForStatus,
+  getGreetingMessage,
+} from '@/business-setup/config/businessSetupAgents.config';
 
 /**
  * Hook for managing AI agent welcome messages via GraphQL subscriptions
- * 
+ *
  * This hook replaces the previous local EventEmitter approach with real-time
  * GraphQL subscriptions to receive welcome chat events from the backend.
  */
@@ -17,12 +20,12 @@ export const useWelcomeMessage = () => {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const navigate = useNavigate();
   const currentUserId = getCurrentUserId();
   const businessSetupStatus = useBusinessSetupStatus();
   const agentConfig = getAgentConfigForStatus(businessSetupStatus);
-  
+
   // Subscribe to AI agent events via GraphQL
   const {
     agentEvents,
@@ -37,17 +40,16 @@ export const useWelcomeMessage = () => {
 
   // Process welcome chat created events
   useEffect(() => {
-    const latestChatCreated = chatCreatedEvents.find(event => 
-      event.status === 'CHAT_CREATED' && 
-      event.threadId
+    const latestChatCreated = chatCreatedEvents.find(
+      (event) => event.status === 'CHAT_CREATED' && event.threadId,
     );
-    
+
     if (latestChatCreated && latestChatCreated.threadId !== threadId) {
       console.log('Welcome chat created event received:', latestChatCreated);
-      
+
       // Get the appropriate greeting message based on business setup status
       let greetingMessage = getGreetingMessage(businessSetupStatus);
-      
+
       // Fallback to agent config or generic message
       if (!greetingMessage) {
         if (agentConfig?.greetingMessage) {
@@ -60,10 +62,11 @@ export const useWelcomeMessage = () => {
 
 **Готовы начать? Отправьте мне ваши учетные данные Avito API!** 🚀`;
         } else {
-          greetingMessage = '🎉 Welcome to Business Setup! Your AI assistant is ready to help you get started.';
+          greetingMessage =
+            '🎉 Welcome to Business Setup! Your AI assistant is ready to help you get started.';
         }
       }
-      
+
       setThreadId(latestChatCreated.threadId!);
       setWelcomeMessage(greetingMessage);
       setShowPopup(true);
@@ -74,10 +77,10 @@ export const useWelcomeMessage = () => {
 
   // Process welcome chat failed events
   useEffect(() => {
-    const latestChatFailed = chatFailedEvents.find(event => 
-      event.status === 'CHAT_FAILED'
+    const latestChatFailed = chatFailedEvents.find(
+      (event) => event.status === 'CHAT_FAILED',
     );
-    
+
     if (latestChatFailed) {
       console.warn('Welcome chat creation failed:', latestChatFailed.error);
       setError(latestChatFailed.error || 'Failed to create welcome chat');
@@ -111,11 +114,11 @@ export const useWelcomeMessage = () => {
   const continueChat = useCallback(() => {
     if (threadId) {
       console.log('Continuing chat with thread:', threadId);
-      
+
       // Navigate to AI chat with the specific thread
       // Adjust the route based on your app's routing structure
       navigate(`/chat/${threadId}`);
-      
+
       // Hide the popup
       hideWelcomePopup();
     } else {
@@ -148,12 +151,12 @@ export const useWelcomeMessage = () => {
     threadId,
     isProcessing,
     error,
-    
+
     // Connection state
     isConnected,
     isLoading,
     connectionError,
-    
+
     // Actions
     showWelcomePopup,
     hideWelcomePopup,
@@ -161,7 +164,7 @@ export const useWelcomeMessage = () => {
     retryWelcomeChat,
     clearWelcomeMessage,
     setShowPopup,
-    
+
     // Raw events for debugging
     agentEvents,
     welcomeChatEvents,

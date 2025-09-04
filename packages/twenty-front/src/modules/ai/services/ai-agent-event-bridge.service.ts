@@ -1,14 +1,12 @@
 /**
  * AI Agent Event Bridge Service
- * 
+ *
  * Bridges backend AI agent events to frontend via WebSocket or polling.
  * For now using polling, can be upgraded to WebSocket later.
  */
 
 import { useEffect } from 'react';
-import {
-    WelcomeChatCreatedEventFrontend
-} from 'twenty-shared/types';
+import { WelcomeChatCreatedEventFrontend } from 'twenty-shared/types';
 import { getCurrentUserId } from '~/auth/utils/get-current-user-id';
 import { AI_AGENT_EVENTS, getEventEmitter } from '~/utils/event-emitter';
 
@@ -28,7 +26,7 @@ class AIAgentEventBridge {
 
     this.isListening = true;
     this.lastEventTimestamp = new Date();
-    
+
     // Poll for events every 2 seconds
     this.pollingInterval = setInterval(() => {
       this.pollForEvents();
@@ -64,19 +62,22 @@ class AIAgentEventBridge {
 
       // TODO: Replace with actual API call to fetch events
       // For now, simulate event polling
-      const response = await fetch(`/rest/ai-agent/events?since=${this.lastEventTimestamp.toISOString()}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/rest/ai-agent/events?since=${this.lastEventTimestamp.toISOString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
         },
-      });
-      
+      );
+
       if (!response.ok) {
         return;
       }
 
       const events = await response.json();
-      
+
       events.forEach((event: any) => {
         this.handleBackendEvent(event);
       });
@@ -93,13 +94,22 @@ class AIAgentEventBridge {
   private handleBackendEvent(event: any): void {
     switch (event.type) {
       case 'ai-agent.welcome.chat-created':
-        this.eventEmitter.emit(AI_AGENT_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED, event.payload);
+        this.eventEmitter.emit(
+          AI_AGENT_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED,
+          event.payload,
+        );
         break;
       case 'ai-agent.welcome.chat-creation-failed':
-        this.eventEmitter.emit(AI_AGENT_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_FAILED, event.payload);
+        this.eventEmitter.emit(
+          AI_AGENT_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_FAILED,
+          event.payload,
+        );
         break;
       case 'ai-agent.welcome.chat-creation-started':
-        this.eventEmitter.emit(AI_AGENT_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_STARTED, event.payload);
+        this.eventEmitter.emit(
+          AI_AGENT_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_STARTED,
+          event.payload,
+        );
         break;
       default:
         console.warn('AI Agent Event Bridge: Unknown event type:', event.type);
@@ -125,7 +135,10 @@ class AIAgentEventBridge {
       timestamp: new Date().toISOString(),
     };
 
-    this.eventEmitter.emit(AI_AGENT_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED, event);
+    this.eventEmitter.emit(
+      AI_AGENT_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED,
+      event,
+    );
   }
 
   /**
@@ -137,7 +150,7 @@ class AIAgentEventBridge {
     if (pathParts.length > 1 && pathParts[1] !== '') {
       return pathParts[1]; // Assuming workspace subdomain is in URL
     }
-    
+
     // Fallback to localStorage/sessionStorage if available
     const storedWorkspace = localStorage.getItem('currentWorkspace');
     if (storedWorkspace) {
@@ -148,7 +161,7 @@ class AIAgentEventBridge {
         console.warn('Failed to parse stored workspace:', e);
       }
     }
-    
+
     return null;
   }
 }
@@ -164,7 +177,7 @@ export { aiAgentEventBridge };
 export const useAIAgentEventBridge = () => {
   useEffect(() => {
     aiAgentEventBridge.startListening();
-    
+
     return () => {
       aiAgentEventBridge.stopListening();
     };

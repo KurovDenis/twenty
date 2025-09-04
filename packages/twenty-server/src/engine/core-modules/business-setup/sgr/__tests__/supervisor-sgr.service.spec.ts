@@ -8,8 +8,8 @@ import { AgentChatService } from 'src/engine/metadata-modules/agent/agent-chat.s
 import { type BusinessSetupKeyValueTypeMap } from '../../business-setup.service';
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 import {
-    BUSINESS_SETUP_EVENTS,
-    type SupervisorProcessMessageEvent,
+  BUSINESS_SETUP_EVENTS,
+  type SupervisorProcessMessageEvent,
 } from '../../events/business-setup.events';
 import { SupervisorSGRService } from '../services/supervisor-sgr.service';
 import { SupervisorToolDispatcherService } from '../services/supervisor-tool-dispatcher.service';

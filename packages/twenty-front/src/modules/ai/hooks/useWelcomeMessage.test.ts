@@ -3,7 +3,11 @@
  */
 
 import { act, renderHook } from '@testing-library/react';
-import { BUSINESS_SETUP_EVENTS, WelcomeChatCreatedEventFrontend, WelcomeChatCreationFailedEventFrontend } from 'twenty-shared/types';
+import {
+  BUSINESS_SETUP_EVENTS,
+  WelcomeChatCreatedEventFrontend,
+  WelcomeChatCreationFailedEventFrontend,
+} from 'twenty-shared/types';
 import { getEventEmitter } from '~/utils/event-emitter';
 import { useWelcomeMessage } from './useWelcomeMessage';
 
@@ -49,11 +53,11 @@ describe('useWelcomeMessage', () => {
 
     expect(mockEventEmitter.on).toHaveBeenCalledWith(
       BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED,
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(mockEventEmitter.on).toHaveBeenCalledWith(
       BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_FAILED,
-      expect.any(Function)
+      expect.any(Function),
     );
   });
 
@@ -71,7 +75,7 @@ describe('useWelcomeMessage', () => {
     // Get the registered handler
     const onCalls = mockEventEmitter.on.mock.calls;
     const chatCreatedHandler = onCalls.find(
-      call => call[0] === BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED
+      (call) => call[0] === BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED,
     )?.[1];
 
     act(() => {
@@ -96,7 +100,7 @@ describe('useWelcomeMessage', () => {
 
     const onCalls = mockEventEmitter.on.mock.calls;
     const chatCreatedHandler = onCalls.find(
-      call => call[0] === BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED
+      (call) => call[0] === BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED,
     )?.[1];
 
     act(() => {
@@ -121,14 +125,18 @@ describe('useWelcomeMessage', () => {
 
     const onCalls = mockEventEmitter.on.mock.calls;
     const chatFailedHandler = onCalls.find(
-      call => call[0] === BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_FAILED
+      (call) =>
+        call[0] === BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_FAILED,
     )?.[1];
 
     act(() => {
       chatFailedHandler(mockEvent);
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('Welcome chat creation failed:', 'Test error');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Welcome chat creation failed:',
+      'Test error',
+    );
     consoleSpy.mockRestore();
   });
 
@@ -169,7 +177,7 @@ describe('useWelcomeMessage', () => {
 
     const onCalls = mockEventEmitter.on.mock.calls;
     const chatCreatedHandler = onCalls.find(
-      call => call[0] === BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED
+      (call) => call[0] === BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED,
     )?.[1];
 
     act(() => {
@@ -180,9 +188,12 @@ describe('useWelcomeMessage', () => {
       result.current.continueChat();
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('Continue chat with thread:', 'test-thread');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Continue chat with thread:',
+      'test-thread',
+    );
     expect(result.current.showPopup).toBe(false);
-    
+
     consoleSpy.mockRestore();
   });
 
@@ -193,11 +204,11 @@ describe('useWelcomeMessage', () => {
 
     expect(mockEventEmitter.off).toHaveBeenCalledWith(
       BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATED,
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(mockEventEmitter.off).toHaveBeenCalledWith(
       BUSINESS_SETUP_EVENTS.AI_AGENT_WELCOME_CHAT_CREATION_FAILED,
-      expect.any(Function)
+      expect.any(Function),
     );
   });
 });

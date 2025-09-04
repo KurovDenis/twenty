@@ -1,8 +1,9 @@
 import { BusinessSetupStatus } from '../../enums/business-setup-status.enum';
 import {
-    BusinessSetupProgress,
-    SupervisorStepResult,
+  BusinessSetupProgress,
+  SupervisorStepResult,
 } from '../schemas/supervisor-sgr.schema';
+
 import { type SGRStreamEvent } from './sgr-stream.types';
 
 // Export important types for use in test files

@@ -4,8 +4,16 @@
  */
 
 import * as sgrEventBridge from '@/ai/services/sgr-event-bridge.service';
-import { SGREvent, SGRFinalResponseEvent, SGRThinkingEvent, SGRToolExecutionEvent } from '@/ai/services/sgr-event-bridge.service';
-import { SGRMessageType, SGRToolExecutionStatus } from '@/ai/types/sgr-message.types';
+import {
+  SGREvent,
+  SGRFinalResponseEvent,
+  SGRThinkingEvent,
+  SGRToolExecutionEvent,
+} from '@/ai/services/sgr-event-bridge.service';
+import {
+  SGRMessageType,
+  SGRToolExecutionStatus,
+} from '@/ai/types/sgr-message.types';
 import { ThemeProvider } from '@emotion/react';
 import { render, screen } from '@testing-library/react';
 import { RecoilRoot } from 'recoil';
@@ -47,9 +55,12 @@ jest.mock('@/command-menu/hooks/useCommandMenu', () => ({
   }),
 }));
 
-jest.mock('@/ui/utilities/state/component-state/hooks/useRecoilComponentValue', () => ({
-  useRecoilComponentValue: () => null,
-}));
+jest.mock(
+  '@/ui/utilities/state/component-state/hooks/useRecoilComponentValue',
+  () => ({
+    useRecoilComponentValue: () => null,
+  }),
+);
 
 describe('AIChatTab SGR Event Handling', () => {
   const defaultProps = {
@@ -73,7 +84,7 @@ describe('AIChatTab SGR Event Handling', () => {
         <ThemeProvider theme={THEME_LIGHT}>
           <AIChatTab {...defaultProps} {...props} />
         </ThemeProvider>
-      </RecoilRoot>
+      </RecoilRoot>,
     );
   };
 
@@ -129,7 +140,10 @@ describe('AIChatTab SGR Event Handling', () => {
 
       // Should show fallback text and log warning
       expect(screen.getByText(/Анализирую\.\.\./)).toBeInTheDocument();
-      expect(console.warn).toHaveBeenCalledWith('Invalid thinking event step data:', mockInvalidThinkingEvent);
+      expect(console.warn).toHaveBeenCalledWith(
+        'Invalid thinking event step data:',
+        mockInvalidThinkingEvent,
+      );
     });
   });
 
@@ -155,7 +169,9 @@ describe('AIChatTab SGR Event Handling', () => {
       renderComponent();
 
       // Should display tool execution status
-      expect(screen.getByText(/credential_extractor: in_progress/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/credential_extractor: in_progress/),
+      ).toBeInTheDocument();
     });
 
     it('should handle tool execution events with missing data', () => {
@@ -181,7 +197,10 @@ describe('AIChatTab SGR Event Handling', () => {
 
       // Should show fallback text and log warning
       expect(screen.getByText(/Выполняю инструмент\.\.\./)).toBeInTheDocument();
-      expect(console.warn).toHaveBeenCalledWith('Invalid tool execution event data:', mockInvalidToolEvent);
+      expect(console.warn).toHaveBeenCalledWith(
+        'Invalid tool execution event data:',
+        mockInvalidToolEvent,
+      );
     });
   });
 
@@ -233,7 +252,10 @@ describe('AIChatTab SGR Event Handling', () => {
       renderComponent();
 
       // Should log warning for invalid event
-      expect(console.warn).toHaveBeenCalledWith('Invalid SGR event received:', mockMalformedEvent);
+      expect(console.warn).toHaveBeenCalledWith(
+        'Invalid SGR event received:',
+        mockMalformedEvent,
+      );
     });
 
     it('should handle unknown event types', () => {
@@ -256,7 +278,10 @@ describe('AIChatTab SGR Event Handling', () => {
       renderComponent();
 
       // Should log warning for unknown event type
-      expect(console.warn).toHaveBeenCalledWith('Unknown SGR event type:', 'unknown_type');
+      expect(console.warn).toHaveBeenCalledWith(
+        'Unknown SGR event type:',
+        'unknown_type',
+      );
     });
 
     it('should handle exceptions in event processing', () => {
@@ -292,7 +317,10 @@ describe('AIChatTab SGR Event Handling', () => {
       renderComponent();
 
       // The component should not crash, error should be logged
-      expect(console.error).toHaveBeenCalledWith('Error processing SGR events:', expect.any(Error));
+      expect(console.error).toHaveBeenCalledWith(
+        'Error processing SGR events:',
+        expect.any(Error),
+      );
     });
   });
 

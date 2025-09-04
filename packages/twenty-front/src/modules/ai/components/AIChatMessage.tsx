@@ -1,11 +1,6 @@
 import { keyframes, useTheme } from '@emotion/react';
 import styled from '@emotion/styled';
-import { 
-  Avatar, 
-  IconDotsVertical, 
-  IconSparkles,
-  IconBrain
-} from 'twenty-ui/display';
+import { Avatar, IconDotsVertical, IconSparkles } from 'twenty-ui/display';
 
 import { LightCopyIconButton } from '@/object-record/record-field/components/LightCopyIconButton';
 import { AgentChatFilePreview } from '@/ai/components/internal/AgentChatFilePreview';
@@ -15,9 +10,9 @@ import { EnhancedAIChatMessage } from '@/ai/components/EnhancedAIChatMessage';
 
 import { AgentChatMessage } from '~/generated/graphql';
 import { beautifyPastDateRelativeToNow } from '~/utils/date-utils';
-import { 
+import {
   extractSGRStepFromContent,
-  extractToolExecutionFromContent
+  extractToolExecutionFromContent,
 } from '@/ai/types/sgr-message.types';
 
 const StyledMessageBubble = styled.div<{ isUser?: boolean }>`
@@ -166,15 +161,15 @@ export const AIChatMessage = ({
   // Check if this is an SGR message that should use enhanced visualization
   const sgrStep = extractSGRStepFromContent(message.content);
   const toolExecution = extractToolExecutionFromContent(message.content);
-  
+
   const isSGREnhancedMessage = sgrStep !== null || toolExecution !== null;
-  
+
   // Use enhanced component for SGR messages
   if (isSGREnhancedMessage) {
     return (
-      <EnhancedAIChatMessage 
-        message={message} 
-        agentStreamingMessage={agentStreamingMessage} 
+      <EnhancedAIChatMessage
+        message={message}
+        agentStreamingMessage={agentStreamingMessage}
       />
     );
   }

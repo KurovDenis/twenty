@@ -1,24 +1,26 @@
-import { SGRMessageType, SGRToolExecutionStatus } from '@/ai/types/sgr-message.types';
-import { 
-  SGRStreamingEvent, 
-  SGRThinkingStreamingEvent, 
-  SGRToolExecutionStreamingEvent, 
+import {
+  SGRMessageType,
+  SGRToolExecutionStatus,
+} from '@/ai/types/sgr-message.types';
+import {
+  SGRThinkingStreamingEvent,
+  SGRToolExecutionStreamingEvent,
   SGRFinalResponseStreamingEvent,
   isThinkingStreamingEvent,
   isToolExecutionStreamingEvent,
-  isFinalResponseStreamingEvent
+  isFinalResponseStreamingEvent,
 } from '../sgr-event-bridge.service';
 
 /**
  * Test suite for the SGR Event Bridge Service
- * 
+ *
  * This test validates the real-time event handling for SGR streaming messages
  * in the frontend chat interface.
  */
 describe('SGREventBridgeService', () => {
   // Since the service is a simple event emitter/listener pattern,
   // we'll test the event types and data structures
-  
+
   describe('SGRStreamingEvent Types', () => {
     it('should define correct SGR message types', () => {
       expect(SGRMessageType.THINKING).toBe('thinking');
@@ -43,18 +45,21 @@ describe('SGREventBridgeService', () => {
           currentState: 'Analyzing user message',
           plannedSteps: ['Extract credentials', 'Validate with API'],
           selectedTool: 'extract_credentials',
-          timestamp: new Date()
+          timestamp: new Date(),
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       expect(event.type).toBe(SGRMessageType.THINKING);
       // Type-safe access - no undefined checks needed
       expect(event.step.stepNumber).toBe(1);
       expect(event.step.currentState).toBe('Analyzing user message');
-      expect(event.step.plannedSteps).toEqual(['Extract credentials', 'Validate with API']);
+      expect(event.step.plannedSteps).toEqual([
+        'Extract credentials',
+        'Validate with API',
+      ]);
       expect(event.step.selectedTool).toBe('extract_credentials');
-      
+
       // Test type guard
       expect(isThinkingStreamingEvent(event)).toBe(true);
       expect(isToolExecutionStreamingEvent(event)).toBe(false);
@@ -71,21 +76,23 @@ describe('SGREventBridgeService', () => {
           selectedTool: 'extract_credentials',
           toolExecution: {
             status: SGRToolExecutionStatus.COMPLETED,
-            result: { client_id: 'test-id', client_secret: 'test-secret' }
+            result: { client_id: 'test-id', client_secret: 'test-secret' },
           },
-          timestamp: new Date()
+          timestamp: new Date(),
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       expect(event.type).toBe(SGRMessageType.TOOL_EXECUTION);
       // Type-safe access - no undefined checks needed
-      expect(event.step.toolExecution?.status).toBe(SGRToolExecutionStatus.COMPLETED);
-      expect(event.step.toolExecution?.result).toEqual({ 
-        client_id: 'test-id', 
-        client_secret: 'test-secret' 
+      expect(event.step.toolExecution?.status).toBe(
+        SGRToolExecutionStatus.COMPLETED,
+      );
+      expect(event.step.toolExecution?.result).toEqual({
+        client_id: 'test-id',
+        client_secret: 'test-secret',
       });
-      
+
       // Test type guard
       expect(isThinkingStreamingEvent(event)).toBe(false);
       expect(isToolExecutionStreamingEvent(event)).toBe(true);
@@ -97,14 +104,16 @@ describe('SGREventBridgeService', () => {
         type: SGRMessageType.FINAL_RESPONSE,
         content: '✅ Credentials validated and stored successfully!',
         completed: true,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       expect(event.type).toBe(SGRMessageType.FINAL_RESPONSE);
       // Type-safe access - no undefined checks needed
-      expect(event.content).toBe('✅ Credentials validated and stored successfully!');
+      expect(event.content).toBe(
+        '✅ Credentials validated and stored successfully!',
+      );
       expect(event.completed).toBe(true);
-      
+
       // Test type guard
       expect(isThinkingStreamingEvent(event)).toBe(false);
       expect(isToolExecutionStreamingEvent(event)).toBe(false);

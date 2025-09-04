@@ -12,7 +12,7 @@ import {
 /**
  * Business Setup Event Types
  */
-export type BusinessSetupEventType = 
+export type BusinessSetupEventType =
   | 'ONBOARDING_STATUS_CHANGED'
   | 'AI_AGENT_WELCOME_CHAT_CREATED'
   | 'AI_AGENT_WELCOME_CHAT_FAILED'
@@ -66,38 +66,43 @@ export const useBusinessSetupEventsSubscription = (options?: {
     eventsRef.current = events;
   }, [events]);
 
-  const { data, loading, error } = useSubscription(BUSINESS_SETUP_EVENTS_SUBSCRIPTION, {
-    variables: {
-      input: {
-        userId,
-        workspaceId: currentWorkspace?.id || '',
-        eventTypes: options?.eventTypes,
-        includeMetadata: options?.includeMetadata ?? true,
+  const { data, loading, error } = useSubscription(
+    BUSINESS_SETUP_EVENTS_SUBSCRIPTION,
+    {
+      variables: {
+        input: {
+          userId,
+          workspaceId: currentWorkspace?.id || '',
+          eventTypes: options?.eventTypes,
+          includeMetadata: options?.includeMetadata ?? true,
+        },
+      },
+      skip: !currentWorkspace?.id || !userId,
+      onError: (error) => {
+        console.error('Business setup events subscription error:', error);
+        setConnectionError(error);
       },
     },
-    skip: !currentWorkspace?.id || !userId,
-    onError: (error) => {
-      console.error('Business setup events subscription error:', error);
-      setConnectionError(error);
-    },
-  });
+  );
 
   // Process incoming events
   useEffect(() => {
     if (data?.onBusinessSetupEvent) {
       const newEvent = data.onBusinessSetupEvent;
-      setEvents(prevEvents => {
+      setEvents((prevEvents) => {
         // Prevent duplicate events
-        const isDuplicate = prevEvents.some(event => event.id === newEvent.id);
+        const isDuplicate = prevEvents.some(
+          (event) => event.id === newEvent.id,
+        );
         if (isDuplicate) {
           return prevEvents;
         }
-        
+
         // Add new event and keep only last 50 events
         const updatedEvents = [newEvent, ...prevEvents].slice(0, 50);
         return updatedEvents;
       });
-      
+
       // Clear connection error on successful data
       if (connectionError) {
         setConnectionError(null);
@@ -131,29 +136,32 @@ export const useOnboardingStatusSubscription = () => {
   const [statusEvents, setStatusEvents] = useState<OnboardingStatusEvent[]>([]);
   const [connectionError, setConnectionError] = useState<Error | null>(null);
 
-  const { data, loading, error } = useSubscription(ONBOARDING_STATUS_SUBSCRIPTION, {
-    variables: {
-      input: {
-        userId,
-        workspaceId: currentWorkspace?.id || '',
+  const { data, loading, error } = useSubscription(
+    ONBOARDING_STATUS_SUBSCRIPTION,
+    {
+      variables: {
+        input: {
+          userId,
+          workspaceId: currentWorkspace?.id || '',
+        },
+      },
+      skip: !currentWorkspace?.id || !userId,
+      onError: (error) => {
+        console.error('Onboarding status subscription error:', error);
+        setConnectionError(error);
       },
     },
-    skip: !currentWorkspace?.id || !userId,
-    onError: (error) => {
-      console.error('Onboarding status subscription error:', error);
-      setConnectionError(error);
-    },
-  });
+  );
 
   // Process incoming onboarding status events
   useEffect(() => {
     if (data?.onOnboardingStatusChanged) {
       const newEvent = data.onOnboardingStatusChanged;
-      setStatusEvents(prevEvents => {
+      setStatusEvents((prevEvents) => {
         // Keep only last 10 status events
         return [newEvent, ...prevEvents].slice(0, 10);
       });
-      
+
       if (connectionError) {
         setConnectionError(null);
       }
@@ -182,30 +190,33 @@ export const useAIAgentEventsSubscription = (options?: {
   const [agentEvents, setAgentEvents] = useState<AIAgentEvent[]>([]);
   const [connectionError, setConnectionError] = useState<Error | null>(null);
 
-  const { data, loading, error } = useSubscription(AI_AGENT_EVENTS_SUBSCRIPTION, {
-    variables: {
-      input: {
-        userId,
-        workspaceId: currentWorkspace?.id || '',
-        threadId: options?.threadId,
+  const { data, loading, error } = useSubscription(
+    AI_AGENT_EVENTS_SUBSCRIPTION,
+    {
+      variables: {
+        input: {
+          userId,
+          workspaceId: currentWorkspace?.id || '',
+          threadId: options?.threadId,
+        },
+      },
+      skip: !currentWorkspace?.id || !userId,
+      onError: (error) => {
+        console.error('AI agent events subscription error:', error);
+        setConnectionError(error);
       },
     },
-    skip: !currentWorkspace?.id || !userId,
-    onError: (error) => {
-      console.error('AI agent events subscription error:', error);
-      setConnectionError(error);
-    },
-  });
+  );
 
   // Process incoming AI agent events
   useEffect(() => {
     if (data?.onAIAgentEvents) {
       const newEvent = data.onAIAgentEvents;
-      setAgentEvents(prevEvents => {
+      setAgentEvents((prevEvents) => {
         // Keep only last 20 agent events
         return [newEvent, ...prevEvents].slice(0, 20);
       });
-      
+
       if (connectionError) {
         setConnectionError(null);
       }
@@ -213,16 +224,16 @@ export const useAIAgentEventsSubscription = (options?: {
   }, [data, connectionError]);
 
   // Filter events by type
-  const welcomeChatEvents = agentEvents.filter(event => 
-    event.eventType.includes('WELCOME_CHAT')
+  const welcomeChatEvents = agentEvents.filter((event) =>
+    event.eventType.includes('WELCOME_CHAT'),
   );
 
-  const chatCreatedEvents = agentEvents.filter(event => 
-    event.status === 'CHAT_CREATED'
+  const chatCreatedEvents = agentEvents.filter(
+    (event) => event.status === 'CHAT_CREATED',
   );
 
-  const chatFailedEvents = agentEvents.filter(event => 
-    event.status === 'CHAT_FAILED'
+  const chatFailedEvents = agentEvents.filter(
+    (event) => event.status === 'CHAT_FAILED',
   );
 
   return {
@@ -246,33 +257,37 @@ export const useBusinessSetupSubscriptions = () => {
   const onboardingStatus = useOnboardingStatusSubscription();
   const agentEvents = useAIAgentEventsSubscription();
 
-  const isConnected = businessSetupEvents.isConnected && 
-                     onboardingStatus.isConnected && 
-                     agentEvents.isConnected;
+  const isConnected =
+    businessSetupEvents.isConnected &&
+    onboardingStatus.isConnected &&
+    agentEvents.isConnected;
 
-  const isLoading = businessSetupEvents.isLoading || 
-                   onboardingStatus.isLoading || 
-                   agentEvents.isLoading;
+  const isLoading =
+    businessSetupEvents.isLoading ||
+    onboardingStatus.isLoading ||
+    agentEvents.isLoading;
 
-  const hasErrors = !!(businessSetupEvents.connectionError || 
-                      onboardingStatus.connectionError || 
-                      agentEvents.connectionError);
+  const hasErrors = !!(
+    businessSetupEvents.connectionError ||
+    onboardingStatus.connectionError ||
+    agentEvents.connectionError
+  );
 
   return {
     // Individual subscriptions
     businessSetupEvents,
     onboardingStatus,
     agentEvents,
-    
+
     // Combined state
     isConnected,
     isLoading,
     hasErrors,
-    
+
     // Quick access to important events
     lastOnboardingChange: onboardingStatus.lastStatusChange,
     lastWelcomeChatEvent: agentEvents.lastWelcomeChatEvent,
-    
+
     // Utility methods
     clearAllEvents: () => {
       businessSetupEvents.clearEvents();

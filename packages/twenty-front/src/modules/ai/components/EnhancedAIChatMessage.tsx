@@ -1,6 +1,6 @@
 /**
  * Enhanced AI Chat Message Component with SGR (Schema-Guided Reasoning) visualization
- * 
+ *
  * This component extends the standard AI chat message to support real-time
  * visualization of AI thinking processes during business setup credential processing.
  */
@@ -16,23 +16,28 @@ import { AgentChatMessage } from '~/generated/graphql';
 import { beautifyPastDateRelativeToNow } from '~/utils/date-utils';
 
 import { useSGRStreamingBasic } from '../hooks/useSGRStreamingParser';
-import { extractSGRStepFromContent, isSGRMessage } from '../types/sgr-message.types';
+import {
+  extractSGRStepFromContent,
+  isSGRMessage,
+} from '../types/sgr-message.types';
 import { AgentChatFilePreview } from './internal/AgentChatFilePreview';
 import { LazyMarkdownRenderer } from './LazyMarkdownRenderer';
 import { SgrVisualizationDashboard } from './SgrVisualizationDashboard/SgrVisualizationDashboard';
 
 // Styled components for SGR visualization
-const StyledMessageBubble = styled.div<{ isUser?: boolean; isThinking?: boolean }>`
+const StyledMessageBubble = styled.div<{
+  isUser?: boolean;
+  isThinking?: boolean;
+}>`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing(2)};
   margin-bottom: ${({ theme }) => theme.spacing(2)};
-  background: ${({ theme, isThinking }) => 
+  background: ${({ theme, isThinking }) =>
     isThinking ? theme.background.transparent.light : 'transparent'};
-  border-radius: ${({ theme, isThinking }) => 
+  border-radius: ${({ theme, isThinking }) =>
     isThinking ? theme.border.radius.sm : '0'};
-  padding: ${({ theme, isThinking }) => 
-    isThinking ? theme.spacing(2) : '0'};
+  padding: ${({ theme, isThinking }) => (isThinking ? theme.spacing(2) : '0')};
 
   &:hover .message-footer {
     opacity: 1;
@@ -127,13 +132,11 @@ export const EnhancedAIChatMessage = ({
   }, [message]);
 
   // SGR стриминг для активных сообщений
-  const {
-    isStreaming,
-    status,
-  } = useSGRStreamingBasic(message.threadId || '');
+  const { isStreaming, status } = useSGRStreamingBasic(message.threadId || '');
 
   // Показывать визуализацию только для SGR сообщений в процессе
-  const shouldShowVisualization = sgrStep && (isStreaming || (status !== 'idle' && status !== 'completed'));
+  const shouldShowVisualization =
+    sgrStep && (isStreaming || (status !== 'idle' && status !== 'completed'));
 
   const getAssistantMessageContent = (message: AgentChatMessage) => {
     // For non-SGR messages, just render the markdown content
@@ -182,9 +185,18 @@ export const EnhancedAIChatMessage = ({
           </StyledMessageText>
           {message.files && message.files.length > 0 && (
             <StyledFilesContainer>
-              {message.files.map((file: { id: string; name: string; fullPath: string; size: number; type: string; createdAt: string }) => (
-                <AgentChatFilePreview key={file.id} file={file} />
-              ))}
+              {message.files.map(
+                (file: {
+                  id: string;
+                  name: string;
+                  fullPath: string;
+                  size: number;
+                  type: string;
+                  createdAt: string;
+                }) => (
+                  <AgentChatFilePreview key={file.id} file={file} />
+                ),
+              )}
             </StyledFilesContainer>
           )}
           {message.content && (

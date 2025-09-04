@@ -1,12 +1,12 @@
 import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Post,
-    Query,
-    Sse,
-    UseGuards,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Sse,
+  UseGuards,
 } from '@nestjs/common';
 
 import { Observable } from 'rxjs';
@@ -17,17 +17,16 @@ import { AuthUser } from 'src/engine/decorators/auth/auth-user.decorator';
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
 import { UserAuthGuard } from 'src/engine/guards/user-auth.guard';
 import { WorkspaceAuthGuard } from 'src/engine/guards/workspace-auth.guard';
-
 import {
-    AdaptiveSupervisorConfigService,
-    RequestComplexity,
+  AdaptiveSupervisorConfigService,
+  RequestComplexity,
 } from 'src/engine/core-modules/business-setup/services/adaptive-supervisor-config.service';
 import { BusinessSetupStatusCacheService } from 'src/engine/core-modules/business-setup/services/business-setup-status-cache.service';
 import { EnhancedSupervisorToolDispatcher } from 'src/engine/core-modules/business-setup/services/enhanced-supervisor-tool-dispatcher.service';
 import { ProviderRegistry } from 'src/engine/core-modules/business-setup/services/provider-registry.service';
 import {
-    MessageEvent,
-    StreamingProgressService,
+  MessageEvent,
+  StreamingProgressService,
 } from 'src/engine/core-modules/business-setup/services/streaming-progress.service';
 import { SupervisorAnalyticsService } from 'src/engine/core-modules/business-setup/services/supervisor-analytics.service';
 

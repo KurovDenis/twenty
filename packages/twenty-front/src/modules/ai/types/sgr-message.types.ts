@@ -1,6 +1,6 @@
 /**
  * Frontend types for SGR (Schema-Guided Reasoning) thinking messages
- * 
+ *
  * These types support displaying real-time AI reasoning process to users
  * during business setup credential processing.
  */
@@ -10,8 +10,8 @@
  */
 export enum SGRMessageType {
   THINKING = 'thinking',
-  TOOL_EXECUTION = 'tool_execution', 
-  FINAL_RESPONSE = 'final_response'
+  TOOL_EXECUTION = 'tool_execution',
+  FINAL_RESPONSE = 'final_response',
 }
 
 /**
@@ -21,7 +21,7 @@ export enum SGRToolExecutionStatus {
   STARTING = 'starting',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
-  FAILED = 'failed'
+  FAILED = 'failed',
 }
 
 /**
@@ -30,23 +30,23 @@ export enum SGRToolExecutionStatus {
 export interface SGRThinkingStep {
   /** Step number in the sequence */
   stepNumber: number;
-  
+
   /** Current AI reasoning state */
   currentState: string;
-  
+
   /** List of planned remaining steps */
   plannedSteps: string[];
-  
+
   /** Tool selected for execution */
   selectedTool: string;
-  
+
   /** Tool execution details (optional) */
   toolExecution?: {
     status: SGRToolExecutionStatus;
     result?: any;
     error?: string;
   };
-  
+
   /** When this step was executed */
   timestamp: Date;
 }
@@ -90,7 +90,10 @@ export interface SGRFinalResponseMessage {
 /**
  * Union type for all SGR messages
  */
-export type SGRMessage = SGRThinkingMessage | SGRToolExecutionMessage | SGRFinalResponseMessage;
+export type SGRMessage =
+  | SGRThinkingMessage
+  | SGRToolExecutionMessage
+  | SGRFinalResponseMessage;
 
 /**
  * Enhanced agent chat message that can include SGR thinking information
@@ -101,7 +104,7 @@ export interface EnhancedAgentChatMessage {
   role: 'user' | 'assistant';
   createdAt: Date;
   files?: Array<{ id: string; name: string; url: string }>;
-  
+
   // SGR-specific fields
   sgrMessage?: SGRMessage;
   isThinking?: boolean;
@@ -134,13 +137,13 @@ export interface SGRToolExecutionDisplayProps {
 export interface SGRUIConfig {
   /** Show detailed thinking steps */
   showThinkingSteps: boolean;
-  
+
   /** Show tool execution progress */
   showToolExecution: boolean;
-  
+
   /** Auto-scroll to latest step */
   autoScrollToLatest: boolean;
-  
+
   /** Animation duration for transitions */
   animationDurationMs: number;
 }
@@ -158,26 +161,38 @@ export const DEFAULT_SGR_UI_CONFIG: SGRUIConfig = {
 /**
  * Helper function to determine if a message contains SGR thinking information
  */
-export function isSGRMessage(message: any): message is EnhancedAgentChatMessage {
-  return message && (message.sgrMessage || message.isThinking || message.thinkingStep);
+export function isSGRMessage(
+  message: any,
+): message is EnhancedAgentChatMessage {
+  return (
+    message &&
+    (message.sgrMessage || message.isThinking || message.thinkingStep)
+  );
 }
 
 /**
  * Helper function to extract SGR step from message content
  */
-export function extractSGRStepFromContent(content: string): SGRThinkingStep | null {
+export function extractSGRStepFromContent(
+  content: string,
+): SGRThinkingStep | null {
   // Parse content for SGR step markers
   const stepMatch = content.match(/🤔 \*\*Шаг (\d+): (.+?)\*\*/);
   if (!stepMatch) return null;
 
   const stepNumber = parseInt(stepMatch[1]);
   const currentState = stepMatch[2];
-  
+
   // Extract planned steps
-  const stepsMatch = content.match(/\*\*План действий:\*\*\n((?:\d+\. .+\n?)+)/);
-  const plannedSteps = stepsMatch ? 
-    stepsMatch[1].split('\n').filter(s => s.trim()).map(s => s.replace(/^\d+\. /, '')) : 
-    [];
+  const stepsMatch = content.match(
+    /\*\*План действий:\*\*\n((?:\d+\. .+\n?)+)/,
+  );
+  const plannedSteps = stepsMatch
+    ? stepsMatch[1]
+        .split('\n')
+        .filter((s) => s.trim())
+        .map((s) => s.replace(/^\d+\. /, ''))
+    : [];
 
   // Extract selected tool
   const toolMatch = content.match(/\*\*Выбранный инструмент:\*\* (.+)/);
@@ -188,7 +203,7 @@ export function extractSGRStepFromContent(content: string): SGRThinkingStep | nu
     currentState,
     plannedSteps,
     selectedTool,
-    timestamp: new Date()
+    timestamp: new Date(),
   };
 }
 
@@ -203,21 +218,26 @@ export function extractToolExecutionFromContent(content: string): {
   if (content.includes('🔧 **Выполняю:')) {
     return { status: SGRToolExecutionStatus.IN_PROGRESS };
   }
-  
-  if (content.includes('✅ **Инструмент') && content.includes('выполнен успешно**')) {
-    return { 
+
+  if (
+    content.includes('✅ **Инструмент') &&
+    content.includes('выполнен успешно**')
+  ) {
+    return {
       status: SGRToolExecutionStatus.COMPLETED,
-      result: {} // Placeholder result object
+      result: {}, // Placeholder result object
     };
   }
-  
+
   if (content.includes('❌ **Ошибка при выполнении')) {
-    const errorMatch = content.match(/❌ \*\*Ошибка при выполнении.+?\*\*\n\n(.+?)\n/);
-    return { 
+    const errorMatch = content.match(
+      /❌ \*\*Ошибка при выполнении.+?\*\*\n\n(.+?)\n/,
+    );
+    return {
       status: SGRToolExecutionStatus.FAILED,
-      error: errorMatch ? errorMatch[1] : 'Unknown error'
+      error: errorMatch ? errorMatch[1] : 'Unknown error',
     };
   }
-  
+
   return null;
 }

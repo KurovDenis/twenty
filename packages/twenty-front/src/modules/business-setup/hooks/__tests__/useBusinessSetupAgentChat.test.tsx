@@ -1,6 +1,6 @@
 /**
  * Unit tests for useBusinessSetupAgentChat hook
- * 
+ *
  * Tests the enhanced functionality for creating SGR Avito agent threads
  * when floating AI chat button is clicked during business setup.
  */
@@ -23,16 +23,19 @@ const mockUseBusinessSetupStatus = jest.fn();
 // Mock the hooks
 beforeEach(() => {
   jest.clearAllMocks();
-  
-  require('@/ai/hooks/useCreateNewAIChatThread').useCreateNewAIChatThread = jest.fn(() => ({
-    createAgentChatThread: mockCreateAgentChatThread,
-  }));
-  
-  require('@/command-menu/hooks/useOpenAskAIPageInCommandMenu').useOpenAskAIPageInCommandMenu = jest.fn(() => ({
-    openAskAIPage: mockOpenAskAIPage,
-  }));
-  
-  require('./useBusinessSetupStatus').useBusinessSetupStatus = mockUseBusinessSetupStatus;
+
+  require('@/ai/hooks/useCreateNewAIChatThread').useCreateNewAIChatThread =
+    jest.fn(() => ({
+      createAgentChatThread: mockCreateAgentChatThread,
+    }));
+
+  require('@/command-menu/hooks/useOpenAskAIPageInCommandMenu').useOpenAskAIPageInCommandMenu =
+    jest.fn(() => ({
+      openAskAIPage: mockOpenAskAIPage,
+    }));
+
+  require('./useBusinessSetupStatus').useBusinessSetupStatus =
+    mockUseBusinessSetupStatus;
 });
 
 // Helper wrapper with RecoilRoot and workspace state
@@ -53,8 +56,8 @@ describe('useBusinessSetupAgentChat', () => {
     id: 'workspace-123',
     displayName: 'Test Workspace',
     defaultAgent: {
-      id: 'agent-456'
-    }
+      id: 'agent-456',
+    },
   };
 
   describe('createBusinessSetupChat', () => {
@@ -64,7 +67,9 @@ describe('useBusinessSetupAgentChat', () => {
       mockCreateAgentChatThread.mockResolvedValue(undefined);
 
       const wrapper = createWrapper(mockWorkspace);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
       await act(async () => {
@@ -82,7 +87,9 @@ describe('useBusinessSetupAgentChat', () => {
       mockCreateAgentChatThread.mockResolvedValue(undefined);
 
       const wrapper = createWrapper(mockWorkspace);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
       await act(async () => {
@@ -103,7 +110,9 @@ describe('useBusinessSetupAgentChat', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const wrapper = createWrapper(mockWorkspace);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
       await act(async () => {
@@ -113,7 +122,10 @@ describe('useBusinessSetupAgentChat', () => {
       // Assert
       expect(mockCreateAgentChatThread).toHaveBeenCalledTimes(1);
       expect(mockOpenAskAIPage).toHaveBeenCalledTimes(1);
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to create business setup chat thread:', createError);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to create business setup chat thread:',
+        createError,
+      );
 
       consoleSpy.mockRestore();
     });
@@ -124,7 +136,9 @@ describe('useBusinessSetupAgentChat', () => {
       mockCreateAgentChatThread.mockResolvedValue(undefined);
 
       const wrapper = createWrapper(mockWorkspace);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
       await act(async () => {
@@ -143,11 +157,13 @@ describe('useBusinessSetupAgentChat', () => {
       const workspaceWithoutAgent = {
         id: 'workspace-123',
         displayName: 'Test Workspace',
-        defaultAgent: null
+        defaultAgent: null,
       };
 
       const wrapper = createWrapper(workspaceWithoutAgent);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
       await act(async () => {
@@ -165,7 +181,9 @@ describe('useBusinessSetupAgentChat', () => {
       mockCreateAgentChatThread.mockResolvedValue(undefined);
 
       const wrapper = createWrapper(null);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
       await act(async () => {
@@ -182,9 +200,11 @@ describe('useBusinessSetupAgentChat', () => {
     it('should return correct message for WELCOME step', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('WELCOME');
-      
+
       const wrapper = createWrapper(mockWorkspace);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
       const message = result.current.getWelcomeMessageForStep('WELCOME');
@@ -198,12 +218,15 @@ describe('useBusinessSetupAgentChat', () => {
     it('should return correct message for BUSINESS_ANALYSIS step', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('BUSINESS_ANALYSIS');
-      
+
       const wrapper = createWrapper(mockWorkspace);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
-      const message = result.current.getWelcomeMessageForStep('BUSINESS_ANALYSIS');
+      const message =
+        result.current.getWelcomeMessageForStep('BUSINESS_ANALYSIS');
 
       // Assert
       expect(message).toContain('analyze your business');
@@ -212,12 +235,16 @@ describe('useBusinessSetupAgentChat', () => {
     it('should return default message for unknown step', () => {
       // Arrange
       mockUseBusinessSetupStatus.mockReturnValue('WELCOME');
-      
+
       const wrapper = createWrapper(mockWorkspace);
-      const { result } = renderHook(() => useBusinessSetupAgentChat(), { wrapper });
+      const { result } = renderHook(() => useBusinessSetupAgentChat(), {
+        wrapper,
+      });
 
       // Act
-      const message = result.current.getWelcomeMessageForStep('UNKNOWN_STEP' as any);
+      const message = result.current.getWelcomeMessageForStep(
+        'UNKNOWN_STEP' as any,
+      );
 
       // Assert
       expect(message).toContain('Avito'); // Should return WELCOME message as default
@@ -227,7 +254,8 @@ describe('useBusinessSetupAgentChat', () => {
   describe('integration with useCreateNewAIChatThread', () => {
     it('should pass correct parameters to useCreateNewAIChatThread', () => {
       // Arrange
-      const mockUseCreateNewAIChatThread = require('@/ai/hooks/useCreateNewAIChatThread').useCreateNewAIChatThread;
+      const mockUseCreateNewAIChatThread =
+        require('@/ai/hooks/useCreateNewAIChatThread').useCreateNewAIChatThread;
       mockUseBusinessSetupStatus.mockReturnValue('WELCOME');
 
       const wrapper = createWrapper(mockWorkspace);
@@ -236,18 +264,19 @@ describe('useBusinessSetupAgentChat', () => {
       // Assert
       expect(mockUseCreateNewAIChatThread).toHaveBeenCalledWith({
         agentId: 'agent-456',
-        businessSetupStep: 'WELCOME'
+        businessSetupStep: 'WELCOME',
       });
     });
 
     it('should pass fallback agent ID when workspace has no default agent', () => {
       // Arrange
-      const mockUseCreateNewAIChatThread = require('@/ai/hooks/useCreateNewAIChatThread').useCreateNewAIChatThread;
+      const mockUseCreateNewAIChatThread =
+        require('@/ai/hooks/useCreateNewAIChatThread').useCreateNewAIChatThread;
       mockUseBusinessSetupStatus.mockReturnValue('WELCOME');
 
       const workspaceWithoutAgent = {
         id: 'workspace-123',
-        defaultAgent: null
+        defaultAgent: null,
       };
 
       const wrapper = createWrapper(workspaceWithoutAgent);
@@ -256,7 +285,7 @@ describe('useBusinessSetupAgentChat', () => {
       // Assert
       expect(mockUseCreateNewAIChatThread).toHaveBeenCalledWith({
         agentId: 'fallback-agent',
-        businessSetupStep: 'WELCOME'
+        businessSetupStep: 'WELCOME',
       });
     });
   });

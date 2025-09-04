@@ -1,6 +1,6 @@
 /**
  * Business Setup Agent Configuration
- * 
+ *
  * Defines specialized agents for different business setup stages
  * with their capabilities, SGR settings, and behavior overrides.
  * This configuration is now provider-agnostic and delegates to
@@ -41,7 +41,10 @@ export const SGR_AVITO_AGENT_ID = '2f851163-c7ea-4eae-b960-13f019b256e3';
  * Provider-agnostic agent configurations for each business setup stage
  * Routing decisions are now delegated to the Supervisor Agent
  */
-export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAgentConfig> = {
+export const BUSINESS_SETUP_AGENTS: Record<
+  BusinessSetupStatus,
+  BusinessSetupAgentConfig
+> = {
   WELCOME: {
     agentId: SGR_AVITO_AGENT_ID,
     step: 'WELCOME',
@@ -49,10 +52,10 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     displayName: 'Business Setup Supervisor',
     capabilities: [
       'provider_detection',
-      'credential_extraction', 
+      'credential_extraction',
       'setup_guidance',
       'routing_decision',
-      'sgr_processing'
+      'sgr_processing',
     ],
     sgrEnabled: true,
     autoInit: true,
@@ -79,10 +82,10 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     metadata: {
       complexity: 'complex',
       expectedProviders: ['avito', 'ebay', 'amazon', 'wildberries'],
-      fallbackAction: 'general_business_setup'
-    }
+      fallbackAction: 'general_business_setup',
+    },
   },
-  
+
   BUSINESS_ANALYSIS: {
     agentId: 'business-analysis-agent',
     step: 'BUSINESS_ANALYSIS',
@@ -91,7 +94,7 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     capabilities: [
       'business_analysis',
       'process_mapping',
-      'opportunity_identification'
+      'opportunity_identification',
     ],
     sgrEnabled: false,
     autoInit: false,
@@ -100,19 +103,19 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     metadata: {
       complexity: 'complex',
       expectedProviders: ['analytics', 'reporting'],
-      fallbackAction: 'manual_analysis'
-    }
+      fallbackAction: 'manual_analysis',
+    },
   },
-  
+
   SALES_FUNNEL_DESIGN: {
     agentId: 'sales-funnel-agent',
-    step: 'SALES_FUNNEL_DESIGN', 
+    step: 'SALES_FUNNEL_DESIGN',
     agentType: 'specialized',
     displayName: 'Sales Funnel Designer',
     capabilities: [
       'funnel_design',
       'conversion_optimization',
-      'customer_journey_mapping'
+      'customer_journey_mapping',
     ],
     sgrEnabled: false,
     autoInit: false,
@@ -121,19 +124,19 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     metadata: {
       complexity: 'complex',
       expectedProviders: ['crm', 'automation'],
-      fallbackAction: 'template_funnel'
-    }
+      fallbackAction: 'template_funnel',
+    },
   },
-  
+
   AGENT_SETUP: {
     agentId: 'agent-setup-specialist',
     step: 'AGENT_SETUP',
     agentType: 'specialized',
-    displayName: 'Agent Configuration Specialist', 
+    displayName: 'Agent Configuration Specialist',
     capabilities: [
       'agent_configuration',
       'automation_setup',
-      'workflow_design'
+      'workflow_design',
     ],
     sgrEnabled: false,
     autoInit: false,
@@ -142,10 +145,10 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     metadata: {
       complexity: 'simple',
       expectedProviders: ['agent_management'],
-      fallbackAction: 'default_agent_config'
-    }
+      fallbackAction: 'default_agent_config',
+    },
   },
-  
+
   WORKFLOW_CREATION: {
     agentId: 'workflow-automation-designer',
     step: 'WORKFLOW_CREATION',
@@ -154,7 +157,7 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     capabilities: [
       'workflow_automation',
       'process_optimization',
-      'integration_setup'
+      'integration_setup',
     ],
     sgrEnabled: false,
     autoInit: false,
@@ -163,10 +166,10 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     metadata: {
       complexity: 'complex',
       expectedProviders: ['workflow_engine', 'automation'],
-      fallbackAction: 'basic_workflow'
-    }
+      fallbackAction: 'basic_workflow',
+    },
   },
-  
+
   TEAM_ASSIGNMENT: {
     agentId: 'team-organization-specialist',
     step: 'TEAM_ASSIGNMENT',
@@ -175,7 +178,7 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     capabilities: [
       'team_organization',
       'role_assignment',
-      'collaboration_setup'
+      'collaboration_setup',
     ],
     sgrEnabled: false,
     autoInit: false,
@@ -184,10 +187,10 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     metadata: {
       complexity: 'simple',
       expectedProviders: ['user_management'],
-      fallbackAction: 'default_team_structure'
-    }
+      fallbackAction: 'default_team_structure',
+    },
   },
-  
+
   TESTING_OPTIMIZATION: {
     agentId: 'quality-assurance-specialist',
     step: 'TESTING_OPTIMIZATION',
@@ -196,7 +199,7 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     capabilities: [
       'system_testing',
       'performance_optimization',
-      'quality_assurance'
+      'quality_assurance',
     ],
     sgrEnabled: false,
     autoInit: false,
@@ -205,20 +208,16 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     metadata: {
       complexity: 'complex',
       expectedProviders: ['testing', 'monitoring'],
-      fallbackAction: 'basic_testing'
-    }
+      fallbackAction: 'basic_testing',
+    },
   },
-  
+
   COMPLETED: {
     agentId: 'general-business-assistant',
     step: 'COMPLETED',
     agentType: 'general',
     displayName: 'General Business Assistant',
-    capabilities: [
-      'general_assistance',
-      'ongoing_support',
-      'maintenance_help'
-    ],
+    capabilities: ['general_assistance', 'ongoing_support', 'maintenance_help'],
     sgrEnabled: false,
     autoInit: false,
     delegateToSupervisor: false, // No delegation needed for general assistance
@@ -226,15 +225,17 @@ export const BUSINESS_SETUP_AGENTS: Record<BusinessSetupStatus, BusinessSetupAge
     metadata: {
       complexity: 'simple',
       expectedProviders: [],
-      fallbackAction: 'general_ai_chat'
-    }
-  }
+      fallbackAction: 'general_ai_chat',
+    },
+  },
 };
 
 /**
  * Get agent configuration for current business setup status
  */
-export const getAgentConfigForStatus = (status: BusinessSetupStatus | null | undefined): BusinessSetupAgentConfig | null => {
+export const getAgentConfigForStatus = (
+  status: BusinessSetupStatus | null | undefined,
+): BusinessSetupAgentConfig | null => {
   if (!status) return null;
   return BUSINESS_SETUP_AGENTS[status] || null;
 };
@@ -242,7 +243,9 @@ export const getAgentConfigForStatus = (status: BusinessSetupStatus | null | und
 /**
  * Check if Supervisor should handle routing for given status
  */
-export const shouldDelegateToSupervisor = (status: BusinessSetupStatus | null | undefined): boolean => {
+export const shouldDelegateToSupervisor = (
+  status: BusinessSetupStatus | null | undefined,
+): boolean => {
   if (!status) return false;
   const config = getAgentConfigForStatus(status);
   return config?.delegateToSupervisor === true;
@@ -251,7 +254,9 @@ export const shouldDelegateToSupervisor = (status: BusinessSetupStatus | null | 
 /**
  * Check if auto-greeting should be sent for given status
  */
-export const shouldAutoGreet = (status: BusinessSetupStatus | null | undefined): boolean => {
+export const shouldAutoGreet = (
+  status: BusinessSetupStatus | null | undefined,
+): boolean => {
   if (!status) return false;
   const config = getAgentConfigForStatus(status);
   return config?.autoGreeting === true;
@@ -260,7 +265,9 @@ export const shouldAutoGreet = (status: BusinessSetupStatus | null | undefined):
 /**
  * Get greeting message for status
  */
-export const getGreetingMessage = (status: BusinessSetupStatus | null | undefined): string | null => {
+export const getGreetingMessage = (
+  status: BusinessSetupStatus | null | undefined,
+): string | null => {
   if (!status) return null;
   const config = getAgentConfigForStatus(status);
   return config?.greetingMessage || null;
@@ -269,7 +276,9 @@ export const getGreetingMessage = (status: BusinessSetupStatus | null | undefine
 /**
  * Get expected providers for a given status (for Supervisor routing hints)
  */
-export const getExpectedProviders = (status: BusinessSetupStatus | null | undefined): string[] => {
+export const getExpectedProviders = (
+  status: BusinessSetupStatus | null | undefined,
+): string[] => {
   if (!status) return [];
   const config = getAgentConfigForStatus(status);
   return config?.metadata?.expectedProviders || [];
@@ -278,7 +287,9 @@ export const getExpectedProviders = (status: BusinessSetupStatus | null | undefi
 /**
  * Get fallback action for a given status
  */
-export const getFallbackAction = (status: BusinessSetupStatus | null | undefined): string | null => {
+export const getFallbackAction = (
+  status: BusinessSetupStatus | null | undefined,
+): string | null => {
   if (!status) return null;
   const config = getAgentConfigForStatus(status);
   return config?.metadata?.fallbackAction || null;
@@ -287,7 +298,9 @@ export const getFallbackAction = (status: BusinessSetupStatus | null | undefined
 /**
  * Get complexity level for a given status (helps Supervisor choose configuration)
  */
-export const getComplexityLevel = (status: BusinessSetupStatus | null | undefined): 'simple' | 'complex' | null => {
+export const getComplexityLevel = (
+  status: BusinessSetupStatus | null | undefined,
+): 'simple' | 'complex' | null => {
   if (!status) return null;
   const config = getAgentConfigForStatus(status);
   return config?.metadata?.complexity || null;

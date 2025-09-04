@@ -1,8 +1,8 @@
 import { currentUserState } from '@/auth/states/currentUserState';
 import { useRecoilValue } from 'recoil';
 import {
-    BUSINESS_SETUP_STATUS,
-    type BusinessSetupStatus,
+  BUSINESS_SETUP_STATUS,
+  type BusinessSetupStatus,
 } from './useSetNextBusinessSetupStatus';
 
 export const useBusinessSetupStatus = ():
@@ -11,5 +11,8 @@ export const useBusinessSetupStatus = ():
   | undefined => {
   const currentUser = useRecoilValue(currentUserState);
   // Return businessSetupStatus from currentUser or default to WELCOME for new users
-  return currentUser?.businessSetupStatus ?? (currentUser ? BUSINESS_SETUP_STATUS.WELCOME : undefined);
+  return (
+    currentUser?.businessSetupStatus ??
+    (currentUser ? BUSINESS_SETUP_STATUS.WELCOME : undefined)
+  );
 };

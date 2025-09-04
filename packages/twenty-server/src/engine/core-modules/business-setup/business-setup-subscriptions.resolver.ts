@@ -78,29 +78,43 @@ export class BusinessSetupSubscriptionsResolver {
         variables.input.eventTypes.includes(payload.type);
 
       // SGR event specific filtering
-      const isSGREvent = payload.type.startsWith('SGR_') || payload.type.startsWith('SUPERVISOR_SGR_');
+      const isSGREvent =
+        payload.type.startsWith('SGR_') ||
+        payload.type.startsWith('SUPERVISOR_SGR_');
       let isSGRMatching = true;
-      
+
       if (isSGREvent) {
         // Additional filtering for SGR events
-        const threadMatching = !variables.input.userId || 
-          (payload.payload as any)?.threadId;
-        
+        const threadMatching =
+          !variables.input.userId || (payload.payload as any)?.threadId;
+
         // Check for SGR-specific metadata
-        const hasSGRMetadata = (payload.metadata as any)?.sgrStreaming || (payload.metadata as any)?.supervisorSGR;
-        
+        const hasSGRMetadata =
+          (payload.metadata as any)?.sgrStreaming ||
+          (payload.metadata as any)?.supervisorSGR;
+
         isSGRMatching = threadMatching && hasSGRMetadata;
       }
 
       // Log filtered events for debugging
       // Note: Logger not available in filter context, using console.log
-      if (!isWorkspaceMatching || !isUserMatching || !isEventTypeMatching || !isSGRMatching) {
+      if (
+        !isWorkspaceMatching ||
+        !isUserMatching ||
+        !isEventTypeMatching ||
+        !isSGRMatching
+      ) {
         console.debug(
           `Filtered event: workspace=${isWorkspaceMatching}, user=${isUserMatching}, type=${isEventTypeMatching}, sgr=${isSGRMatching}`,
         );
       }
 
-      return isWorkspaceMatching && isUserMatching && isEventTypeMatching && isSGRMatching;
+      return (
+        isWorkspaceMatching &&
+        isUserMatching &&
+        isEventTypeMatching &&
+        isSGRMatching
+      );
     },
   })
   onBusinessSetupEvent(
@@ -285,7 +299,7 @@ export class BusinessSetupSubscriptionsResolver {
 
       // Only SGR streaming events
       const isSGREvent = payload.type.startsWith('SGR_');
-      
+
       if (!isSGREvent) {
         return false;
       }
@@ -310,11 +324,14 @@ export class BusinessSetupSubscriptionsResolver {
         variables.input.eventTypes.includes(payload.type);
 
       // Check for SGR-specific features
-      const hasPartialJsonParsing = variables.input.enablePartialJsonParsing !== false;
-      const hasTokenThrottling = variables.input.enableTokenThrottling !== false;
+      const hasPartialJsonParsing =
+        variables.input.enablePartialJsonParsing !== false;
+      const hasTokenThrottling =
+        variables.input.enableTokenThrottling !== false;
 
       // Additional filtering based on SGR configuration
       let isSGRConfigMatching = true;
+
       if (payload.type === BusinessSetupEventType.SGR_JSON_TOKEN_CHUNK) {
         isSGRConfigMatching = hasTokenThrottling;
       }
@@ -377,7 +394,7 @@ export class BusinessSetupSubscriptionsResolver {
 
       // Only Supervisor SGR events
       const isSupervisorSGREvent = payload.type.startsWith('SUPERVISOR_SGR_');
-      
+
       if (!isSupervisorSGREvent) {
         return false;
       }
@@ -398,13 +415,21 @@ export class BusinessSetupSubscriptionsResolver {
 
       // Feature-specific filtering
       const includeThinking = variables.input.includeThinkingSteps !== false;
-      const includeToolExecution = variables.input.includeToolExecution !== false;
+      const includeToolExecution =
+        variables.input.includeToolExecution !== false;
 
       let isFeatureMatching = true;
-      if (payload.type === BusinessSetupEventType.SUPERVISOR_SGR_THINKING && !includeThinking) {
+
+      if (
+        payload.type === BusinessSetupEventType.SUPERVISOR_SGR_THINKING &&
+        !includeThinking
+      ) {
         isFeatureMatching = false;
       }
-      if (payload.type === BusinessSetupEventType.SUPERVISOR_SGR_TOOL_EXECUTION && !includeToolExecution) {
+      if (
+        payload.type === BusinessSetupEventType.SUPERVISOR_SGR_TOOL_EXECUTION &&
+        !includeToolExecution
+      ) {
         isFeatureMatching = false;
       }
 

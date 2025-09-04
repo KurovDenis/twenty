@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface ProgressUpdate {
   operationId: string;
@@ -40,7 +40,7 @@ export interface UseStreamingProgressOptions {
  */
 export const useStreamingProgress = (
   operationId: string | null,
-  options: UseStreamingProgressOptions = {}
+  options: UseStreamingProgressOptions = {},
 ) => {
   const {
     autoStart = true,
@@ -48,7 +48,7 @@ export const useStreamingProgress = (
     reconnectDelay = 2000,
     onComplete,
     onError,
-    onProgress
+    onProgress,
   } = options;
 
   const [state, setState] = useState<StreamingProgressState>({
@@ -58,86 +58,97 @@ export const useStreamingProgress = (
     isComplete: false,
     hasError: false,
     connectionState: 'disconnected',
-    totalProgress: 0
+    totalProgress: 0,
   });
 
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectCountRef = useRef(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [eventSource, setEventSource] = useState<EventSource | null>(null);
+  const [reconnectCount, setReconnectCount] = useState(0);
+  const [reconnectTimeout, setReconnectTimeout] =
+    useState<NodeJS.Timeout | null>(null);
 
   /**
    * Calculate overall progress from updates
    */
-  const calculateTotalProgress = useCallback((updates: ProgressUpdate[]): number => {
-    if (updates.length === 0) return 0;
-    
-    const latestUpdate = updates[updates.length - 1];
-    if (latestUpdate.status === 'completed') return 100;
-    if (latestUpdate.status === 'failed') return 0;
-    
-    return latestUpdate.progress;
-  }, []);
+  const calculateTotalProgress = useCallback(
+    (updates: ProgressUpdate[]): number => {
+      if (updates.length === 0) return 0;
+
+      const latestUpdate = updates[updates.length - 1];
+      if (latestUpdate.status === 'completed') return 100;
+      if (latestUpdate.status === 'failed') return 0;
+
+      return latestUpdate.progress;
+    },
+    [],
+  );
 
   /**
    * Add new progress update to state
    */
-  const addProgressUpdate = useCallback((update: ProgressUpdate) => {
-    setState(prev => {
-      const newUpdates = [...prev.updates, update];
-      const totalProgress = calculateTotalProgress(newUpdates);
-      const isComplete = update.status === 'completed';
-      const hasError = update.status === 'failed';
+  const addProgressUpdate = useCallback(
+    (update: ProgressUpdate) => {
+      setState((prev) => {
+        const newUpdates = [...prev.updates, update];
+        const totalProgress = calculateTotalProgress(newUpdates);
+        const isComplete = update.status === 'completed';
+        const hasError = update.status === 'failed';
 
-      return {
-        ...prev,
-        updates: newUpdates,
-        currentUpdate: update,
-        isComplete,
-        hasError,
-        totalProgress,
-        isActive: !isComplete && !hasError
-      };
-    });
+        return {
+          ...prev,
+          updates: newUpdates,
+          currentUpdate: update,
+          isComplete,
+          hasError,
+          totalProgress,
+          isActive: !isComplete && !hasError,
+        };
+      });
 
-    // Call callbacks
-    if (onProgress) {
-      onProgress(update);
-    }
+      // Call callbacks
+      if (onProgress) {
+        onProgress(update);
+      }
 
-    if (update.status === 'completed' && onComplete) {
-      onComplete(state.updates);
-    }
+      if (update.status === 'completed' && onComplete) {
+        onComplete(state.updates);
+      }
 
-    if (update.status === 'failed' && onError) {
-      onError(new Error(update.message));
-    }
-  }, [calculateTotalProgress, onProgress, onComplete, onError, state.updates]);
+      if (update.status === 'failed' && onError) {
+        onError(new Error(update.message));
+      }
+    },
+    [calculateTotalProgress, onProgress, onComplete, onError, state.updates],
+  );
 
   /**
    * Connect to Server-Sent Events stream
    */
   const connect = useCallback(() => {
-    if (!operationId || eventSourceRef.current) {
+    if (!operationId || eventSource) {
       return;
     }
 
-    setState(prev => ({ ...prev, connectionState: 'connecting' }));
+    setState((prev) => ({ ...prev, connectionState: 'connecting' }));
 
     try {
-      const eventSource = new EventSource(`/api/supervisor/progress/${operationId}`);
-      eventSourceRef.current = eventSource;
+      const newEventSource = new EventSource(
+        `/api/supervisor/progress/${operationId}`,
+      );
+      setEventSource(newEventSource);
 
-      eventSource.onopen = () => {
-        console.log(`Connected to progress stream for operation: ${operationId}`);
-        setState(prev => ({ 
-          ...prev, 
-          connectionState: 'connected', 
-          isActive: true 
+      newEventSource.onopen = () => {
+        console.log(
+          `Connected to progress stream for operation: ${operationId}`,
+        );
+        setState((prev) => ({
+          ...prev,
+          connectionState: 'connected',
+          isActive: true,
         }));
-        reconnectCountRef.current = 0;
+        setReconnectCount(0);
       };
 
-      eventSource.onmessage = (event) => {
+      newEventSource.onmessage = (event) => {
         try {
           const update: ProgressUpdate = JSON.parse(event.data);
           console.log('Received progress update:', update);
@@ -154,19 +165,22 @@ export const useStreamingProgress = (
         }
       };
 
-      eventSource.onerror = (error) => {
+      newEventSource.onerror = (error) => {
         console.error('EventSource error:', error);
-        setState(prev => ({ ...prev, connectionState: 'error' }));
-        
+        setState((prev) => ({ ...prev, connectionState: 'error' }));
+
         // Attempt to reconnect
-        if (reconnectCountRef.current < reconnectAttempts) {
-          reconnectCountRef.current++;
-          console.log(`Attempting to reconnect (${reconnectCountRef.current}/${reconnectAttempts})`);
-          
+        if (reconnectCount < reconnectAttempts) {
+          setReconnectCount((prev) => prev + 1);
+          console.log(
+            `Attempting to reconnect (${reconnectCount + 1}/${reconnectAttempts})`,
+          );
+
           disconnect();
-          reconnectTimeoutRef.current = setTimeout(() => {
+          const timeout = setTimeout(() => {
             connect();
           }, reconnectDelay);
+          setReconnectTimeout(timeout);
         } else {
           console.error('Max reconnection attempts reached');
           if (onError) {
@@ -174,34 +188,39 @@ export const useStreamingProgress = (
           }
         }
       };
-
     } catch (error) {
       console.error('Failed to create EventSource:', error);
-      setState(prev => ({ ...prev, connectionState: 'error' }));
+      setState((prev) => ({ ...prev, connectionState: 'error' }));
       if (onError) {
         onError(error as Error);
       }
     }
-  }, [operationId, reconnectAttempts, reconnectDelay, addProgressUpdate, onError]);
+  }, [
+    operationId,
+    reconnectAttempts,
+    reconnectDelay,
+    addProgressUpdate,
+    onError,
+  ]);
 
   /**
    * Disconnect from Server-Sent Events stream
    */
   const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
+    if (eventSource) {
+      eventSource.close();
+      setEventSource(null);
     }
 
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+      setReconnectTimeout(null);
     }
 
-    setState(prev => ({ 
-      ...prev, 
+    setState((prev) => ({
+      ...prev,
       connectionState: 'disconnected',
-      isActive: false 
+      isActive: false,
     }));
   }, []);
 
@@ -217,9 +236,9 @@ export const useStreamingProgress = (
       isComplete: false,
       hasError: false,
       connectionState: 'disconnected',
-      totalProgress: 0
+      totalProgress: 0,
     });
-    reconnectCountRef.current = 0;
+    setReconnectCount(0);
   }, [disconnect]);
 
   /**
@@ -265,19 +284,19 @@ export const useStreamingProgress = (
     hasError: state.hasError,
     connectionState: state.connectionState,
     totalProgress: state.totalProgress,
-    
+
     // Computed
     lastUpdate: state.updates[state.updates.length - 1] || null,
     stepCount: state.updates.length,
     currentStep: state.currentUpdate?.step || '',
     currentMessage: state.currentUpdate?.message || '',
-    
+
     // Actions
     start,
     stop,
     reset,
     connect,
-    disconnect
+    disconnect,
   };
 };
 
@@ -285,7 +304,7 @@ export const useStreamingProgress = (
  * Simplified hook for basic progress tracking
  */
 export const useSimpleProgress = (operationId: string | null) => {
-  const { totalProgress, currentMessage, isComplete, hasError, isActive } = 
+  const { totalProgress, currentMessage, isComplete, hasError, isActive } =
     useStreamingProgress(operationId);
 
   return {
@@ -293,6 +312,6 @@ export const useSimpleProgress = (operationId: string | null) => {
     message: currentMessage,
     isComplete,
     hasError,
-    isActive
+    isActive,
   };
 };

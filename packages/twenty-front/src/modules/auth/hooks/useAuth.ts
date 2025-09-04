@@ -2,11 +2,11 @@ import { AppPath } from '@/types/AppPath';
 import { ApolloError, useApolloClient } from '@apollo/client';
 import { useCallback } from 'react';
 import {
-  snapshot_UNSTABLE,
-  useGotoRecoilSnapshot,
-  useRecoilCallback,
-  useRecoilValue,
-  useSetRecoilState,
+    snapshot_UNSTABLE,
+    useGotoRecoilSnapshot,
+    useRecoilCallback,
+    useRecoilValue,
+    useSetRecoilState,
 } from 'recoil';
 
 import { billingState } from '@/client-config/states/billingState';
@@ -14,16 +14,16 @@ import { clientConfigApiStatusState } from '@/client-config/states/clientConfigA
 import { supportChatState } from '@/client-config/states/supportChatState';
 import { REACT_APP_SERVER_BASE_URL } from '~/config';
 import {
-  AuthTokenPair,
-  useCheckUserExistsLazyQuery,
-  useGetAuthTokensFromLoginTokenMutation,
-  useGetAuthTokensFromOtpMutation,
-  useGetLoginTokenFromCredentialsMutation,
-  useGetLoginTokenFromEmailVerificationTokenMutation,
-  useGetWorkspaceAgnosticTokenFromEmailVerificationTokenMutation,
-  useSignInMutation,
-  useSignUpInWorkspaceMutation,
-  useSignUpMutation,
+    AuthTokenPair,
+    useCheckUserExistsLazyQuery,
+    useGetAuthTokensFromLoginTokenMutation,
+    useGetAuthTokensFromOtpMutation,
+    useGetLoginTokenFromCredentialsMutation,
+    useGetLoginTokenFromEmailVerificationTokenMutation,
+    useGetWorkspaceAgnosticTokenFromEmailVerificationTokenMutation,
+    useSignInMutation,
+    useSignUpInWorkspaceMutation,
+    useSignUpMutation,
 } from '~/generated-metadata/graphql';
 
 import { isDeveloperDefaultSignInPrefilledState } from '@/client-config/states/isDeveloperDefaultSignInPrefilledState';
@@ -32,20 +32,23 @@ import { tokenPairState } from '../states/tokenPairState';
 import { useSignUpInNewWorkspace } from '@/auth/sign-in-up/hooks/useSignUpInNewWorkspace';
 import { isCurrentUserLoadedState } from '@/auth/states/isCurrentUserLoadedState';
 import {
-  SignInUpStep,
-  signInUpStepState,
+    SignInUpStep,
+    signInUpStepState,
 } from '@/auth/states/signInUpStepState';
 import { workspacePublicDataState } from '@/auth/states/workspacePublicDataState';
 import { BillingCheckoutSession } from '@/auth/types/billingCheckoutSession.type';
 import {
-  countAvailableWorkspaces,
-  getFirstAvailableWorkspaces,
+    countAvailableWorkspaces,
+    getFirstAvailableWorkspaces,
 } from '@/auth/utils/availableWorkspacesUtils';
 import { useRequestFreshCaptchaToken } from '@/captcha/hooks/useRequestFreshCaptchaToken';
 import { apiConfigState } from '@/client-config/states/apiConfigState';
 import { captchaState } from '@/client-config/states/captchaState';
 import { isEmailVerificationRequiredState } from '@/client-config/states/isEmailVerificationRequiredState';
-import { isMultiWorkspaceEnabledState } from '@/client-config/states/isMultiWorkspaceEnabledState';
+import {
+    isMultiWorkspaceEnabledState,
+    singleWorkspaceBehaviorState,
+} from '@/client-config/states/isMultiWorkspaceEnabledState';
 import { sentryConfigState } from '@/client-config/states/sentryConfigState';
 import { useLastAuthenticatedWorkspaceDomain } from '@/domain-manager/hooks/useLastAuthenticatedWorkspaceDomain';
 import { useOrigin } from '@/domain-manager/hooks/useOrigin';
@@ -71,6 +74,7 @@ export const useAuth = () => {
   const { origin } = useOrigin();
   const { requestFreshCaptchaToken } = useRequestFreshCaptchaToken();
   const isMultiWorkspaceEnabled = useRecoilValue(isMultiWorkspaceEnabledState);
+  const singleWorkspaceBehavior = useRecoilValue(singleWorkspaceBehaviorState);
   const isEmailVerificationRequired = useRecoilValue(
     isEmailVerificationRequiredState,
   );
@@ -107,7 +111,7 @@ export const useAuth = () => {
 
   const goToRecoilSnapshot = useGotoRecoilSnapshot();
 
-  const [, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const navigate = useNavigate();
 
@@ -277,6 +281,10 @@ export const useAuth = () => {
 
       const { user } = await loadCurrentUser();
 
+      if (!user.availableWorkspaces) {
+        throw new Error('User availableWorkspaces not loaded');
+      }
+
       if (countAvailableWorkspaces(user.availableWorkspaces) === 0) {
         return await createWorkspace({ newTab: false });
       }
@@ -373,15 +381,45 @@ export const useAuth = () => {
           handleSetAuthTokens(data.signIn.tokens);
           const { user } = await loadCurrentUser();
 
+          if (!user.availableWorkspaces) {
+            throw new Error('User availableWorkspaces not loaded');
+          }
+
           const availableWorkspacesCount = countAvailableWorkspaces(
             user.availableWorkspaces,
           );
 
+          console.log('[Auth Flow] Available workspaces count:', availableWorkspacesCount);
+
           if (availableWorkspacesCount === 0) {
-            return createWorkspace();
+            console.log('[Auth Flow] No workspaces found, creating new workspace');
+            console.log('[Metrics] Workspace creation triggered - user has 0 workspaces');
+            return await createWorkspace();
           }
 
           if (availableWorkspacesCount === 1) {
+            console.log('[Auth Flow] Single workspace behavior:', singleWorkspaceBehavior);
+            const actionParam = searchParams.get('action');
+            if (actionParam === 'create-new') {
+              console.log('[Auth Flow] Query param override detected: action=create-new');
+              console.log('[Metrics] Workspace creation triggered - override via query param');
+              return await createWorkspace({ newTab: false });
+            }
+            
+            if (singleWorkspaceBehavior === 'create-new') {
+              console.log('[Auth Flow] Creating new workspace instead of redirecting to existing');
+              console.log('[Metrics] Workspace creation triggered - single workspace behavior: create-new');
+              return await createWorkspace({ newTab: false });
+            }
+            
+            if (singleWorkspaceBehavior === 'show-choice') {
+              console.log('[Auth Flow] Showing workspace selection with create option');
+              setSignInUpStep(SignInUpStep.WorkspaceSelection);
+              return;
+            }
+            
+            // Default: auto-redirect
+            console.log('[Auth Flow] Auto-redirecting to single workspace');
             const targetWorkspace = getFirstAvailableWorkspaces(
               user.availableWorkspaces,
             );
@@ -420,6 +458,8 @@ export const useAuth = () => {
       setSearchParams,
       setSignInUpStep,
       createWorkspace,
+      singleWorkspaceBehavior,
+      searchParams,
     ],
   );
 
@@ -450,12 +490,35 @@ export const useAuth = () => {
 
       handleSetAuthTokens(signUpResult.data.signUp.tokens);
 
-      const { user } = await loadCurrentUser();
-
-      if (countAvailableWorkspaces(user.availableWorkspaces) === 0) {
+      if (isMultiWorkspaceEnabled) {
+        // Add a small delay to ensure tokens are propagated to Apollo Client
+        await new Promise(resolve => setTimeout(resolve, 100));
         return await createWorkspace({ newTab: false });
       }
 
+      const { user } = await loadCurrentUser();
+
+      if (!user.availableWorkspaces) {
+        throw new Error('User availableWorkspaces not loaded');
+      }
+
+      const availableWorkspacesCount = countAvailableWorkspaces(user.availableWorkspaces);
+      console.log('[SignUp Flow] Available workspaces count:', availableWorkspacesCount);
+      console.log('[SignUp Flow] Available workspaces:', user.availableWorkspaces);
+
+      if (availableWorkspacesCount === 0) {
+        console.log('[SignUp Flow] No workspaces found, creating new workspace');
+        try {
+          // Add a small delay to ensure tokens are propagated to Apollo Client
+          await new Promise(resolve => setTimeout(resolve, 100));
+          return await createWorkspace({ newTab: false });
+        } catch (error) {
+          console.error('[SignUp Flow] Failed to create workspace:', error);
+          throw error;
+        }
+      }
+
+      console.log('[SignUp Flow] Workspaces found, showing workspace selection');
       setSignInUpStep(SignInUpStep.WorkspaceSelection);
     },
     [
@@ -466,6 +529,7 @@ export const useAuth = () => {
       loadCurrentUser,
       setSignInUpStep,
       createWorkspace,
+      isMultiWorkspaceEnabled,
     ],
   );
 

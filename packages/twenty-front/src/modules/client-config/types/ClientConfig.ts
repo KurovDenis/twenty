@@ -31,6 +31,7 @@ export type ClientConfig = {
   isMicrosoftCalendarEnabled: boolean;
   isMicrosoftMessagingEnabled: boolean;
   isMultiWorkspaceEnabled: boolean;
+  singleWorkspaceBehavior: 'auto-redirect' | 'create-new' | 'show-choice';
   isImapSmtpCaldavEnabled: boolean;
   publicFeatureFlags: Array<PublicFeatureFlag>;
   sentry: Sentry;

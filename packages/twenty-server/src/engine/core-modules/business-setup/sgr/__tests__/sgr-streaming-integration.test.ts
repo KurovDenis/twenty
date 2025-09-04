@@ -4,14 +4,18 @@
  */
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Test, TestingModule } from '@nestjs/testing';
-import { RedisPubSub } from 'graphql-redis-subscriptions';
+import { Test, type TestingModule } from '@nestjs/testing';
+
+import { type RedisPubSub } from 'graphql-redis-subscriptions';
 
 import { BusinessSetupSubscriptionsResolver } from '../../business-setup-subscriptions.resolver';
 import { EventEmitterBridgeService } from '../../services/event-emitter-bridge.service';
 import { BusinessSetupEventType } from '../../types/business-setup-subscription.types';
 import { SupervisorSGRService } from '../services/supervisor-sgr.service';
-import { SGRStreamEvent, SGRStreamEventType } from '../types/sgr-stream.types';
+import {
+  type SGRStreamEvent,
+  SGRStreamEventType,
+} from '../types/sgr-stream.types';
 
 describe('SGR Streaming Integration Tests', () => {
   let supervisorService: SupervisorSGRService;
@@ -57,8 +61,12 @@ describe('SGR Streaming Integration Tests', () => {
       ],
     }).compile();
 
-    eventBridge = module.get<EventEmitterBridgeService>(EventEmitterBridgeService);
-    subscriptionResolver = module.get<BusinessSetupSubscriptionsResolver>(BusinessSetupSubscriptionsResolver);
+    eventBridge = module.get<EventEmitterBridgeService>(
+      EventEmitterBridgeService,
+    );
+    subscriptionResolver = module.get<BusinessSetupSubscriptionsResolver>(
+      BusinessSetupSubscriptionsResolver,
+    );
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
   });
 
@@ -96,7 +104,8 @@ describe('SGR Streaming Integration Tests', () => {
           payload: {
             threadId: mockThreadId,
             stepId: 'step-1',
-            fullJson: '{"current_state": "analyzing...", "function": {"tool": "check_status"}}',
+            fullJson:
+              '{"current_state": "analyzing...", "function": {"tool": "check_status"}}',
             timestamp: new Date(),
           },
         },
@@ -106,7 +115,8 @@ describe('SGR Streaming Integration Tests', () => {
             threadId: mockThreadId,
             stepId: 'step-1',
             toolName: 'check_status',
-            toolArgs: '{"userId": "test-user", "workspaceId": "test-workspace"}',
+            toolArgs:
+              '{"userId": "test-user", "workspaceId": "test-workspace"}',
             timestamp: new Date(),
           },
         },
@@ -122,8 +132,10 @@ describe('SGR Streaming Integration Tests', () => {
 
       // Act: Emit events through the system
       const publishedEvents: any[] = [];
+
       pubSub.publish.mockImplementation((channel, payload) => {
         publishedEvents.push({ channel, payload });
+
         return Promise.resolve();
       });
 
@@ -133,25 +145,28 @@ describe('SGR Streaming Integration Tests', () => {
 
       // Assert: Check that events were properly transformed and published
       expect(publishedEvents).toHaveLength(testEvents.length);
-      
+
       // Verify event structure
       const startEvent = publishedEvents.find(
-        e => e.payload.type === BusinessSetupEventType.SGR_STREAMING_START
+        (e) => e.payload.type === BusinessSetupEventType.SGR_STREAMING_START,
       );
+
       expect(startEvent).toBeDefined();
       expect(startEvent.payload.metadata.sgrStreaming).toBe(true);
 
       // Verify token chunk event
       const tokenEvent = publishedEvents.find(
-        e => e.payload.type === BusinessSetupEventType.SGR_JSON_TOKEN_CHUNK
+        (e) => e.payload.type === BusinessSetupEventType.SGR_JSON_TOKEN_CHUNK,
       );
+
       expect(tokenEvent).toBeDefined();
       expect(tokenEvent.payload.payload.token).toContain('current_state');
 
       // Verify tool call event
       const toolEvent = publishedEvents.find(
-        e => e.payload.type === BusinessSetupEventType.SGR_TOOL_CALL_PENDING
+        (e) => e.payload.type === BusinessSetupEventType.SGR_TOOL_CALL_PENDING,
       );
+
       expect(toolEvent).toBeDefined();
       expect(toolEvent.payload.payload.toolName).toBe('check_status');
     });
@@ -176,8 +191,10 @@ describe('SGR Streaming Integration Tests', () => {
 
       // Act
       const publishedEvents: any[] = [];
+
       pubSub.publish.mockImplementation((channel, payload) => {
         publishedEvents.push({ channel, payload });
+
         return Promise.resolve();
       });
 
@@ -187,7 +204,7 @@ describe('SGR Streaming Integration Tests', () => {
       expect(publishedEvents).toHaveLength(1);
       const event = publishedEvents[0];
       const toolArgs = JSON.parse(event.payload.payload.toolArgs);
-      
+
       expect(toolArgs.apiKey).toBe('[REDACTED]');
       expect(toolArgs.password).toBe('[REDACTED]');
       expect(toolArgs.url).toBe('https://api.example.com'); // Not sensitive
@@ -204,8 +221,10 @@ describe('SGR Streaming Integration Tests', () => {
 
       // Act: Emit tokens rapidly
       const publishedEvents: any[] = [];
+
       pubSub.publish.mockImplementation((channel, payload) => {
         publishedEvents.push({ channel, payload });
+
         return Promise.resolve();
       });
 
@@ -214,15 +233,16 @@ describe('SGR Streaming Integration Tests', () => {
       }
 
       // Wait for throttling to complete
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       // Assert: Should have fewer published events due to batching
       expect(publishedEvents.length).toBeLessThan(tokenEvents.length);
-      
+
       // Verify batched tokens
       const tokenEvent = publishedEvents.find(
-        e => e.payload.type === BusinessSetupEventType.SGR_JSON_TOKEN_CHUNK
+        (e) => e.payload.type === BusinessSetupEventType.SGR_JSON_TOKEN_CHUNK,
       );
+
       expect(tokenEvent).toBeDefined();
       expect(tokenEvent.payload.payload.token.length).toBeGreaterThan(7); // Multiple tokens batched
     });
@@ -279,11 +299,12 @@ describe('SGR Streaming Integration Tests', () => {
 
       // Act & Assert: Should not throw
       await expect(
-        eventBridge.handleSGRStreamingEvent(testEvent)
+        eventBridge.handleSGRStreamingEvent(testEvent),
       ).resolves.not.toThrow();
 
       // Verify error metrics are updated
       const metrics = eventBridge.getSGRMetrics();
+
       expect(metrics.errorRate).toBeGreaterThan(0);
     });
 
@@ -300,7 +321,7 @@ describe('SGR Streaming Integration Tests', () => {
 
       // Should handle gracefully without throwing
       await expect(
-        eventBridge.handleSGRStreamingEvent(malformedEvent)
+        eventBridge.handleSGRStreamingEvent(malformedEvent),
       ).resolves.not.toThrow();
     });
   });
@@ -329,7 +350,10 @@ describe('SGR Streaming Integration Tests', () => {
 
       // Assert: Metrics should be updated
       const updatedMetrics = eventBridge.getSGRMetrics();
-      expect(updatedMetrics.totalEventsProcessed).toBeGreaterThan(initialMetrics.totalEventsProcessed);
+
+      expect(updatedMetrics.totalEventsProcessed).toBeGreaterThan(
+        initialMetrics.totalEventsProcessed,
+      );
       expect(updatedMetrics.averageProcessingTime).toBeGreaterThanOrEqual(0);
     });
 

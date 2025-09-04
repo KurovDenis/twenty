@@ -15,21 +15,27 @@ interface ChatContinuationContextType {
   clearChatHistory: () => void;
 }
 
-const ChatContinuationContext = createContext<ChatContinuationContextType | undefined>(undefined);
+const ChatContinuationContext = createContext<
+  ChatContinuationContextType | undefined
+>(undefined);
 
 interface ChatContinuationProviderProps {
   children: ReactNode;
 }
 
-export const ChatContinuationProvider: React.FC<ChatContinuationProviderProps> = ({ children }) => {
+export const ChatContinuationProvider: React.FC<
+  ChatContinuationProviderProps
+> = ({ children }) => {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [isChatActive, setIsChatActive] = useState(false);
-  const [chatHistory, setChatHistory] = useState<Array<{
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: Date;
-  }>>([]);
+  const [chatHistory, setChatHistory] = useState<
+    Array<{
+      id: string;
+      role: 'user' | 'assistant';
+      content: string;
+      timestamp: Date;
+    }>
+  >([]);
 
   const addMessage = (role: 'user' | 'assistant', content: string) => {
     const newMessage = {
@@ -38,8 +44,8 @@ export const ChatContinuationProvider: React.FC<ChatContinuationProviderProps> =
       content,
       timestamp: new Date(),
     };
-    
-    setChatHistory(prev => [...prev, newMessage]);
+
+    setChatHistory((prev) => [...prev, newMessage]);
   };
 
   const clearChatHistory = () => {
@@ -65,10 +71,12 @@ export const ChatContinuationProvider: React.FC<ChatContinuationProviderProps> =
 
 export const useChatContinuationContext = (): ChatContinuationContextType => {
   const context = useContext(ChatContinuationContext);
-  
+
   if (context === undefined) {
-    throw new Error('useChatContinuationContext must be used within a ChatContinuationProvider');
+    throw new Error(
+      'useChatContinuationContext must be used within a ChatContinuationProvider',
+    );
   }
-  
+
   return context;
 };
