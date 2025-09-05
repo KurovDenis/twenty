@@ -87,6 +87,34 @@ export abstract class BusinessSetupProvider {
   }
 
   /**
+   * Get UI guidance for the current business setup status
+   */
+  async getUIGuidance(businessStatus: string): Promise<{
+    buttonText: string;
+    buttonIcon: string;
+    tooltipText: string;
+    isEnabled: boolean;
+    nextAction: string;
+    buttonVariant: string;
+    requiresUserAction: boolean;
+    loadingText?: string;
+    fallbackAction: string;
+  }> {
+    // Default implementation - providers should override
+    return {
+      buttonText: 'AI Assistant',
+      buttonIcon: 'IconSparkles',
+      tooltipText: 'Ask AI (Press @)',
+      isEnabled: true,
+      nextAction: 'standard',
+      buttonVariant: 'secondary',
+      requiresUserAction: false,
+      loadingText: 'Loading AI...',
+      fallbackAction: 'general_ai_chat',
+    };
+  }
+
+  /**
    * Get provider health status
    */
   async getHealthStatus(): Promise<{

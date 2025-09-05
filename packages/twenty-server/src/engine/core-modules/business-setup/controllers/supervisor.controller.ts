@@ -152,8 +152,8 @@ export class SupervisorController {
       });
       const config = this.configService.getConfigForRequest(complexity);
 
-      // Find appropriate provider
-      const provider = this.providerRegistry.findProvider(status);
+      // Find appropriate provider that supports the current status
+      const provider = this.providerRegistry.getDefaultProviderForStatus(status);
 
       // Generate UI guidance
       const guidance: UIGuidance = await this.generateUIGuidance(

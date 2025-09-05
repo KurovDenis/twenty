@@ -8,12 +8,12 @@ import { UserVarsService } from 'src/engine/core-modules/user/user-vars/services
 import { BusinessSetupStepKeys } from '../business-setup.service';
 import { BusinessSetupStatus } from '../enums/business-setup-status.enum';
 import {
-    BusinessSetupContext,
-    BusinessSetupProvider,
-    ProviderCredentials,
-    ProviderSetupStep,
-    SetupResult,
-    ValidationResult,
+  BusinessSetupContext,
+  BusinessSetupProvider,
+  ProviderCredentials,
+  ProviderSetupStep,
+  SetupResult,
+  ValidationResult,
 } from '../services/provider-registry.service';
 
 export interface AvitoCredentials extends ProviderCredentials {
@@ -184,27 +184,24 @@ export class AvitoBusinessSetupProvider extends BusinessSetupProvider {
 
       switch (action) {
         case 'chat_button_clicked':
-          // For WELCOME status, redirect to SGR Avito agent
-          const isWelcomeStatus = context?.status === 'WELCOME';
+          // ✅ FIX: Return AI chat URL with agentId for proper routing to Avito Agent
+          const agentId = context?.status === 'WELCOME' ? 'sgr-avito-agent' : null;
+          const redirectUrl = agentId ? `/ai-chat?agentId=${agentId}` : '/ai-chat';
           
-          if (isWelcomeStatus) {
-            return {
-              success: true,
-              message: 'Opening Avito integration chat with SGR agent',
-              redirectTo: '/ai-chat?agentId=sgr-avito-agent&businessSetupStep=WELCOME',
-              requiresFollowup: false,
+          return {
+            success: true,
+            message: 'Opening AI chat interface',
+            redirectTo: redirectUrl,
+            requiresFollowup: false,
+            providerId: this.providerId,
+            // ✅ Add metadata for frontend routing decisions
+            metadata: {
+              businessSetupStep: context?.status,
               providerId: this.providerId,
-            };
-          } else {
-            // For other statuses, open general AI chat
-            return {
-              success: true,
-              message: 'Opening AI chat interface',
-              redirectTo: '/ai-chat',
-              requiresFollowup: false,
-              providerId: this.providerId,
-            };
-          }
+              shouldRouteToSpecializedAgent: context?.status === 'WELCOME',
+              agentId: agentId,
+            },
+          };
         case 'validate_credentials':
           return await this.validateCredentials(context.credentials);
         case 'setup_business':
@@ -281,6 +278,72 @@ export class AvitoBusinessSetupProvider extends BusinessSetupProvider {
         'marketplace_integration',
       ],
     };
+  }
+
+  /**
+   * Get UI guidance for the current business setup status
+   */
+  async getUIGuidance(businessStatus: string): Promise<{
+    buttonText: string;
+    buttonIcon: string;
+    tooltipText: string;
+    isEnabled: boolean;
+    nextAction: string;
+    buttonVariant: string;
+    requiresUserAction: boolean;
+    loadingText?: string;
+    fallbackAction: string;
+  }> {
+    switch (businessStatus) {
+      case 'WELCOME':
+        return {
+          buttonText: 'Setup Avito Integration',
+          buttonIcon: 'IconSettings',
+          tooltipText: 'Configure your Avito marketplace integration',
+          isEnabled: true,
+          nextAction: 'business_setup',
+          buttonVariant: 'primary',
+          requiresUserAction: true,
+          loadingText: 'Setting up Avito integration...',
+          fallbackAction: 'avito_agent',
+        };
+      case 'BUSINESS_ANALYSIS':
+        return {
+          buttonText: 'Continue Analysis',
+          buttonIcon: 'IconChart',
+          tooltipText: 'Continue business analysis with Avito data',
+          isEnabled: true,
+          nextAction: 'business_setup',
+          buttonVariant: 'secondary',
+          requiresUserAction: true,
+          loadingText: 'Analyzing business data...',
+          fallbackAction: 'avito_agent',
+        };
+      case 'COMPLETED':
+        return {
+          buttonText: 'AI Assistant',
+          buttonIcon: 'IconSparkles',
+          tooltipText: 'Ask AI (Press @)',
+          isEnabled: true,
+          nextAction: 'standard',
+          buttonVariant: 'secondary',
+          requiresUserAction: false,
+          loadingText: 'Loading AI...',
+          fallbackAction: 'general_ai_chat',
+        };
+      default:
+        return {
+          buttonText: 'AI Assistant',
+          buttonIcon: 'IconSparkles',
+          tooltipText: 'Ask AI (Press @)',
+          isEnabled: true,
+          nextAction: 'standard',
+          buttonVariant: 'secondary',
+          requiresUserAction: false,
+          loadingText: 'Loading AI...',
+          fallbackAction: 'general_ai_chat',
+        };
+    }
   }
 
   /**
