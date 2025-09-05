@@ -40,19 +40,21 @@ export const useCreateNewAIChatThread = ({
     variables: mutationVariables,
     onCompleted: (data) => {
       const newThreadId = data.createAgentChatThread.id;
-      console.log(
-        'Created new chat thread:',
-        newThreadId,
-        'with agent:',
-        data.createAgentChatThread.agentId,
-      );
+      console.log('🎉 SUCCESS: Created new chat thread:', newThreadId, 'with agent:', data.createAgentChatThread.agentId);
       setCurrentThreadId(newThreadId);
       openAskAIPage();
     },
     onError: (error) => {
-      console.error('Failed to create agent chat thread:', error);
+      console.error('❌ ERROR: Failed to create agent chat thread:', error);
     },
   });
+  
+  console.log('=== useCreateNewAIChatThread Hook ===');
+  console.log('agentId:', agentId);
+  console.log('businessSetupStep:', businessSetupStep);
+  console.log('currentBusinessSetupStatus:', currentBusinessSetupStatus);
+  console.log('effectiveBusinessSetupStep:', effectiveBusinessSetupStep);
+  console.log('mutationVariables:', mutationVariables);
 
   return { createAgentChatThread };
 };

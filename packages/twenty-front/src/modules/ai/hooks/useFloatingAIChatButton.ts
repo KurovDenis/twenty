@@ -128,7 +128,8 @@ export const useFloatingAIChatButton = () => {
             // Open AI chat through command menu with agent context
             if (!isAIChatOpen) {
               console.log('Opening AI chat with agent context via command menu');
-              openAskAIPage(`AI Assistant${agentId ? ` - ${agentId}` : ''}`);
+              // Pass agentId as pageId to the command menu
+              openAskAIPage(`AI Assistant${agentId ? ` - ${agentId}` : ''}`, agentId);
             } else {
               console.log('AI chat already open, not opening again');
             }

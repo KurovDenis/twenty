@@ -331,6 +331,16 @@ describe('ProviderRegistry - Performance', () => {
         getHealthStatus: jest
           .fn()
           .mockResolvedValue({ isHealthy: true, lastChecked: new Date() }),
+        getUIGuidance: jest.fn().mockResolvedValue({
+          buttonText: 'Setup',
+          buttonIcon: 'IconSettings',
+          tooltipText: 'Setup provider',
+          isEnabled: true,
+          nextAction: 'setup',
+          buttonVariant: 'primary',
+          requiresUserAction: true,
+          fallbackAction: 'default',
+        }),
       }));
 
     const start = Date.now();
@@ -371,6 +381,16 @@ describe('ProviderRegistry - Performance', () => {
         getHealthStatus: jest
           .fn()
           .mockResolvedValue({ isHealthy: true, lastChecked: new Date() }),
+        getUIGuidance: jest.fn().mockResolvedValue({
+          buttonText: 'Setup',
+          buttonIcon: 'IconSettings',
+          tooltipText: 'Setup provider',
+          isEnabled: true,
+          nextAction: 'setup',
+          buttonVariant: 'primary',
+          requiresUserAction: true,
+          fallbackAction: 'default',
+        }),
       }));
 
     providers.forEach((provider) => service.registerProvider(provider));

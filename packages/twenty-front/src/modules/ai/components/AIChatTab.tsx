@@ -24,10 +24,12 @@ import {
   isToolExecutionEvent,
   useSGREvents,
 } from '@/ai/services/sgr-event-bridge.service';
+import { useBusinessSetupStatus } from '@/business-setup/hooks/useBusinessSetupStatus';
 import { contextStoreCurrentObjectMetadataItemIdComponentState } from '@/context-store/states/contextStoreCurrentObjectMetadataItemIdComponentState';
 import { useRecoilComponentValue } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValue';
 import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from 'twenty-ui/input';
 import { AgentChatMessage } from '~/generated-metadata/graphql';
 import { useAgentChat } from '../hooks/useAgentChat';
@@ -104,6 +106,10 @@ export const AIChatTab = ({
   agentId: string;
   isWorkflowAgentNodeChat?: boolean;
 }) => {
+  console.log('=== AIChatTab Component RENDER ===');
+  console.log('agentId:', agentId);
+  console.log('isWorkflowAgentNodeChat:', isWorkflowAgentNodeChat);
+  
   return (
     <AgentChatMessagesComponentInstanceContext.Provider
       value={{ instanceId: agentId }}
@@ -127,7 +133,16 @@ const AIChatTabInternal = ({
   agentId: string;
   isWorkflowAgentNodeChat?: boolean;
 }) => {
+  console.log('=== AIChatTabInternal Component RENDER ===');
+  console.log('agentId:', agentId);
+  console.log('isWorkflowAgentNodeChat:', isWorkflowAgentNodeChat);
+  
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [hasAutoCreatedThread, setHasAutoCreatedThread] = useState(false);
+  const currentBusinessSetupStatus = useBusinessSetupStatus();
+  
+  console.log('Current business setup status:', currentBusinessSetupStatus);
 
   const contextStoreCurrentObjectMetadataItemId = useRecoilComponentValue(
     contextStoreCurrentObjectMetadataItemIdComponentState,
@@ -144,8 +159,59 @@ const AIChatTabInternal = ({
   } = useAgentChat(agentId);
   const { uploadFiles } = useAIChatFileUpload({ agentId });
 
-  const { createAgentChatThread } = useCreateNewAIChatThread({ agentId });
+  const { createAgentChatThread } = useCreateNewAIChatThread({ 
+    agentId,
+    businessSetupStep: currentBusinessSetupStatus || undefined
+  });
   const { navigateCommandMenu } = useCommandMenu();
+
+  // Auto-create thread when component loads with agentId parameter
+  useEffect(() => {
+    console.log('=== AIChatTab Auto-Creation Effect START ===');
+    console.log('Component agentId:', agentId);
+    console.log('Current threadId:', currentThreadId);
+    console.log('Has auto-created thread:', hasAutoCreatedThread);
+    console.log('Current business setup status:', currentBusinessSetupStatus);
+    
+    const urlAgentId = searchParams.get('agentId');
+    const urlBusinessSetupStep = searchParams.get('businessSetupStep');
+    
+    console.log('URL agentId:', urlAgentId);
+    console.log('URL businessSetupStep:', urlBusinessSetupStep);
+    
+    // Use URL businessSetupStep if provided, otherwise use current status
+    const effectiveBusinessSetupStep = urlBusinessSetupStep || currentBusinessSetupStatus;
+    
+    console.log('Effective business setup step:', effectiveBusinessSetupStep);
+    
+    // Only auto-create if:
+    // 1. We have an agentId in the URL
+    // 2. We haven't already created a thread
+    // 3. We don't have a current thread
+    // 4. The URL agentId matches our component agentId
+    const shouldAutoCreate = urlAgentId && 
+      !hasAutoCreatedThread && 
+      !currentThreadId && 
+      urlAgentId === agentId;
+    
+    console.log('Should auto-create thread:', shouldAutoCreate);
+    console.log('Conditions check:');
+    console.log('- urlAgentId exists:', !!urlAgentId);
+    console.log('- !hasAutoCreatedThread:', !hasAutoCreatedThread);
+    console.log('- !currentThreadId:', !currentThreadId);
+    console.log('- urlAgentId === agentId:', urlAgentId === agentId);
+    
+    if (shouldAutoCreate) {
+      console.log('🚀 Auto-creating thread for agentId:', agentId, 'with businessSetupStep:', effectiveBusinessSetupStep);
+      setHasAutoCreatedThread(true);
+      
+      // Create thread - the hook will use the current business setup status
+      // This will trigger the supervisor system if businessSetupStep is provided
+      createAgentChatThread();
+    }
+    
+    console.log('=== AIChatTab Auto-Creation Effect END ===');
+  }, [searchParams, agentId, hasAutoCreatedThread, currentThreadId, createAgentChatThread, currentBusinessSetupStatus]);
 
   // SGR Event Handling
   const { events: sgrEvents, isConnected: isSGRConnected } = useSGREvents(

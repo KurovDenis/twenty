@@ -449,6 +449,28 @@ describe('Supervisor Architecture Integration Tests', () => {
             error: 'Provider is failing',
           };
         },
+
+        async getUIGuidance(businessStatus: string): Promise<{
+          buttonText: string;
+          buttonIcon: string;
+          tooltipText: string;
+          isEnabled: boolean;
+          nextAction: string;
+          buttonVariant: string;
+          requiresUserAction: boolean;
+          fallbackAction: string;
+        }> {
+          return {
+            buttonText: 'Setup',
+            buttonIcon: 'IconSettings',
+            tooltipText: 'Setup provider',
+            isEnabled: true,
+            nextAction: 'setup',
+            buttonVariant: 'primary',
+            requiresUserAction: true,
+            fallbackAction: 'default',
+          };
+        },
       };
 
       providerRegistry.registerProvider(failingProvider);

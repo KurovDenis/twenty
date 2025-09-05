@@ -1,0 +1,6 @@
+packages/twenty-front/src/modules/ai/components/AIChatTab.tsx
+packages/twenty-front/src/modules/ai/hooks/useAgentChat.ts
+packages/twenty-front/src/modules/ai/hooks/useCreateNewAIChatThread.ts
+packages/twenty-front/src/modules/ai/hooks/useFloatingAIChatButton.ts
+packages/twenty-front/src/modules/command-menu/hooks/useOpenAskAIPageInCommandMenu.ts
+packages/twenty-front/src/modules/command-menu/pages/ask-ai/components/CommandMenuAskAIPage.tsx

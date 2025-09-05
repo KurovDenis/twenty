@@ -7,8 +7,8 @@ import { Key } from 'ts-key-enum';
 import { AgentChatMessageRole } from '@/ai/constants/agent-chat-message-role';
 import { STREAM_CHAT_QUERY } from '@/ai/rest-api/agent-chat-apollo.api';
 import {
-  AIChatObjectMetadataAndRecordContext,
-  agentChatObjectMetadataAndRecordContextState,
+    AIChatObjectMetadataAndRecordContext,
+    agentChatObjectMetadataAndRecordContextState,
 } from '@/ai/states/agentChatObjectMetadataAndRecordContextState';
 import { agentChatSelectedFilesComponentState } from '@/ai/states/agentChatSelectedFilesComponentState';
 import { agentChatUploadedFilesComponentState } from '@/ai/states/agentChatUploadedFilesComponentState';
@@ -23,8 +23,8 @@ import { useRecoilComponentValue } from '@/ui/utilities/state/component-state/ho
 import { useApolloClient } from '@apollo/client';
 import { v4 } from 'uuid';
 import {
-  useGetAgentChatMessagesQuery,
-  useGetAgentChatThreadsQuery,
+    useGetAgentChatMessagesQuery,
+    useGetAgentChatThreadsQuery,
 } from '~/generated-metadata/graphql';
 import { AgentChatMessage } from '~/generated/graphql';
 import { agentChatInputState } from '../states/agentChatInputState';
@@ -110,6 +110,13 @@ export const useAgentChat = (agentId: string, records?: ObjectRecord[]) => {
     });
 
   const isLoading = !threads || !messages;
+  
+  console.log('=== useAgentChat Hook State ===');
+  console.log('agentId:', agentId);
+  console.log('currentThreadId:', currentThreadId);
+  console.log('threads:', threads);
+  console.log('messages:', messages);
+  console.log('isLoading:', isLoading);
 
   const createOptimisticMessages = (content: string): OptimisticMessage[] => {
     const optimisticMessage: OptimisticMessage = {
